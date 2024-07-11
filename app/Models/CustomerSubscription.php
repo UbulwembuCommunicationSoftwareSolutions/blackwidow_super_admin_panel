@@ -11,6 +11,9 @@ class CustomerSubscription extends Model implements HasMedia
     use InteractsWithMedia;
 
     protected $fillable = [
+        'url',
+        'subscription_type_id',
+        'customer_id',
         'logo_1',
         'logo_2',
         'logo_3',
