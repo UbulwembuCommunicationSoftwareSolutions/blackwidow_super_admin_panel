@@ -19,6 +19,8 @@ class CustomerSubscription extends Model implements HasMedia
         'logo_3',
         'logo_4',
         'logo_5',
+        'created_at',
+        'updated_at',
     ];
 
     public function subscriptionType(): BelongsTo
