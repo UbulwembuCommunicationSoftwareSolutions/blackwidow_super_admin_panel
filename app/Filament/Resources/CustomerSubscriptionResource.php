@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Models\CustomerSubscription;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -27,6 +28,10 @@ class CustomerSubscriptionResource extends Resource
     {
         return $form
             ->schema([
+                TextInput::make('customer_id')
+                    ->required()
+                    ->integer(),
+
                 Placeholder::make('created_at')
                     ->label('Created Date')
                     ->content(fn(?CustomerSubscription $record): string => $record?->created_at?->diffForHumans() ?? '-'),
@@ -43,24 +48,36 @@ class CustomerSubscriptionResource extends Resource
                     ->required()
                     ->integer(),
 
-                TextInput::make('logo_1')
-                    ->required(),
+                FileUpload::make('logo_1')
+                    ->label('Upload File')
+                    ->directory('uploads') // The directory where files will be stored
+                    ->visibility('public') // Or 'private' based on your requirements
+                    ->disk('public'), // The disk defined in your `config/filesystems.php`
 
-                TextInput::make('logo_2')
-                    ->required(),
+                FileUpload::make('logo_2')
+                    ->label('Upload File')
+                    ->directory('uploads') // The directory where files will be stored
+                    ->visibility('public') // Or 'private' based on your requirements
+                    ->disk('public'), // The disk defined in your `config/filesystems.php`
 
-                TextInput::make('logo_3')
-                    ->required(),
+                FileUpload::make('logo_3')
+                    ->label('Upload File')
+                    ->directory('uploads') // The directory where files will be stored
+                    ->visibility('public') // Or 'private' based on your requirements
+                    ->disk('public'), // The disk defined in your `config/filesystems.php`
 
-                TextInput::make('logo_4')
-                    ->required(),
+                FileUpload::make('logo_4')
+                    ->label('Upload File')
+                    ->directory('uploads') // The directory where files will be stored
+                    ->visibility('public') // Or 'private' based on your requirements
+                    ->disk('public'), // The disk defined in your `config/filesystems.php`
 
-                TextInput::make('logo_5')
-                    ->required(),
+                FileUpload::make('logo_5')
+                    ->label('Upload File')
+                    ->directory('uploads') // The directory where files will be stored
+                    ->visibility('public') // Or 'private' based on your requirements
+                    ->disk('public'), // The disk defined in your `config/filesystems.php`
 
-                TextInput::make('customer_id')
-                    ->required()
-                    ->integer(),
             ]);
     }
 
