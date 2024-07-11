@@ -6,6 +6,7 @@ use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Models\CustomerSubscription;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -28,9 +29,10 @@ class CustomerSubscriptionResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('customer_id')
-                    ->required()
-                    ->integer(),
+                Select::make('customer_id')
+                    ->label('Customer')
+                    ->relationship('customer', 'name') // Specify the relationship and the display column
+                    ->required(),
 
                 Placeholder::make('created_at')
                     ->label('Created Date')
