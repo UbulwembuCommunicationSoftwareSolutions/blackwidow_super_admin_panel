@@ -12,36 +12,36 @@ class CustomerPolicy
 
     public function viewAny(User $user)
     {
-        return false;
+        return true;
     }
 
     public function view(User $user, Customer $customer)
     {
-        return false;
+        return true;
     }
 
     public function create(User $user)
     {
-        return false;
+        return true;
     }
 
     public function update(User $user, Customer $customer)
     {
-        return false;
+        return true;
     }
 
     public function delete(User $user, Customer $customer)
     {
-        return false;
+        return true;
     }
 
     public function restore(User $user, Customer $customer)
     {
-        return false;
+        return true;
     }
 
     public function forceDelete(User $user, Customer $customer)
     {
-        return false;
+        return true;
     }
 }
