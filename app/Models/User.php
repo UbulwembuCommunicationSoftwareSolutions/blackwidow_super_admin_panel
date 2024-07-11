@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable;
+    //Hello
 
     public function canAccessPanel(Panel $panel): bool
     {
