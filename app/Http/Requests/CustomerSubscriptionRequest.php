@@ -9,14 +9,14 @@ class CustomerSubscriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'app_url' => ['required'],
-            'customer_id' => ['required', 'exists:customers'],
-            'console_login_logo' => ['required'],
-            'console_menu_logo' => ['required'],
-            'console_background_logo' => ['required'],
-            'app_install_logo' => ['required'],
-            'app_background_logo' => ['required'],
+            'url' => ['required'],
             'subscription_type_id' => ['required', 'exists:subscription_types'],
+            'logo_1' => ['required'],
+            'logo_2' => ['required'],
+            'logo_3' => ['required'],
+            'logo_4' => ['required'],
+            'logo_5' => ['required'],
+            'customer_id' => ['required', 'exists:customers'],
         ];
     }
 

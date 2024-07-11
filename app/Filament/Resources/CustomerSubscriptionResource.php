@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Models\CustomerSubscription;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,16 +12,8 @@ use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ForceDeleteAction;
-use Filament\Tables\Actions\ForceDeleteBulkAction;
-use Filament\Tables\Actions\RestoreAction;
-use Filament\Tables\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CustomerSubscriptionResource extends Resource
 {
@@ -44,34 +35,32 @@ class CustomerSubscriptionResource extends Resource
                     ->label('Last Modified Date')
                     ->content(fn(?CustomerSubscription $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
 
-                TextInput::make('app_url')
+                TextInput::make('url')
                     ->required()
                     ->url(),
 
-                Select::make('customer_id')
-                    ->relationship('customer', 'name')
-                    ->searchable()
+                TextInput::make('subscription_type_id')
+                    ->required()
+                    ->integer(),
+
+                TextInput::make('logo_1')
                     ->required(),
 
-                TextInput::make('console_login_logo')
+                TextInput::make('logo_2')
                     ->required(),
 
-                TextInput::make('console_menu_logo')
+                TextInput::make('logo_3')
                     ->required(),
 
-                TextInput::make('console_background_logo')
+                TextInput::make('logo_4')
                     ->required(),
 
-                TextInput::make('app_install_logo')
+                TextInput::make('logo_5')
                     ->required(),
 
-                TextInput::make('app_background_logo')
-                    ->required(),
-
-                Select::make('subscription_type_id')
-                    ->relationship('subscriptionType', 'name')
-                    ->searchable()
-                    ->required(),
+                TextInput::make('customer_id')
+                    ->required()
+                    ->integer(),
             ]);
     }
 
@@ -79,40 +68,32 @@ class CustomerSubscriptionResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('app_url'),
+                TextColumn::make('url'),
 
-                TextColumn::make('customer.name')
-                    ->searchable()
-                    ->sortable(),
+                TextColumn::make('subscription_type_id'),
 
-                TextColumn::make('console_login_logo'),
+                TextColumn::make('logo_1'),
 
-                TextColumn::make('console_menu_logo'),
+                TextColumn::make('logo_2'),
 
-                TextColumn::make('console_background_logo'),
+                TextColumn::make('logo_3'),
 
-                TextColumn::make('app_install_logo'),
+                TextColumn::make('logo_4'),
 
-                TextColumn::make('app_background_logo'),
+                TextColumn::make('logo_5'),
 
-                TextColumn::make('subscriptionType.name')
-                    ->searchable()
-                    ->sortable(),
+                TextColumn::make('customer_id'),
             ])
             ->filters([
-                TrashedFilter::make(),
+                //
             ])
             ->actions([
                 EditAction::make(),
                 DeleteAction::make(),
-                RestoreAction::make(),
-                ForceDeleteAction::make(),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -126,36 +107,8 @@ class CustomerSubscriptionResource extends Resource
         ];
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
-    }
-
-    public static function getGlobalSearchEloquentQuery(): Builder
-    {
-        return parent::getGlobalSearchEloquentQuery()->with(['customer', 'subscriptionType']);
-    }
-
     public static function getGloballySearchableAttributes(): array
     {
-        return ['customer.name', 'subscriptionType.name'];
-    }
-
-    public static function getGlobalSearchResultDetails(Model $record): array
-    {
-        $details = [];
-
-        if ($record->customer) {
-            $details['Customer'] = $record->customer->name;
-        }
-
-        if ($record->subscriptionType) {
-            $details['SubscriptionType'] = $record->subscriptionType->name;
-        }
-
-        return $details;
+        return [];
     }
 }

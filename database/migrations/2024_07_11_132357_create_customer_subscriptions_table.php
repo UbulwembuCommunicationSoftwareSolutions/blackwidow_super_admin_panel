@@ -9,15 +9,14 @@ return new class extends Migration {
     {
         Schema::create('customer_subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->string('app_url');
-            $table->foreignId('customer_id');
-            $table->string('console_login_logo');
-            $table->string('console_menu_logo');
-            $table->string('console_background_logo');
-            $table->string('app_install_logo');
-            $table->string('app_background_logo');
+            $table->string('url');
             $table->foreignId('subscription_type_id');
-            $table->softDeletes();
+            $table->string('logo_1');
+            $table->string('logo_2');
+            $table->string('logo_3');
+            $table->string('logo_4');
+            $table->string('logo_5');
+            $table->foreignId('customer_id');
             $table->timestamps();
         });
     }

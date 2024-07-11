@@ -14,18 +14,18 @@ class CustomerSubscriptionResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'id' => $this->id,
-            'app_url' => $this->app_url,
-            'console_login_logo' => $this->console_login_logo,
-            'console_menu_logo' => $this->console_menu_logo,
-            'console_background_logo' => $this->console_background_logo,
-            'app_install_logo' => $this->app_install_logo,
-            'app_background_logo' => $this->app_background_logo,
+            'url' => $this->url,
+            'logo_1' => $this->logo_1,
+            'logo_2' => $this->logo_2,
+            'logo_3' => $this->logo_3,
+            'logo_4' => $this->logo_4,
+            'logo_5' => $this->logo_5,
 
-            'customer_id' => $this->customer_id,
             'subscription_type_id' => $this->subscription_type_id,
+            'customer_id' => $this->customer_id,
 
-            'customer' => new CustomerResource($this->whenLoaded('customer')),
             'subscriptionType' => new SubscriptionTypeResource($this->whenLoaded('subscriptionType')),
+            'customer' => new CustomerResource($this->whenLoaded('customer')),
         ];
     }
 }
