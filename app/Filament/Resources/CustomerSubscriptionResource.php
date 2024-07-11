@@ -33,6 +33,7 @@ class CustomerSubscriptionResource extends Resource
                     ->label('Customer')
                     ->relationship('customer', 'name') // Specify the relationship and the display column
                     ->required(),
+
                 TextInput::make('url')
                     ->required()
                     ->url(),
@@ -46,32 +47,41 @@ class CustomerSubscriptionResource extends Resource
                     ->label('Upload File')
                     ->directory('uploads') // The directory where files will be stored
                     ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public'), // The disk defined in your `config/filesystems.php`
+                    ->disk('public') // The disk defined in your `config/filesystems.php`
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_2')
                     ->label('Upload File')
                     ->directory('uploads') // The directory where files will be stored
                     ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public'), // The disk defined in your `config/filesystems.php`
+                    ->disk('public') // The disk defined in your `config/filesystems.php`
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_3')
                     ->label('Upload File')
                     ->directory('uploads') // The directory where files will be stored
                     ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public'), // The disk defined in your `config/filesystems.php`
+                    ->disk('public') // The disk defined in your `config/filesystems.php`
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_4')
                     ->label('Upload File')
                     ->directory('uploads') // The directory where files will be stored
                     ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public'), // The disk defined in your `config/filesystems.php`
+                    ->disk('public') // The disk defined in your `config/filesystems.php`
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_5')
                     ->label('Upload File')
                     ->directory('uploads') // The directory where files will be stored
                     ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public'), // The disk defined in your `config/filesystems.php`
-
+                    ->disk('public') // The disk defined in your `config/filesystems.php`
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
             ]);
     }
 
