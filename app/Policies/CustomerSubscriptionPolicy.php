@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\CustomerSubscription;
-use AppModels\User;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CustomerSubscriptionPolicy
