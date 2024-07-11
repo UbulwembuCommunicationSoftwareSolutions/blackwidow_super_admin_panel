@@ -4,12 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
-class CustomerSubscription extends Model implements HasMedia
+class CustomerSubscription extends Model
 {
-    use InteractsWithMedia;
-
     protected $fillable = [
         'url',
         'subscription_type_id',
