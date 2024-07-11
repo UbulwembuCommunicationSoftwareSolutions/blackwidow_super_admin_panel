@@ -46,9 +46,10 @@ class CustomerSubscriptionResource extends Resource
                     ->required()
                     ->url(),
 
-                TextInput::make('subscription_type_id')
-                    ->required()
-                    ->integer(),
+                Select::make('subscription_type_id')
+                    ->label('Subscription Type')
+                    ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
+                    ->required(),
 
                 FileUpload::make('logo_1')
                     ->label('Upload File')
