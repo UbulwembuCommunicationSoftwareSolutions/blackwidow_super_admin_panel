@@ -19,73 +19,17 @@ class CustomerSubscriptionController extends Controller
         return CustomerSubscriptionResource::collection(CustomerSubscription::all());
     }
 
-    public function getLogoOne(Request $request)
+    public function getLogos(Request $request)
     {
         if($request->has('customer_url')){
             $url = $request->customer_url;
             $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
             return response()->json([
-                $customerSubscription->logo_1,
-            ]);
-        }else{
-            return response()->json([
-                "message" => "Customer URL is required"
-            ], 400);
-        }
-    }
-
-    public function getLogoTwo(Request $request)
-    {
-        if($request->has('customer_url')){
-            $url = $request->customer_url;
-            $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            return response()->json([
-                $customerSubscription->logo_2,
-            ]);
-        }else{
-            return response()->json([
-                "message" => "Customer URL is required"
-            ], 400);
-        }
-    }
-
-    public function getLogoThree(Request $request)
-    {
-        if($request->has('customer_url')){
-            $url = $request->customer_url;
-            $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            return response()->json([
-                $customerSubscription->logo_3,
-            ]);
-        }else{
-            return response()->json([
-                "message" => "Customer URL is required"
-            ], 400);
-        }
-    }
-
-    public function getLogoFour(Request $request)
-    {
-        if($request->has('customer_url')){
-            $url = $request->customer_url;
-            $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            return response()->json([
-                $customerSubscription->logo_4,
-            ]);
-        }else{
-            return response()->json([
-                "message" => "Customer URL is required"
-            ], 400);
-        }
-    }
-
-    public function getLogoFive(Request $request)
-    {
-        if($request->has('customer_url')){
-            $url = $request->customer_url;
-            $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            return response()->json([
-                $customerSubscription->logo_5,
+                "logo_1" => $customerSubscription->logo_1,
+                "logo_2" => $customerSubscription->logo_2,
+                "logo_3" => $customerSubscription->logo_3,
+                "logo_4" => $customerSubscription->logo_4,
+                "logo_5" => $customerSubscription->logo_5,
             ]);
         }else{
             return response()->json([
