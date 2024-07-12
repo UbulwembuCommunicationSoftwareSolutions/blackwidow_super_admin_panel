@@ -13,4 +13,9 @@ class Customer extends Model
     protected $fillable = [
         'company_name',
     ];
+
+    public function customer_subscriptions()
+    {
+        return $this->hasMany(CustomerSubscription::class);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerResource\Pages;
+use App\Filament\Resources\CustomerResource\RelationManagers\CustomerSubscriptionsRelationManager;
 use App\Models\Customer;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
@@ -92,7 +93,7 @@ class CustomerResource extends Resource
     public static function getRelations(): array
     {
         return [
-            CustomersRelationManager::class,
+            'customers' => CustomerSubscriptionsRelationManager::class,
         ];
     }
 
