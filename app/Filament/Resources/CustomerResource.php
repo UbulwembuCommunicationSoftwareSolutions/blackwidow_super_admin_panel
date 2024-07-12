@@ -87,7 +87,7 @@ class CustomerResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name'];
+        return ['company_name'];
     }
 
     public static function getRelations(): array
