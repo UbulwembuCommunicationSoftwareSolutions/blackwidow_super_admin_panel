@@ -31,7 +31,8 @@ class CustomerSubscriptionResource extends Resource
             ->schema([
                 Select::make('customer_id')
                     ->label('Customer')
-                    ->relationship('customer', 'name') // Specify the relationship and the display column
+                    ->searchable()
+                    ->relationship('customer', 'company_name') // Specify the relationship and the display column
                     ->required(),
 
                 TextInput::make('url')
