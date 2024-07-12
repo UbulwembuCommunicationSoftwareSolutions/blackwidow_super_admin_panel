@@ -7,6 +7,7 @@ use App\Models\Customer;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteAction;
@@ -21,6 +22,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\CustomerResource\RelationManagers\CustomersRelationManager;
 
 class CustomerResource extends Resource
 {
@@ -86,4 +88,12 @@ class CustomerResource extends Resource
     {
         return ['name'];
     }
+
+    public static function getRelations(): array
+    {
+        return [
+            CustomersRelationManager::class,
+        ];
+    }
+
 }
