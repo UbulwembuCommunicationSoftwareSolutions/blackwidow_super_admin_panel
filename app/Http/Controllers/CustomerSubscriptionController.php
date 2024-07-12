@@ -32,9 +32,7 @@ class CustomerSubscriptionController extends Controller
                 "logo_5" => $customerSubscription->logo_5,
             ]);
         }else{
-            return response()->json([
-                "message" => "Customer URL is required"
-            ], 400);
+            return response()->json($logos = []);
         }
     }
 
