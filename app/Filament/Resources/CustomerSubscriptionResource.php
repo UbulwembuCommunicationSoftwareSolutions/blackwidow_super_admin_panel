@@ -45,7 +45,7 @@ class CustomerSubscriptionResource extends Resource
                     ->required(),
 
                 FileUpload::make('logo_1')
-                    ->label('Upload File')
+                    ->label('Logo 1')
                     ->disk('public')
                     ->visibility('public') // Or 'private' based on your requirements
                     ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -53,7 +53,7 @@ class CustomerSubscriptionResource extends Resource
                     ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_2')
-                    ->label('Upload File')
+                    ->label('Logo 2')
                     ->disk('public')
                     ->visibility('public') // Or 'private' based on your requirements
                     ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -61,7 +61,7 @@ class CustomerSubscriptionResource extends Resource
                     ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_3')
-                    ->label('Upload File')
+                    ->label('Logo 3')
                     ->disk('public')
                     ->visibility('public') // Or 'private' based on your requirements
                     ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -69,7 +69,7 @@ class CustomerSubscriptionResource extends Resource
                     ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_4')
-                    ->label('Upload File')
+                    ->label('Logo 4')
                     ->disk('public')
                     ->visibility('public') // Or 'private' based on your requirements
                     ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -77,7 +77,7 @@ class CustomerSubscriptionResource extends Resource
                     ->rules(['nullable', 'file', 'max:10240']),
 
                 FileUpload::make('logo_5')
-                    ->label('Upload File')
+                    ->label('Logo 5')
                     ->disk('public')
                     ->visibility('public') // Or 'private' based on your requirements
                     ->disk('public') // The disk defined in your `config/filesystems.php`
