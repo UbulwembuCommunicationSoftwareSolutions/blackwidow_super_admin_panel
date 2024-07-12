@@ -9,9 +9,7 @@ return new class extends Migration {
     {
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('surname');
-            $table->string('cellphone');
+            $table->string('company_name');
             $table->softDeletes();
             $table->timestamps();
         });

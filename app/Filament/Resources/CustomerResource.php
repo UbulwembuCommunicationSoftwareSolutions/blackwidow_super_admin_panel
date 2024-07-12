@@ -34,21 +34,7 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
-                Placeholder::make('created_at')
-                    ->label('Created Date')
-                    ->content(fn(?Customer $record): string => $record?->created_at?->diffForHumans() ?? '-'),
-
-                Placeholder::make('updated_at')
-                    ->label('Last Modified Date')
-                    ->content(fn(?Customer $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
-
-                TextInput::make('name')
-                    ->required(),
-
-                TextInput::make('surname')
-                    ->required(),
-
-                TextInput::make('cellphone')
+                TextInput::make('company_name')
                     ->required(),
             ]);
     }
@@ -57,13 +43,9 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('company_name')
                     ->searchable()
                     ->sortable(),
-
-                TextColumn::make('surname'),
-
-                TextColumn::make('cellphone'),
             ])
             ->filters([
                 TrashedFilter::make(),

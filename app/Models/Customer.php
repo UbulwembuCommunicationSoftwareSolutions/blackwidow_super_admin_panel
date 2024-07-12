@@ -11,8 +11,6 @@ class Customer extends Model
     use SoftDeletes, HasFactory;
 
     protected $fillable = [
-        'name',
-        'surname',
-        'cellphone',
+        'company_name',
     ];
 }
