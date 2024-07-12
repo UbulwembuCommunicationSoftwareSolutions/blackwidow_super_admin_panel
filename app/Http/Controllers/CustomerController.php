@@ -32,6 +32,8 @@ class CustomerController extends Controller
         return new CustomerResource($customer);
     }
 
+
+
     public function update(CustomerRequest $request, Customer $customer)
     {
         $this->authorize('update', $customer);
