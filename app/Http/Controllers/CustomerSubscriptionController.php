@@ -23,7 +23,7 @@ class CustomerSubscriptionController extends Controller
     {
         if($request->has('customer_url')){
             $url = $request->customer_url;
-            dd($request->customer_url);
+            \Log::info('URL: '.$url);
             $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
             return response()->json([
                 "logo_1" => $customerSubscription->logo_1,
