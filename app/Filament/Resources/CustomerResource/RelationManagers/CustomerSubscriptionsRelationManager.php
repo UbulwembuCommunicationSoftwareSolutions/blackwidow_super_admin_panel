@@ -4,6 +4,8 @@ namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -19,9 +21,20 @@ class CustomerSubscriptionsRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('url')
+                Select::make('customer_id')
+                    ->label('Customer')
+                    ->searchable()
+                    ->relationship('customer', 'company_name') // Specify the relationship and the display column
                     ->required()
-                    ->maxLength(255),
+                    ->default(fn () => $this->ownerRecord->id),
+                TextInput::make('url')
+                    ->required()
+                    ->url(),
+                Select::make('subscription_type_id')
+                    ->label('Subscription Type')
+                    ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
+                    ->required(),
+
                 FileUpload::make('logo_1')
                     ->label('Logo 1')
                     ->disk('public')
