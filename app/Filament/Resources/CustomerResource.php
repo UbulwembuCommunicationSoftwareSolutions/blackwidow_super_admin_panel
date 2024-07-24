@@ -49,10 +49,9 @@ class CustomerResource extends Resource
                 TextColumn::make('company_name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('customer_subscriptions')
+                TextColumn::make('customer_subscriptions_count')
                     ->label('Subscriptions')
-                    ->counts('customer_subscriptions')
-                    ->sortable(),
+                    ->counts('customer_subscriptions'),
             ])
             ->filters([
                 TrashedFilter::make(),
@@ -85,6 +84,7 @@ class CustomerResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with('customer_subscriptions')
+            ->withCount('customer_subscriptions')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
