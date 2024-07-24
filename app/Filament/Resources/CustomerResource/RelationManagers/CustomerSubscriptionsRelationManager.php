@@ -9,6 +9,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -82,7 +83,19 @@ class CustomerSubscriptionsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('url')
             ->columns([
-                Tables\Columns\TextColumn::make('url'),
+                TextColumn::make('url'),
+
+                TextColumn::make('subscription_type_id'),
+
+                TextColumn::make('logo_1'),
+
+                TextColumn::make('logo_2'),
+
+                TextColumn::make('logo_3'),
+
+                TextColumn::make('logo_4'),
+
+                TextColumn::make('logo_5'),
             ])
             ->filters([
                 //
