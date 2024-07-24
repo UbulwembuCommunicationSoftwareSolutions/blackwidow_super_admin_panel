@@ -83,10 +83,12 @@ class CustomerSubscriptionsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('url')
             ->columns([
-                TextColumn::make('url'),
 
                 TextColumn::make('subscriptionType.name')
                     ->label('Subscription Type'),
+
+                TextColumn::make('url')
+                    ->label('URL'),
 
                 TextColumn::make('logo_1'),
 
