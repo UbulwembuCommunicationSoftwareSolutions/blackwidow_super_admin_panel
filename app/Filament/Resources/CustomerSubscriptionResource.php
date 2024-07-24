@@ -16,6 +16,8 @@ use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CustomerSubscriptionResource extends Resource
 {
@@ -117,6 +119,15 @@ class CustomerSubscriptionResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with('customer', 'subscriptionType')
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
             ]);
     }
 

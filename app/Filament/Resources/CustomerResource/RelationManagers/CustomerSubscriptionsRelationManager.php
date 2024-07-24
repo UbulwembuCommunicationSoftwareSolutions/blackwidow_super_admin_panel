@@ -85,7 +85,8 @@ class CustomerSubscriptionsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('url'),
 
-                TextColumn::make('subscription_type_id'),
+                TextColumn::make('subscriptionType.name')
+                    ->label('Subscription Type'),
 
                 TextColumn::make('logo_1'),
 
