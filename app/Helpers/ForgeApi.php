@@ -29,7 +29,7 @@ class ForgeApi
             if($customerSubscription){
                 $customerSubscription->forge_site_id = $site->id;
                 echo $customerSubscription->url."\n";
-                $customerSubscription->env = json_encode($this->forge->siteEnvironmentFile($site->serverId, $site->id));
+                $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
                 $customerSubscription->save();
             }
         }

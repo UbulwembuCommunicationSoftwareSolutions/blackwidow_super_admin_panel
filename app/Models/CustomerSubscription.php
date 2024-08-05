@@ -24,9 +24,6 @@ class CustomerSubscription extends Model
         return $this->belongsTo(SubscriptionType::class);
     }
 
-    public function getEnvAttribute(){
-        return json_decode($this->attributes['env']);
-    }
 
     public function customer(): BelongsTo
     {

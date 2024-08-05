@@ -53,7 +53,6 @@ class CustomerSubscriptionResource extends Resource
                         ->disabled(),
                     RichEditor::make('env')
                         ->required()
-                        ->default(fn () => nl2br($this->record->env)),
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
