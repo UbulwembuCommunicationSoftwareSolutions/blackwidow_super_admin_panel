@@ -98,14 +98,12 @@ class ForgeApi
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
         $envFileStr = '';
         foreach($customerSubscription->envVariables as $env){
-            $envFileStr.= $env->key."=".$env->value."\n";
+            $envFileStr.= $env->key."=".$env->value."\r";
         }
         //echo $envFileStr;
         echo "Site Id: ". $customerSubscription->forge_site_id."\n";
         echo "Server Id: ". $customerSubscription->server_id."\n";
-        $env = array(
-            'content' => $envFileStr
-        );
-        $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
+
+        $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $envFileStr);
     }
 }
