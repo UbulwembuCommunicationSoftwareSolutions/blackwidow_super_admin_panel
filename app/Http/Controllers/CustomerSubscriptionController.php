@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ForgeApi;
 use App\Http\Requests\CustomerSubscriptionRequest;
 use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
@@ -46,9 +47,8 @@ class CustomerSubscriptionController extends Controller
 
     public function show(CustomerSubscription $customerSubscription)
     {
-        $this->authorize('view', $customerSubscription);
+        $forge =  new ForgeApi();
 
-        return new CustomerSubscriptionResource($customerSubscription);
     }
 
     public function update(CustomerSubscriptionRequest $request, CustomerSubscription $customerSubscription)

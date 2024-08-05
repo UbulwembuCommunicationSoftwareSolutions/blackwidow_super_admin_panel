@@ -8,3 +8,5 @@ Route::get('/', function () {
 });
 
 Route::get('/customer_logos', [CustomerSubscriptionController::class, 'getLogos']);
+Route::get('/customer/{id}', [CustomerSubscriptionController::class, 'show']);
+
