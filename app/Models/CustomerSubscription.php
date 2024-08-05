@@ -43,7 +43,7 @@ class CustomerSubscription extends Model
                     $newEnv = new EnvVariables();
                     $newEnv->key = $env->key;
                     $newEnv->value = $env->value;
-                    $newEnv->customer_subscription_id = $id;
+                    $newEnv->customer_subscription_id = $subscription->id;
                     $newEnv->save();
                 }
             }
