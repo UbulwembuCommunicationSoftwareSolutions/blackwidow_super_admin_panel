@@ -30,7 +30,7 @@ class CustomerSubscription extends Model
         $subscriptions = CustomerSubscription::get();
         foreach($subscriptions as $subscription){
             $envs = $subscription->envVariables;
-            $requiredEnv = $subscription->subscriptionType->requiredEnvVariables;
+            $requiredEnv = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)->get();
             foreach($requiredEnv as $env){
                 $found = false;
                 foreach($envs as $e){
