@@ -17,7 +17,11 @@ class ForgeApi
         $this->forge = new Forge(env('FORGE_API_KEY'));
         $this->getServers();
         foreach($this->servers as $server){
-            $this->getSites($server->id);
+            try{
+                $this->getSites($server->id);
+            }catch (\Exception $e){
+                continue;
+            }
         }
     }
 
