@@ -13,3 +13,23 @@ Artisan::command('syncForge', function () {
     $forgeApi = new \App\Helpers\ForgeApi();
     $forgeApi->syncForge();
 })->purpose('Sync Forge')->daily();
+
+
+Artisan::command('syncAllRequiredOptions', function () {
+    $required_options = \Illuminate\Support\Facades\DB::select('select DISTINCT(env_variables.key) from env_variables
+JOIN customer_subscriptions on customer_subscriptions.id = env_variables.customer_subscription_id
+where customer_subscriptions.subscription_type_id="1"');
+    foreach($required_options as $option){
+        $option = (array)$option;
+        $option = $option['key'];
+        $required_option = \App\Models\RequiredEnvVariable::where('key', $option)->first();
+        if(!$required_option){
+            $required_option = new \App\Models\RequiredEnvVariable();
+            $required_option->key = $option;
+            $required_option->value = '';
+            $required_option->subscription_type_id = 1;
+            $required_option->save();
+        }
+    }
+
+})->purpose('Sync All Required Options')->daily();
