@@ -22,7 +22,7 @@ class ForgeApi
 
     public function sendCommand($customerSubscriptionId,$command){
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
-        $commands_array[] = $command;
+        $commands_array["command"] = $command;
         $this->forge->executeSiteCommand($customerSubscription->server_id, $customerSubscription->forge_site_id, $commands_array);
     }
 
