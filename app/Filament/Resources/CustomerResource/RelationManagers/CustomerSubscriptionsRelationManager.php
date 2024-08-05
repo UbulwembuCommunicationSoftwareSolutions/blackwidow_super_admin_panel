@@ -83,22 +83,12 @@ class CustomerSubscriptionsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('url')
             ->columns([
-
                 TextColumn::make('subscriptionType.name')
                     ->label('Subscription Type'),
 
                 TextColumn::make('url')
                     ->label('URL'),
 
-                TextColumn::make('logo_1'),
-
-                TextColumn::make('logo_2'),
-
-                TextColumn::make('logo_3'),
-
-                TextColumn::make('logo_4'),
-
-                TextColumn::make('logo_5'),
             ])
             ->filters([
                 //
@@ -108,6 +98,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ShowAction::make(
+                    fn ($record) => route('customer-subscriptions.show', $record)
+                ),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
