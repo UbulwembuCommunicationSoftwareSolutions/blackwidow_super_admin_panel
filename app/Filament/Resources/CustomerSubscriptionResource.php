@@ -106,7 +106,7 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('customer.company_name'),
                 TextColumn::make('subscriptionType.name'),
                 TextColumn::make('forge_site_id'),
-                TextColumn::make('envVariables_count')
+                TextColumn::make('env_variables_count')
                     ->label('Variable Count')
                     ->counts('envVariables'),
             ])
