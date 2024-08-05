@@ -43,10 +43,11 @@ class EnvVariablesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('key')
                 ->sortable()
                 ->searchable(),
-                Tables\Columns\TextColumn::make('value'),
+                Tables\Columns\TextColumn::make('value')
             ])
             ->filters([
-                //
+                Tables\Filters\Filter::make('is_null')
+                    ->query(fn (Builder $query): Builder => $query->where('value', null))
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
