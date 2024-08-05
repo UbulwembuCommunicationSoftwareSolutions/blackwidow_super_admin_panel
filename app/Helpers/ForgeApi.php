@@ -33,6 +33,11 @@ class ForgeApi
                 echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
                 $env = $this->parseEnvContent($customerSubscription->env);
+                try{
+                    echo "Size of ENV: ".sizeof($env)."\n";
+                }catch (\Exception $e) {
+                    echo $e->getMessage();
+                }
                 foreach($env as $key=>$value){
                     $envVar = EnvVariables::firstOrCreate(
                         [ 'key'=>$key,'customer_subscription_id'=>$customerSubscription->id],[
