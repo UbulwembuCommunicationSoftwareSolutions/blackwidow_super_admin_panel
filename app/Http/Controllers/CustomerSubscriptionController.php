@@ -48,6 +48,7 @@ class CustomerSubscriptionController extends Controller
     public function show(CustomerSubscription $customerSubscription)
     {
         $forge =  new ForgeApi();
+        dd($forge);
 
     }
 
