@@ -30,6 +30,7 @@ class ForgeApi
                 $customerSubscription->forge_site_id = $site->id;
                 echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
+                dd($customerSubscription->env);
                 $customerSubscription->save();
             }
         }
