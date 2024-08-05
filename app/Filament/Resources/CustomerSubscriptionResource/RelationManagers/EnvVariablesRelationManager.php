@@ -40,7 +40,9 @@ class EnvVariablesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('key')
             ->columns([
-                Tables\Columns\TextColumn::make('key'),
+                Tables\Columns\TextColumn::make('key')
+                ->sortable()
+                ->searchable(),
                 Tables\Columns\TextColumn::make('value'),
             ])
             ->filters([
