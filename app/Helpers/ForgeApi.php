@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\CustomerSubscription;
+use Dotenv\Dotenv;
 use Laravel\Forge\Forge;
 
 class ForgeApi
@@ -30,6 +31,9 @@ class ForgeApi
                 $customerSubscription->forge_site_id = $site->id;
                 echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
+                $env = new Dotenv();
+                $env->overload($customerSubscription->env);
+                dd($env);
                 $customerSubscription->save();
             }
         }

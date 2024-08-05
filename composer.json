@@ -10,7 +10,8 @@
         "laravel/forge-sdk": "^3.16",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
-        "spatie/laravel-medialibrary": "^11.7"
+        "spatie/laravel-medialibrary": "^11.7",
+        "symfony/dotenv": "^7.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
