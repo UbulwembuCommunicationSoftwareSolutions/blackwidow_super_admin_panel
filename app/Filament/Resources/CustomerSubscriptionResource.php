@@ -53,6 +53,7 @@ class CustomerSubscriptionResource extends Resource
                         ->label('Forge Site ID')
                         ->disabled(),
                     Textarea::make('env')
+                        ->autosize()
                         ->required()
                 ]),
                 Section::make('Logos')->schema([
