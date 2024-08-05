@@ -35,11 +35,13 @@ class CustomerSubscription extends Model
                 $found = false;
                 foreach($envs as $e){
                     if($e->key == $env->key){
+                        echo $e->key . " found in " . $subscription->id . "\n";
                         $found = true;
                         break;
                     }
                 }
                 if(!$found){
+                    echo $env->key . " not found in " . $subscription->id . "\n";
                     $newEnv = new EnvVariables();
                     $newEnv->key = $env->key;
                     $newEnv->value = $env->value;
