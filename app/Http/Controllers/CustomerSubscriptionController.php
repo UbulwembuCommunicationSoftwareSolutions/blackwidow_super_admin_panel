@@ -48,14 +48,6 @@ class CustomerSubscriptionController extends Controller
     public function show(CustomerSubscription $customerSubscription)
     {
         $forgeApi =  new ForgeApi();
-        foreach($forgeApi->sites as $site){
-            $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
-            if($customerSubscription){
-                $customerSubscription->forge_site_id = $site->id;
-                $customerSubscription->env = $forgeApi->forge->siteEnvironmentFile($site->serverId, $site->id);
-                $customerSubscription->save();
-            }
-        }
         dd($forgeApi);
     }
 

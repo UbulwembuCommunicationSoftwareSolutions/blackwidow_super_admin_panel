@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Models\CustomerSubscription;
 use Laravel\Forge\Forge;
 
 class ForgeApi
@@ -15,16 +16,24 @@ class ForgeApi
     public function __construct()
     {
         $this->forge = new Forge(env('FORGE_API_KEY'));
+    }
+
+    public function syncForge(){
         $this->getServers();
         foreach($this->servers as $server){
-            try{
-                $this->getSites($server->id);
-            }catch (\Exception $e){
-                continue;
+            $this->getSites($server->id);
+        }
+
+        foreach($this->sites as $site){
+            $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
+            if($customerSubscription){
+                $customerSubscription->forge_site_id = $site->id;
+                echo $customerSubscription->url."\n";
+                $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
+                $customerSubscription->save();
             }
         }
     }
-
     public function getServers(){
         $this->servers = $this->forge->servers();
         return $this->servers;
