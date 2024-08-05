@@ -7,6 +7,7 @@ use App\Models\CustomerSubscription;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -32,66 +33,68 @@ class CustomerSubscriptionResource extends Resource
     {
         return $form
             ->schema([
-                Select::make('customer_id')
-                    ->label('Customer')
-                    ->searchable()
-                    ->relationship('customer', 'company_name') // Specify the relationship and the display column
-                    ->required(),
+                Section::make('Customer Info')->schema([
+                    Select::make('customer_id')
+                        ->label('Customer')
+                        ->searchable()
+                        ->relationship('customer', 'company_name') // Specify the relationship and the display column
+                        ->required(),
+                    Select::make('subscription_type_id')
+                        ->label('Subscription Type')
+                        ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
+                        ->required(),
+                    TextInput::make('url')
+                        ->required()
+                        ->url(),
+                ]),
+                Section::make('ENV File')->schema([
+                    Placeholder::make('forge_site_id')
+                        ->label('Forge Site ID')
+                        ->disabled(),
+                    RichEditor::make('env')
+                        ->required(),
+                ]),
+                Section::make('Logos')->schema([
+                    FileUpload::make('logo_1')
+                        ->label('Logo 1')
+                        ->disk('public')
+                        ->visibility('public') // Or 'private' based on your requirements
+                        ->disk('public') // The disk defined in your `config/filesystems.php`
+                        ->nullable()
+                        ->rules(['nullable', 'file', 'max:10240']),
 
-                TextInput::make('url')
-                    ->required()
-                    ->url(),
+                    FileUpload::make('logo_2')
+                        ->label('Logo 2')
+                        ->disk('public')
+                        ->visibility('public') // Or 'private' based on your requirements
+                        ->disk('public') // The disk defined in your `config/filesystems.php`
+                        ->nullable()
+                        ->rules(['nullable', 'file', 'max:10240']),
 
-                TextInput::make('forge_site_id')
-                    ->disabled(),
+                    FileUpload::make('logo_3')
+                        ->label('Logo 3')
+                        ->disk('public')
+                        ->visibility('public') // Or 'private' based on your requirements
+                        ->disk('public') // The disk defined in your `config/filesystems.php`
+                        ->nullable()
+                        ->rules(['nullable', 'file', 'max:10240']),
 
-                RichEditor::make('env')
-                    ->required(),
+                    FileUpload::make('logo_4')
+                        ->label('Logo 4')
+                        ->disk('public')
+                        ->visibility('public') // Or 'private' based on your requirements
+                        ->disk('public') // The disk defined in your `config/filesystems.php`
+                        ->nullable()
+                        ->rules(['nullable', 'file', 'max:10240']),
 
-                Select::make('subscription_type_id')
-                    ->label('Subscription Type')
-                    ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
-                    ->required(),
-
-                FileUpload::make('logo_1')
-                    ->label('Logo 1')
-                    ->disk('public')
-                    ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public') // The disk defined in your `config/filesystems.php`
-                    ->nullable()
-                    ->rules(['nullable', 'file', 'max:10240']),
-
-                FileUpload::make('logo_2')
-                    ->label('Logo 2')
-                    ->disk('public')
-                    ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public') // The disk defined in your `config/filesystems.php`
-                    ->nullable()
-                    ->rules(['nullable', 'file', 'max:10240']),
-
-                FileUpload::make('logo_3')
-                    ->label('Logo 3')
-                    ->disk('public')
-                    ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public') // The disk defined in your `config/filesystems.php`
-                    ->nullable()
-                    ->rules(['nullable', 'file', 'max:10240']),
-
-                FileUpload::make('logo_4')
-                    ->label('Logo 4')
-                    ->disk('public')
-                    ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public') // The disk defined in your `config/filesystems.php`
-                    ->nullable()
-                    ->rules(['nullable', 'file', 'max:10240']),
-
-                FileUpload::make('logo_5')
-                    ->label('Logo 5')
-                    ->disk('public')
-                    ->visibility('public') // Or 'private' based on your requirements
-                    ->disk('public') // The disk defined in your `config/filesystems.php`
-                    ->nullable()
-                    ->rules(['nullable', 'file', 'max:10240']),
+                    FileUpload::make('logo_5')
+                        ->label('Logo 5')
+                        ->disk('public')
+                        ->visibility('public') // Or 'private' based on your requirements
+                        ->disk('public') // The disk defined in your `config/filesystems.php`
+                        ->nullable()
+                        ->rules(['nullable', 'file', 'max:10240']),
+                ]),
             ]);
     }
 
