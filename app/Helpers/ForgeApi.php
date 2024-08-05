@@ -34,9 +34,6 @@ class ForgeApi
 
 
         foreach($this->sites as $site){
-            $this->forge->updateSite($site->serverId, $site->id, [
-                'quickDeploy' => true,
-            ]);
             $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
             if($customerSubscription){
                 $customerSubscription->forge_site_id = $site->id;
