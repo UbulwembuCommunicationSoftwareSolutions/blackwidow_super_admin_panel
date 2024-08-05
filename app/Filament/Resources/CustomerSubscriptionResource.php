@@ -52,7 +52,8 @@ class CustomerSubscriptionResource extends Resource
                         ->label('Forge Site ID')
                         ->disabled(),
                     RichEditor::make('env')
-                        ->required(),
+                        ->required()
+                        ->default(fn () => nl2br($this->record->env)),
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
