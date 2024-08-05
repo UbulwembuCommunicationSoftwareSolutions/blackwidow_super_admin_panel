@@ -6,6 +6,7 @@ use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Models\CustomerSubscription;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -43,6 +44,9 @@ class CustomerSubscriptionResource extends Resource
 
                 TextInput::make('forge_site_id')
                     ->disabled(),
+
+                RichEditor::make('env')
+                    ->required(),
 
                 Select::make('subscription_type_id')
                     ->label('Subscription Type')
