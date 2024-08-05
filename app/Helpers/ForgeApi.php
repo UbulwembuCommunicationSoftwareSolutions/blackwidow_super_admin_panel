@@ -39,12 +39,20 @@ class ForgeApi
                     echo $e->getMessage();
                 }
                 foreach($env as $key=>$value){
-                    $envVar = EnvVariables::firstOrCreate(
-                        [ 'key'=>$key,'customer_subscription_id'=>$customerSubscription->id],[
-                            'value'=>$value,
-                            'customer_subscription_id'=>$customerSubscription->id
-                    ]);
-                    $envVar->save();
+                    $envVar = EnvVariables::where('key', $key)
+                        ->where('customer_subscription_id', $customerSubscription->id)
+                        ->first();
+                    if(!$envVar){
+                        $envVar = new EnvVariables();
+                        $envVar->key = $key;
+                        $envVar->value = $value;
+                        $envVar->customer_subscription_id = $customerSubscription->id;
+                        $envVar->save();
+                    }else{
+                        $envVar->value = $value;
+                        $envVar->save();
+                    }
+
                 }
                 $customerSubscription->save();
             }
