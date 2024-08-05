@@ -21,6 +21,8 @@ class CustomerSubscription extends Model
         'updated_at',
     ];
 
+    public $appends = ['null_variable_count'];
+
     public function subscriptionType(): BelongsTo
     {
         return $this->belongsTo(SubscriptionType::class);
@@ -57,8 +59,8 @@ class CustomerSubscription extends Model
         return $this->hasMany(EnvVariables::class);
     }
 
-    public function nullVariables(){
-        return $this->envVariables()->whereNull('value');
+    public function nullVariableCount(){
+        return $this->envVariables()->whereNull('value')->count();
     }
 
 

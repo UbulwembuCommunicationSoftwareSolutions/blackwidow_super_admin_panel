@@ -109,9 +109,8 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('env_variables_count')
                     ->label('Variable Count')
                     ->counts('envVariables'),
-                TextColumn::make('null_env_variables_count')
+                TextColumn::make('null_variable_count')
                     ->label('Null Count')
-                    ->counts('nullVariables'),
             ])
             ->filters([
                 //
