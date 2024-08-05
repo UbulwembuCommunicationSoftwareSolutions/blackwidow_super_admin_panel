@@ -28,7 +28,7 @@ class CustomerSubscription extends Model
 
     public function envVariables()
     {
-        return $this->belongsTo(EnvVariables::class);
+        return $this->hasMany(EnvVariables::class);
     }
 
 
