@@ -101,6 +101,9 @@ class ForgeApi
             $envFileStr.= $env->key."='".$env->value."'\n";
         }
         //echo $envFileStr;
+        echo "Site Id: ". $customerSubscription->forge_site_id."\n";
+        echo "Server Id: ". $customerSubscription->server_id."\n";
+
         $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $envFileStr);
     }
 }
