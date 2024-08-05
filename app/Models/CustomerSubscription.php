@@ -26,6 +26,30 @@ class CustomerSubscription extends Model
         return $this->belongsTo(SubscriptionType::class);
     }
 
+    public static function createMissingEnv(){
+        $subscriptions = CustomerSubscription::get();
+        foreach($subscriptions as $subscription){
+            $envs = $subscription->envVariables;
+            $requiredEnv = $subscription->subscriptionType->requiredEnvVariables;
+            foreach($requiredEnv as $env){
+                $found = false;
+                foreach($envs as $e){
+                    if($e->key == $env->key){
+                        $found = true;
+                        break;
+                    }
+                }
+                if(!$found){
+                    $newEnv = new EnvVariables();
+                    $newEnv->key = $env->key;
+                    $newEnv->value = $env->value;
+                    $newEnv->customer_subscription_id = $id;
+                    $newEnv->save();
+                }
+            }
+        }
+    }
+
     public function envVariables()
     {
         return $this->hasMany(EnvVariables::class);

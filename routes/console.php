@@ -33,3 +33,7 @@ where customer_subscriptions.subscription_type_id="1"');
     }
 
 })->purpose('Sync All Required Options')->daily();
+
+Artisan::command('syncAllRequiredOptionsForSubscription', function () {
+    \App\Models\CustomerSubscription::createMissingEnv();
+})->purpose('Sync All Required Options For Subscription');
