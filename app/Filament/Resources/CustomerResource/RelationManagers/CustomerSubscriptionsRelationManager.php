@@ -98,9 +98,6 @@ class CustomerSubscriptionsRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\ShowAction::make(
-                    fn ($record) => route('customer-subscriptions.show', $record)
-                ),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
