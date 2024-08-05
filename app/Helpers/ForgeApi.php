@@ -95,6 +95,7 @@ class ForgeApi
 
 
     public function sendEnv($customerSubscriptionId){
+
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
         $envFileStr = '';
         foreach($customerSubscription->envVariables as $env){

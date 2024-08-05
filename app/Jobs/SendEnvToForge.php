@@ -19,7 +19,7 @@ class SendEnvToForge implements ShouldQueue
      */
     public function __construct($customerSubscriptionId)
     {
-        $this->customerSubscription = $customerSubscriptionId;
+        $this->customerSubscriptionId = $customerSubscriptionId;
     }
 
     /**
