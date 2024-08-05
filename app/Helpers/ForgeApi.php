@@ -31,7 +31,8 @@ class ForgeApi
     }
 
     public function getSites($serverId){
-        $this->sites = $this->forge->sites($serverId);
-        return $this->sites;
+        foreach($this->forge->sites($serverId) as $site){
+            $this->sites[] = $site;
+        }
     }
 }
