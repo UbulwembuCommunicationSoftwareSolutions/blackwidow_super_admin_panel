@@ -132,8 +132,6 @@ class CustomerSubscriptionResource extends Resource
             ->with('customer', 'subscriptionType')
             ->with('envVariables')
             ->withCount('envVariables')
-            ->with('nullVariables')
-            ->withCount('nullVariables')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
