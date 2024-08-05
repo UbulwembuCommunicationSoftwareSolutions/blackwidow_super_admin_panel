@@ -106,6 +106,8 @@ class CustomerSubscriptionResource extends Resource
 
                 TextColumn::make('logo_5'),
 
+                TextColumn::make('forge_site_id'),
+
                 TextColumn::make('customer_id'),
             ])
             ->filters([
