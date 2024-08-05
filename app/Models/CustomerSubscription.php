@@ -58,7 +58,7 @@ class CustomerSubscription extends Model
     }
 
     public function nullVariables(){
-        return $this->hasMany(EnvVariables::class)->where('value', null);
+        return $this->hasMany(EnvVariables::class)->whereNull('value');
     }
 
 
