@@ -13,6 +13,8 @@ class CustomerSubscription extends Model
         'logo_1',
         'logo_2',
         'logo_3',
+        'env',
+        'forge_site_id',
         'logo_4',
         'logo_5',
         'created_at',
