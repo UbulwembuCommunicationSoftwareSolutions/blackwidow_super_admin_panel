@@ -31,12 +31,29 @@ class ForgeApi
                 $customerSubscription->forge_site_id = $site->id;
                 echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
-                $env = new Dotenv();
-                $env->overload($customerSubscription->env);
+                $env = $this->parseEnvContent($customerSubscription->env);
                 dd($env);
                 $customerSubscription->save();
             }
         }
+    }
+    public function parseEnvContent($content) {
+        $lines = explode("\n", $content);
+        $env = [];
+
+        foreach ($lines as $line) {
+            if (empty($line) || strpos(trim($line), '#') === 0) {
+                continue;
+            }
+
+            list($key, $value) = array_map('trim', explode('=', $line, 2));
+            if (preg_match('/^"(.*)"$/', $value, $matches)) {
+                $value = $matches[1];
+            }
+            $env[$key] = $value;
+        }
+
+        return $env;
     }
     public function getServers(){
         $this->servers = $this->forge->servers();
