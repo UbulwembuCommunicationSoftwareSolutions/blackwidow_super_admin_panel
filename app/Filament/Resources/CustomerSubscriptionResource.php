@@ -108,7 +108,7 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('forge_site_id'),
                 TextColumn::make('envVariables_count')
                     ->label('Variable Count')
-                    ->counts('env_variables'),
+                    ->counts('envVariables'),
             ])
             ->filters([
                 //
