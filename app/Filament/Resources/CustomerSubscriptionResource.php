@@ -41,6 +41,9 @@ class CustomerSubscriptionResource extends Resource
                     ->required()
                     ->url(),
 
+                TextInput::make('forge_site_id')
+                    ->disabled(),
+
                 Select::make('subscription_type_id')
                     ->label('Subscription Type')
                     ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
