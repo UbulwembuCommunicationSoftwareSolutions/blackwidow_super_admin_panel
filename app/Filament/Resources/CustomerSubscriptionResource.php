@@ -96,16 +96,6 @@ class CustomerSubscriptionResource extends Resource
 
                 TextColumn::make('subscription_type_id'),
 
-                TextColumn::make('logo_1'),
-
-                TextColumn::make('logo_2'),
-
-                TextColumn::make('logo_3'),
-
-                TextColumn::make('logo_4'),
-
-                TextColumn::make('logo_5'),
-
                 TextColumn::make('forge_site_id'),
 
                 TextColumn::make('customer_id'),
