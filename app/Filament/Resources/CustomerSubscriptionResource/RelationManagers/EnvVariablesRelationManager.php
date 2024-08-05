@@ -41,6 +41,7 @@ class EnvVariablesRelationManager extends RelationManager
             ->recordTitleAttribute('key')
             ->columns([
                 Tables\Columns\TextColumn::make('key'),
+                Tables\Columns\TextColumn::make('value'),
             ])
             ->filters([
                 //
