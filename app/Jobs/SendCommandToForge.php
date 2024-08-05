@@ -31,6 +31,6 @@ class SendCommandToForge implements ShouldQueue
     public function handle(): void
     {
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->sendCommand($this->customerSubscriptionId.$this->command);
+        $forgeApi->sendCommand($this->customerSubscriptionId,$this->command);
     }
 }
