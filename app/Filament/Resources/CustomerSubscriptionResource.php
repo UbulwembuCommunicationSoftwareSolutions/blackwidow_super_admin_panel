@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
+use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\EnvVariablesRelationManager;
 use App\Models\CustomerSubscription;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -52,9 +53,6 @@ class CustomerSubscriptionResource extends Resource
                     Placeholder::make('forge_site_id')
                         ->label('Forge Site ID')
                         ->disabled(),
-                    Textarea::make('env')
-                        ->autosize()
-                        ->required()
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
@@ -141,6 +139,13 @@ class CustomerSubscriptionResource extends Resource
             'index' => Pages\ListCustomerSubscriptions::route('/'),
             'create' => Pages\CreateCustomerSubscription::route('/create'),
             'edit' => Pages\EditCustomerSubscription::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            EnvVariablesRelationManager::class
         ];
     }
 
