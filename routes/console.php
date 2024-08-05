@@ -22,9 +22,9 @@ where customer_subscriptions.subscription_type_id="1"');
     foreach($required_options as $option){
         $option = (array)$option;
         $option = $option['key'];
-        $required_option = \App\Models\RequiredEnvVariable::where('key', $option)->first();
+        $required_option = \App\Models\RequiredEnvVariables::where('key', $option)->first();
         if(!$required_option){
-            $required_option = new \App\Models\RequiredEnvVariable();
+            $required_option = new \App\Models\RequiredEnvVariables();
             $required_option->key = $option;
             $required_option->value = '';
             $required_option->subscription_type_id = 1;
