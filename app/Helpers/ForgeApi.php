@@ -100,7 +100,7 @@ class ForgeApi
         foreach($customerSubscription->envVariables as $env){
             $envFileStr.= $env->key."='".$env->value."'\n";
         }
-        echo $envFileStr;
-       // $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $envFileStr);
+        //echo $envFileStr;
+        $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $envFileStr);
     }
 }
