@@ -103,15 +103,12 @@ class CustomerSubscriptionResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('url'),
-
-                TextColumn::make('subscription_type_id'),
-
+                TextColumn::make('customer.company_name'),
+                TextColumn::make('subscriptionType.name'),
                 TextColumn::make('forge_site_id'),
-                TextColumn::make('env_variables_count')
+                TextColumn::make('envVariables_count')
                     ->label('Variable Count')
                     ->counts('env_variables'),
-
-                TextColumn::make('customer_id'),
             ])
             ->filters([
                 //
