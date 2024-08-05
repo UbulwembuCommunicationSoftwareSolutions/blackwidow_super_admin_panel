@@ -9,6 +9,7 @@ class CustomerSubscription extends Model
     protected $fillable = [
         'url',
         'subscription_type_id',
+        'server_id',
         'customer_id',
         'logo_1',
         'logo_2',

@@ -37,3 +37,10 @@ where customer_subscriptions.subscription_type_id="1"');
 Artisan::command('syncAllRequiredOptionsForSubscription', function () {
     \App\Models\CustomerSubscription::createMissingEnv();
 })->purpose('Sync All Required Options For Subscription');
+
+
+Artisan::command('sendEnvToSite',function (){
+    $subscription = $this->ask('Enter Subscription ID');
+    $forgeApi = new \App\Helpers\ForgeApi();
+    $forgeApi->sendEnv($subscription);
+})->purpose('Send Env To Site')->daily();

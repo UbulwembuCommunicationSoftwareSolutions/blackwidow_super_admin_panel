@@ -32,6 +32,8 @@ class ForgeApi
                 $customerSubscription->forge_site_id = $site->id;
                 echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
+                $customerSubscription->server_id = $site->serverId;
+                $customerSubscription->save();
                 $env = $this->parseEnvContent($customerSubscription->env);
                 try{
                     echo "Size of ENV: ".sizeof($env)."\n";
@@ -89,6 +91,15 @@ class ForgeApi
         }catch (\Exception $e){
            // echo $e->getMessage();
         }
+    }
 
+
+    public function sendEnv($customerSubscriptionId){
+        $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
+        foreach($customerSubscription->envVariables as $env){
+            $envFileStr.= $env->key."='".$env->value."'\n";
+        }
+        echo $envFileStr;
+       // $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $envFileStr);
     }
 }
