@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\CustomerSubscription;
+use App\Models\EnvVariables;
 use Dotenv\Dotenv;
 use Laravel\Forge\Forge;
 
@@ -32,7 +33,13 @@ class ForgeApi
                 echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
                 $env = $this->parseEnvContent($customerSubscription->env);
-                dd($env);
+                foreach($env as $key=>$value){
+                    $envVar = EnvVariables::firstOrCreate(
+                        [ 'key'=>$key,'customer_subscription_id'=>$customerSubscription->id],[
+                            'value'=>$value,
+                            'customer_subscription_id'=>$customerSubscription->id
+                    ]);
+                }
                 $customerSubscription->save();
             }
         }
