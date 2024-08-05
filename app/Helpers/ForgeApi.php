@@ -20,6 +20,11 @@ class ForgeApi
         $this->forge = new Forge(env('FORGE_API_KEY'));
     }
 
+    public function sendCommand($customerSubscriptionId,$command){
+        $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
+        $this->forge->executeSiteCommand($customerSubscription->server_id, $customerSubscription->forge_site_id, $command);
+    }
+
     public function syncForge(){
         $this->getServers();
         foreach($this->servers as $server){

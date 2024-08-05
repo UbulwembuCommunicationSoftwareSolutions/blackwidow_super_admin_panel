@@ -52,3 +52,13 @@ Artisan::command('sendEnvToAllConsoles',function (){
     }
 
 })->purpose('Send Env To Site')->daily();
+
+
+Artisan::command('sendCommandToAllConsoles',function (){
+    $command = $this->ask('Enter Command');
+    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+    foreach($subscriptions as $subscription){
+        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
+    }
+
+})->purpose('Send Command To All Consoles')->daily();
