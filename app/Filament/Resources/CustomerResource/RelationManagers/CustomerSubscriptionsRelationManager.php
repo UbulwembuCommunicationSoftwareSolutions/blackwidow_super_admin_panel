@@ -99,7 +99,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Action::make('navigate')
+                \Filament\Tables\Actions\Action::make('navigate')
                     ->label('Navigate')
                     ->icon('heroicon-o-arrow-right')
                     ->action(function ($record) {
