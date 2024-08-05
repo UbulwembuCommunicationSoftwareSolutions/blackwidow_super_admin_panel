@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -98,6 +99,12 @@ class CustomerSubscriptionsRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Action::make('navigate')
+                    ->label('Navigate')
+                    ->icon('heroicon-o-arrow-right')
+                    ->action(function ($record) {
+                        return redirect()->route('filament.resources.customer-subscriptions.edit', $record);
+                    }),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
