@@ -107,6 +107,9 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('subscription_type_id'),
 
                 TextColumn::make('forge_site_id'),
+                TextColumn::make('env_variables_count')
+                    ->label('Variable Count')
+                    ->counts('env_variables'),
 
                 TextColumn::make('customer_id'),
             ])
@@ -129,6 +132,7 @@ class CustomerSubscriptionResource extends Resource
         return parent::getEloquentQuery()
             ->with('customer', 'subscriptionType')
             ->with('envVariables')
+            ->withCount('envVariables')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
