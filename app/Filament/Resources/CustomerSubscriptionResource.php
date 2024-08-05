@@ -128,6 +128,7 @@ class CustomerSubscriptionResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with('customer', 'subscriptionType')
+            ->with('envVariables')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
