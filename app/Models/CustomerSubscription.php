@@ -57,6 +57,10 @@ class CustomerSubscription extends Model
         return $this->hasMany(EnvVariables::class);
     }
 
+    public function nullVariables(){
+        return $this->hasMany(EnvVariables::class)->where('value', null);
+    }
+
 
     public function customer(): BelongsTo
     {

@@ -109,6 +109,9 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('env_variables_count')
                     ->label('Variable Count')
                     ->counts('envVariables'),
+                TextColumn::make('null_env_variables_count')
+                    ->label('Null Count')
+                    ->counts('nullVariables'),
             ])
             ->filters([
                 //
@@ -130,6 +133,8 @@ class CustomerSubscriptionResource extends Resource
             ->with('customer', 'subscriptionType')
             ->with('envVariables')
             ->withCount('envVariables')
+            ->with('nullVariables')
+            ->withCount('nullVariables')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
