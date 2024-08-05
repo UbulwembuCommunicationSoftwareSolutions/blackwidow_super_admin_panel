@@ -44,6 +44,7 @@ class ForgeApi
                             'value'=>$value,
                             'customer_subscription_id'=>$customerSubscription->id
                     ]);
+                    $envVar->save();
                 }
                 $customerSubscription->save();
             }
