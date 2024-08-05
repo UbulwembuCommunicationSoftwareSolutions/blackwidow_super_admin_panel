@@ -103,7 +103,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     ->label('Navigate')
                     ->icon('heroicon-o-arrow-right')
                     ->action(function ($record) {
-                        return redirect()->route('filament.resources.customer-subscriptions.edit', $record);
+                        return redirect()->route('filament.admin.resources.customer-subscriptions.edit', $record);
                     }),
                 Tables\Actions\DeleteAction::make(),
             ])
