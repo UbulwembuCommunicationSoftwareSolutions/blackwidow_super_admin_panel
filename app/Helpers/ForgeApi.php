@@ -32,7 +32,23 @@ class ForgeApi
             $this->getSites($server->id);
         }
 
+
         foreach($this->sites as $site){
+            $this->forge->updateSite($site->serverId, $site->id, [
+                'name' => $site->name,
+                'directory' => $site->directory,
+                'wildcards' => $site->wildcards,
+                'projectType' => $site->projectType,
+                'repository' => $site->repository,
+                'repositoryBranch' => $site->repositoryBranch,
+                'deployScript' => $site->deployScript,
+                'deployHook' => $site->deployHook,
+                'env' => $site->env,
+                'quickDeploy' => true,
+                'status' => $site->status,
+                'createdAt' => $site->createdAt,
+                'updatedAt' => $site->updatedAt,
+            ]);
             $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
             if($customerSubscription){
                 $customerSubscription->forge_site_id = $site->id;
