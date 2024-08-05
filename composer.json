@@ -9,6 +9,7 @@
         "filament/filament": "^3.2",
         "laravel/forge-sdk": "^3.16",
         "laravel/framework": "^11.9",
+        "laravel/horizon": "^5.27",
         "laravel/tinker": "^2.9",
         "spatie/laravel-medialibrary": "^11.7",
         "symfony/dotenv": "^7.1"

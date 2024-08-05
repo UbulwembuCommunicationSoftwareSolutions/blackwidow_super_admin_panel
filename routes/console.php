@@ -44,3 +44,11 @@ Artisan::command('sendEnvToSite',function (){
     $forgeApi = new \App\Helpers\ForgeApi();
     $forgeApi->sendEnv($subscription);
 })->purpose('Send Env To Site')->daily();
+
+Artisan::command('sendEnvToAllConsoles',function (){
+    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+    foreach($subscriptions as $subscription){
+        $job = \App\Jobs\SendEnvToForge::dispatch($subscription->id);
+    }
+
+})->purpose('Send Env To Site')->daily();
