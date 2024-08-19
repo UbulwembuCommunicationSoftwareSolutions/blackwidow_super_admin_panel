@@ -16,7 +16,7 @@ class ListRequiredEnvVariables extends ListRecords
     {
         return [
             CreateAction::make(),
-            ExportAction::make()
+            \Filament\Actions\ExportAction::make()
                 ->exporter(EnvVariableExporter::class)
         ];
     }
