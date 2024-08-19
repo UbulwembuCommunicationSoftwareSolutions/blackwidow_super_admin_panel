@@ -46,7 +46,6 @@ class RequiredEnvVariablesResource extends Resource
 
                 Select::make('subscription_type_id')
                     ->relationship('subscriptionType', 'name')
-                    ->searchable()
                     ->required(),
             ]);
     }
@@ -60,7 +59,6 @@ class RequiredEnvVariablesResource extends Resource
                 TextColumn::make('value'),
 
                 TextColumn::make('subscriptionType.name')
-                    ->searchable()
                     ->sortable(),
             ])
             ->filters([
