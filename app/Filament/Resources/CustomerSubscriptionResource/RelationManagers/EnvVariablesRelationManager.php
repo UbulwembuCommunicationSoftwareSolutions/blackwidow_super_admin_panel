@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
+use App\Filament\Exports\EnvVariableExporter;
+use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -51,6 +53,8 @@ class EnvVariablesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
+                ExportAction::make()
+                    ->exporter(EnvVariableExporter::class)
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
