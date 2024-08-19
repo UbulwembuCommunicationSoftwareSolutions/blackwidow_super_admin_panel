@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
 use App\Filament\Exports\EnvVariableExporter;
-use Filament\Actions\ExportAction;
 use Filament\Forms;
+use Filament\Tables\Actions\ExportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
