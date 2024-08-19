@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\RequiredEnvVariablesResource\Pages;
 
+use App\Filament\Exports\EnvVariableExporter;
 use App\Filament\Resources\RequiredEnvVariablesResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Tables\Actions\ExportAction;
 
 class ListRequiredEnvVariables extends ListRecords
 {
@@ -14,6 +16,8 @@ class ListRequiredEnvVariables extends ListRecords
     {
         return [
             CreateAction::make(),
+            ExportAction::make()
+                ->exporter(EnvVariableExporter::class)
         ];
     }
 }
