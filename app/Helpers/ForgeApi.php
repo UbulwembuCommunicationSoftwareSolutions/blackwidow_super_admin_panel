@@ -105,7 +105,8 @@ class ForgeApi
 
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
         $envFileStr = '';
-        foreach($customerSubscription->envVariables as $env){
+        $envVariables = EnvVariables::where('customer_subscription_id', $customerSubscriptionId)->orderBy('key')->get();
+        foreach($envVariables as $env){
             $envFileStr.= $env->key."=".$env->value."\r";
         }
         //echo $envFileStr;
