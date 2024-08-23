@@ -7,6 +7,7 @@ use App\Jobs\DeploySite;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Collection;
 
 class EditCustomerSubscription extends EditRecord
 {
@@ -18,12 +19,8 @@ class EditCustomerSubscription extends EditRecord
             DeleteAction::make(),
             Action::make('deploySite')
                 ->label('Deploy Site')
-                ->message('Are you sure you want to deploy this site?')
-                ->confirm('Yes, deploy it')
-                ->danger()
-                ->beforePerform(function () {
-                    DeploySite::dispatch($this->record->id);
-                }),
+                ->action(fn ($record) => DeploySite::dispatch($record->id))
+
         ];
     }
 }
