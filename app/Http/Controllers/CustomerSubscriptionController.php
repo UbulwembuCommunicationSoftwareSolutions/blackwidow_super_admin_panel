@@ -8,6 +8,7 @@ use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CustomerSubscriptionController extends Controller
 {
@@ -40,7 +41,11 @@ class CustomerSubscriptionController extends Controller
 
     public function getSpecificLogo(Request $request)
     {
-        dd($request);
+        $host = $request->getHost();
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$host.'%')->first();
+        if (Storage::exists($customerSubscription->logo_1)) {
+            return response()->file(Storage::path($customerSubscription->logo_1));
+        }
     }
 
     public function store(CustomerSubscriptionRequest $request)
