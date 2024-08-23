@@ -50,9 +50,7 @@ class CustomerSubscriptionController extends Controller
         \Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
         if ($customerSubscription) {
-            if (Storage::exists($customerSubscription->logo_1)) {
-                return response()->file(Storage::path($customerSubscription->logo_1));
-            }
+            return redirect(Storage::url($customerSubscription->logo_1));
         }else{
             return response()->json([
                 'status' => 'ERROR',
