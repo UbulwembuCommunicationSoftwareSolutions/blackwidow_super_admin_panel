@@ -37,15 +37,14 @@ class ForgeApi
             $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
             if($customerSubscription){
                 $customerSubscription->forge_site_id = $site->id;
-                echo $customerSubscription->url."\n";
+                //echo $customerSubscription->url."\n";
                 $customerSubscription->env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
                 $customerSubscription->server_id = $site->serverId;
                 $customerSubscription->save();
                 $env = $this->parseEnvContent($customerSubscription->env);
                 try{
-                    echo "Size of ENV: ".sizeof($env)."\n";
                 }catch (\Exception $e) {
-                    echo $e->getMessage();
+//                    echo $e->getMessage();
                 }
                 foreach($env as $key=>$value){
                     $envVar = EnvVariables::where('key', $key)
