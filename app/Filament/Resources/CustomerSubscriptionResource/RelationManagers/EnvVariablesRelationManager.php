@@ -78,8 +78,8 @@ class EnvVariablesRelationManager extends RelationManager
 
     public function sendToServer($record)
     {
-        dd($record);
         $subscription = $this->ownerRecord;
+        dd($subscription);
         $forgeApi = new \App\Helpers\ForgeApi();
         $forgeApi->sendEnv($subscription);
     }
