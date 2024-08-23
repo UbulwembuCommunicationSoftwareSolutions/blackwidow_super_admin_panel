@@ -118,10 +118,8 @@ class CustomerSubscriptionResource extends Resource
             ->filters([
                 SelectFilter::make('subscription_type_id')
                     ->label('Subscription Type')
-                    ->options(SubscriptionType::pluck('name', 'id')) // Assuming 'name' is the column for the subscription type name
-                    ->query(function ($query, $value) {
-                        $query->where('subscription_type_id', $value);
-                    }),
+                    ->relationship('subscriptionType', 'name') // Assuming 'subscriptionType' is the relationship method name
+                    ->options(SubscriptionType::pluck('name', 'id')),
             ])
             ->actions([
                 EditAction::make(),
