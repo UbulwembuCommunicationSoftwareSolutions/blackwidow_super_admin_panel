@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\EnvVariablesRelationManager;
 use App\Models\CustomerSubscription;
+use App\Models\SubscriptionType;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\RichEditor;
@@ -19,6 +20,8 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -113,7 +116,12 @@ class CustomerSubscriptionResource extends Resource
                     ->label('Null Count')
             ])
             ->filters([
-                //
+                SelectFilter::make('subscription_type_id')
+                    ->label('Subscription Type')
+                    ->options(SubscriptionType::pluck('name', 'id')) // Assuming 'name' is the column for the subscription type name
+                    ->query(function ($query, $value) {
+                        $query->where('subscription_type_id', $value);
+                    }),
             ])
             ->actions([
                 EditAction::make(),
