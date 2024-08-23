@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
 use App\Filament\Exports\EnvVariableExporter;
+use Filament\Actions\Action;
 use Filament\Forms;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\ExportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -13,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class EnvVariablesRelationManager extends RelationManager
 {
@@ -63,7 +66,20 @@ class EnvVariablesRelationManager extends RelationManager
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    BulkAction::make('SendToServer')
+                        ->label('Send To Server')
+                        ->action(fn (Collection $records) => $this->sendToServer($records))
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
+                        ->color('primary'),
                 ]),
             ]);
+    }
+
+    public function sendToServer(Collection $records)
+    {
+        $subscription = $this->ownerRecord;
+        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi->sendEnv($subscription);
     }
 }
