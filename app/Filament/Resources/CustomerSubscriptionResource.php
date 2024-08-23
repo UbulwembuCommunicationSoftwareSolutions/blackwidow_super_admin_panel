@@ -110,9 +110,9 @@ class CustomerSubscriptionResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('website_url')
+                TextColumn::make('url')
                     ->label('Website')
-                    ->formatStateUsing(fn ($state) => '<a href="' . $state . '" target="_blank" rel="noopener noreferrer">Open App</a>')
+                    ->formatStateUsing(fn ($state) => '<a href="' . $state . '" target="_blank" rel="noopener noreferrer">'.$state.'</a>')
                     ->html()
                     ->sortable(),
                 TextColumn::make('customer.company_name')
