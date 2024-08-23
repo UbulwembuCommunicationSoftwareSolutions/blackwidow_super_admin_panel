@@ -64,6 +64,8 @@ class ForgeApi
 
                 }
                 $customerSubscription->save();
+            }else{
+                echo "No Subscription Found for ".$site->name."\n";
             }
         }
     }
