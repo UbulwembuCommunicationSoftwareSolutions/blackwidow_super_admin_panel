@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
 use App\Filament\Exports\EnvVariableExporter;
+use App\Jobs\SendEnvToForge;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Tables\Actions\BulkAction;
@@ -78,8 +79,6 @@ class EnvVariablesRelationManager extends RelationManager
 
     public function sendToServer($record)
     {
-        $subscription = $this->ownerRecord;
-        $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->sendEnv($subscription);
+        SendEnvToForge::dispatch($this->ownerRecord->id);
     }
 }

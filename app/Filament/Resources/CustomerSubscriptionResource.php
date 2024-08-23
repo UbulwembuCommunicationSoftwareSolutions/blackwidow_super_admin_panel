@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\EnvVariablesRelationManager;
+use App\Jobs\SendEnvToForge;
 use App\Models\CustomerSubscription;
 use App\Models\SubscriptionType;
 use Filament\Forms\Components\FileUpload;
@@ -15,6 +16,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
@@ -25,6 +27,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class CustomerSubscriptionResource extends Resource
 {
@@ -130,6 +133,12 @@ class CustomerSubscriptionResource extends Resource
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    BulkAction::make('send_ent_to_forge')
+                        ->label('Send ENV To Forge')
+                        ->action(fn (Collection $records) => CustomerSubscriptionResource::sendEnvs($records))
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
+                        ->color('primary'),
                 ]),
             ]);
     }
@@ -164,5 +173,12 @@ class CustomerSubscriptionResource extends Resource
     public static function getGloballySearchableAttributes(): array
     {
         return [];
+    }
+
+    public static function sendEnvs(Collection $collection)
+    {
+        foreach ($collection as $row){
+            SendEnvToForge::dispatch($row->id);
+        }
     }
 }
