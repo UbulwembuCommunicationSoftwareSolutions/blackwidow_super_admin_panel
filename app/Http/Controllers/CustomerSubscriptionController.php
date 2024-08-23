@@ -41,9 +41,14 @@ class CustomerSubscriptionController extends Controller
 
     public function getSpecificLogo(Request $request)
     {
-        $host = $request->getHost();
-        \Log::info('HOST: ' . $host);
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $host . '%')->first();
+        $referer = $request->headers->get('referer');
+
+        // Optionally, you can parse the referer to extract the host or domain
+        $parsedUrl = parse_url($referer);
+        $originHost = $parsedUrl['host'] ?? 'unknown';
+
+        \Log::info('Referer: '.$originHost);
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
         if ($customerSubscription) {
             if (Storage::exists($customerSubscription->logo_1)) {
                 return response()->file(Storage::path($customerSubscription->logo_1));
