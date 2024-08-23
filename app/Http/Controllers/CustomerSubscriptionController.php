@@ -38,6 +38,11 @@ class CustomerSubscriptionController extends Controller
         }
     }
 
+    public function getSpecificLogo(Request $request)
+    {
+        dd($request);
+    }
+
     public function store(CustomerSubscriptionRequest $request)
     {
         $this->authorize('create', CustomerSubscription::class);
