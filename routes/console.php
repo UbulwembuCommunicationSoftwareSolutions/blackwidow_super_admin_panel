@@ -14,6 +14,20 @@ Artisan::command('syncForge', function () {
     $forgeApi->syncForge();
 })->purpose('Sync Forge')->daily();
 
+Artisan::command('syncOneRequiredOptions', function () {
+    $required_options = \App\Models\RequiredEnvVariables::get();
+    $subscription = $this->ask('Enter Subscription ID');
+    $subscription = \App\Models\CustomerSubscription::find($subscription);
+    foreach($required_options as $option){
+        $subscription->envVariables()->updateOrCreate([
+            'key' => $option->key
+        ],[
+            'value' => $option->value
+        ]);
+    }
+
+});
+
 
 Artisan::command('syncAllRequiredOptions', function () {
     $required_options = \Illuminate\Support\Facades\DB::select('select DISTINCT(env_variables.key) from env_variables

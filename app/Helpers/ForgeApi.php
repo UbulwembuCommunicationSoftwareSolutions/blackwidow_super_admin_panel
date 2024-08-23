@@ -101,6 +101,11 @@ class ForgeApi
         }
     }
 
+    public function deploySite($customerSubscriptionId){
+        $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
+        $this->forge->deploySite($customerSubscription->server_id, $customerSubscription->forge_site_id);
+    }
+
 
     public function sendEnv($customerSubscriptionId){
 
