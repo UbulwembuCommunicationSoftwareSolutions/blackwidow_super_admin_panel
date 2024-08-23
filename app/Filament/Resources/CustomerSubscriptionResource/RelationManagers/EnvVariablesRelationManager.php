@@ -56,6 +56,12 @@ class EnvVariablesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
+                Tables\Actions\Action::make('SendToServer')
+                    ->label('Send To Server')
+                    ->action(fn ($record) => $this->sendToServer($record))
+                    ->requiresConfirmation()
+                    ->deselectRecordsAfterCompletion()
+                    ->color('primary'),
                 ExportAction::make()
                     ->exporter(EnvVariableExporter::class)
             ])
@@ -66,18 +72,13 @@ class EnvVariablesRelationManager extends RelationManager
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    BulkAction::make('SendToServer')
-                        ->label('Send To Server')
-                        ->action(fn (Collection $records) => $this->sendToServer($records))
-                        ->requiresConfirmation()
-                        ->deselectRecordsAfterCompletion()
-                        ->color('primary'),
                 ]),
             ]);
     }
 
-    public function sendToServer(Collection $records)
+    public function sendToServer($record)
     {
+        dd($record);
         $subscription = $this->ownerRecord;
         $forgeApi = new \App\Helpers\ForgeApi();
         $forgeApi->sendEnv($subscription);
