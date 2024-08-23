@@ -42,9 +42,17 @@ class CustomerSubscriptionController extends Controller
     public function getSpecificLogo(Request $request)
     {
         $host = $request->getHost();
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$host.'%')->first();
-        if (Storage::exists($customerSubscription->logo_1)) {
-            return response()->file(Storage::path($customerSubscription->logo_1));
+        \Log::info('HOST: ' . $host);
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $host . '%')->first();
+        if ($customerSubscription) {
+            if (Storage::exists($customerSubscription->logo_1)) {
+                return response()->file(Storage::path($customerSubscription->logo_1));
+            }
+        }else{
+            return response()->json([
+                'status' => 'ERROR',
+                'message' => 'No logo found for this customer'
+            ], 404);
         }
     }
 
