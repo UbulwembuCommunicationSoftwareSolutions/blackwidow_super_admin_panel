@@ -110,9 +110,19 @@ class CustomerSubscriptionResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('url'),
-                TextColumn::make('customer.company_name'),
-                TextColumn::make('subscriptionType.name'),
+                TextColumn::make('website_url')
+                    ->label('Website')
+                    ->formatStateUsing(fn ($state) => '<a href="' . $state . '" target="_blank" rel="noopener noreferrer">'.$state.'</a>')
+                    ->html()
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('customer.company_name')
+                    ->label('Customer')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('subscriptionType.name')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('forge_site_id'),
                 TextColumn::make('env_variables_count')
                     ->label('Variable Count')
