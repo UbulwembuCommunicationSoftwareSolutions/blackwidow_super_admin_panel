@@ -51,6 +51,7 @@ class CustomerResource extends Resource
                     ->sortable(),
                 TextColumn::make('customer_subscriptions_count')
                     ->label('Subscriptions')
+                    ->sortable()
                     ->counts('customer_subscriptions'),
             ])
             ->filters([
