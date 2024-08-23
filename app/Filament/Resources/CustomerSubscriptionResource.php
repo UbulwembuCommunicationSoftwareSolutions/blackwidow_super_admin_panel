@@ -42,6 +42,8 @@ class CustomerSubscriptionResource extends Resource
                     Select::make('customer_id')
                         ->label('Customer')
                         ->searchable()
+                        ->preload()
+                        ->reactive()
                         ->relationship('customer', 'company_name') // Specify the relationship and the display column
                         ->required(),
                     Select::make('subscription_type_id')
