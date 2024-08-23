@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
+use App\Models\SubscriptionType;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
@@ -11,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -92,7 +94,10 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
             ])
             ->filters([
-                //
+                SelectFilter::make('subscription_type_id')
+                    ->label('Subscription Type')
+                    ->relationship('subscriptionType', 'name') // Assuming 'subscriptionType' is the relationship method name
+                    ->options(SubscriptionType::pluck('name', 'id')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
