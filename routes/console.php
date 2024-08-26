@@ -44,14 +44,9 @@ Artisan::command('syncOneRequiredOptions', function () {
     $RESPONDER_APP_NAME->value =  $APP_NAME->first()->value . 'Responder';
     $RESPONDER_APP_NAME->save();
     $SECURITY_APP_NAME->value =  $APP_NAME->first()->value . 'Security';
+    $SECURITY_APP_NAME->save();
     $DRIVER_APP_NAME->value =  $APP_NAME->first()->value . 'Driver';
     $DRIVER_APP_NAME->save();
-
-    $SECURITY_APP_NAME->save();
-
-
-
-
 
 
 });
