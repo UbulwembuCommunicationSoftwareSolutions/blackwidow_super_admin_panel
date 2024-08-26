@@ -25,6 +25,34 @@ Artisan::command('syncOneRequiredOptions', function () {
             'value' => $option->value
         ]);
     }
+    $APP_NAME = $subscription->envVariables()->where('key','APP_NAME')->first();
+    $APP_DB = $subscription->envVariables()->where('key','DB_DATABASE')->first();
+    $APP_URL = $subscription->envVariables()->where('key','APP_URL')->first();
+    $AWS_BUCKET = $subscription->envVariables()->where('key','AWS_BUCKET')->first();
+    $MINIO_BUCKET = $subscription->envVariables()->where('key','MINIO_BUCKET')->first();
+    $ELASTICSEARCH_INDEX = $subscription->envVariables()->where('key','ELASTICSEARCH_INDEX')->first();
+    $RESPONDER_APP_NAME = $subscription->envVariables()->where('key','RESPONDER_APP_NAME')->first();
+    $SECURITY_APP_NAME =  $subscription->envVariables()->where('key','SECURITY_APP_NAME')->first();
+    $DRIVER_APP_NAME = $subscription->envVariables()->where('key','DRIVER_APP_NAME')->first();
+
+    $AWS_BUCKET->value = $APP_NAME->first()->value . 'bucket';
+    $AWS_BUCKET->save();
+    $MINIO_BUCKET->value = $APP_NAME->first()->value . 'bucket';
+    $MINIO_BUCKET->save();
+    $ELASTICSEARCH_INDEX->value = $APP_DB->first()->value . 'index';
+    $ELASTICSEARCH_INDEX->save();
+    $RESPONDER_APP_NAME->value =  $APP_NAME->first()->value . 'Responder';
+    $RESPONDER_APP_NAME->save();
+    $SECURITY_APP_NAME->value =  $APP_NAME->first()->value . 'Security';
+    $DRIVER_APP_NAME->value =  $APP_NAME->first()->value . 'Driver';
+    $DRIVER_APP_NAME->save();
+
+    $SECURITY_APP_NAME->save();
+
+
+
+
+
 
 });
 
