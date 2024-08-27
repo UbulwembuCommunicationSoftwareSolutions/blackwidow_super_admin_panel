@@ -20,6 +20,8 @@ class CustomerSubscription extends Model
         'logo_5',
         'created_at',
         'updated_at',
+        'database_name',
+        'app_name',
     ];
 
     public $appends = ['null_variable_count'];
