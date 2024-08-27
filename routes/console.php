@@ -48,7 +48,6 @@ Artisan::command('syncOneRequiredOptions', function () {
     $DRIVER_APP_NAME->value =  $APP_NAME->first()->value . 'Driver';
     $DRIVER_APP_NAME->save();
 
-
 });
 
 
