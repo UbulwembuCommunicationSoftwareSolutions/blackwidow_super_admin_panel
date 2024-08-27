@@ -34,6 +34,10 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                 TextInput::make('url')
                     ->required()
                     ->url(),
+                TextInput::make('app_name')
+                    ->required(),
+                TextInput::make('database_name')
+                    ->required(),
                 Select::make('subscription_type_id')
                     ->label('Subscription Type')
                     ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
