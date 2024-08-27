@@ -41,6 +41,9 @@ Artisan::command('syncOneRequiredOptions', function () {
     $APP_DB->value = $subscription->database_name;
     $APP_DB->save();
 
+    $APP_URL->value =$subscription->url;
+    $APP_URL->save();
+
     $AWS_BUCKET->value = $APP_NAME->first()->value . 'bucket';
     $AWS_BUCKET->save();
     $MINIO_BUCKET->value = $APP_NAME->first()->value . 'bucket';
