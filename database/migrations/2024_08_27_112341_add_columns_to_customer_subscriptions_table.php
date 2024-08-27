@@ -9,7 +9,6 @@ return new class extends Migration {
     {
         Schema::table('customer_subscriptions', function (Blueprint $table) {
             $table->string('database_name');
-            $table->string('app_name');
         });
     }
 
