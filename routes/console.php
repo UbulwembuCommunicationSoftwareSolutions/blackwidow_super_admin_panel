@@ -35,6 +35,12 @@ Artisan::command('syncOneRequiredOptions', function () {
     $SECURITY_APP_NAME =  $subscription->envVariables()->where('key','SECURITY_APP_NAME')->first();
     $DRIVER_APP_NAME = $subscription->envVariables()->where('key','DRIVER_APP_NAME')->first();
 
+    $APP_NAME->value = $subscription->app_name;
+    $APP_NAME->save();
+
+    $APP_DB->value = $subscription->database_name;
+    $APP_DB->save();
+
     $AWS_BUCKET->value = $APP_NAME->first()->value . 'bucket';
     $AWS_BUCKET->save();
     $MINIO_BUCKET->value = $APP_NAME->first()->value . 'bucket';
