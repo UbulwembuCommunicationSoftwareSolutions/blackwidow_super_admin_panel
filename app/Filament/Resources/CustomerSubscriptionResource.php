@@ -56,6 +56,10 @@ class CustomerSubscriptionResource extends Resource
                     TextInput::make('url')
                         ->required()
                         ->url(),
+                    TextInput::make('app_name')
+                        ->required(),
+                    TextInput::make('database_name')
+                        ->required()
                 ]),
                 Section::make('ENV File')->schema([
                     Placeholder::make('forge_site_id')
@@ -114,6 +118,10 @@ class CustomerSubscriptionResource extends Resource
                     ->label('Website')
                     ->formatStateUsing(fn ($state) => '<a href="' . $state . '" target="_blank" rel="noopener noreferrer">'.$state.'</a>')
                     ->html()
+                    ->sortable(),
+                TextColumn::make('app_name')
+                    ->label('App Name')
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('customer.company_name')
                     ->label('Customer')
