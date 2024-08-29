@@ -106,4 +106,13 @@ Artisan::command('sendCommandToAllConsoles',function (){
         \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
     }
 
-})->purpose('Send Command To All Consoles')->daily();
+})->purpose('Send Command To All Consoles');
+
+Artisan::command('sendCommandToAllResponders',function (){
+    $command = $this->ask('Enter Command');
+    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 3)->get();
+    foreach($subscriptions as $subscription){
+        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
+    }
+
+})->purpose('Send Command To All Consoles');
