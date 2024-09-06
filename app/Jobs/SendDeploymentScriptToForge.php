@@ -28,6 +28,6 @@ class SendDeploymentScriptToForge implements ShouldQueue
     public function handle(): void
     {
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->sendEnv($this->customerSubscriptionId);
+        $forgeApi->sendDeploymentScript($this->customerSubscriptionId);
     }
 }
