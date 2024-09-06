@@ -21,7 +21,7 @@ use Illuminate\Support\Collection;
 
 class DeploymentScriptRelationManager extends RelationManager
 {
-    protected static string $relationship = 'envVariables';
+    protected static string $relationship = 'deploymentScript';
 
     public function form(Form $form): Form
     {
