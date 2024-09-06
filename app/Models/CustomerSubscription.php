@@ -62,6 +62,11 @@ class CustomerSubscription extends Model
         return $this->hasMany(EnvVariables::class);
     }
 
+    public function deploymentScript()
+    {
+        return $this->hasOne(DeploymentScript::class);
+    }
+
     public function getNullVariableCountAttribute(){
         return $this->envVariables()->whereNull('value')->count();
     }

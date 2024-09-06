@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\CustomerSubscription;
+use App\Models\DeploymentScript;
 use App\Models\EnvVariables;
 use Dotenv\Dotenv;
 use Laravel\Forge\Forge;
@@ -42,8 +43,12 @@ class ForgeApi
                 $customerSubscription->save();
 
                 $string_deployment = $this->forge->siteDeploymentScript($site->serverId, $site->id);
-                dd($string_deployment);
                 $env = $this->parseEnvContent($string_env);
+                $deploymentScript = DeploymentScript::create([
+                    'script' => $string_deployment,
+                    'customer_subscription_id' => $customerSubscription->id
+                ]);
+                $deploymentScript->save();
                 try{
                 }catch (\Exception $e) {
 //                    echo $e->getMessage();
