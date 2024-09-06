@@ -44,9 +44,10 @@ class ForgeApi
 
                 $string_deployment = $this->forge->siteDeploymentScript($site->serverId, $site->id);
                 $env = $this->parseEnvContent($string_env);
-                $deploymentScript = DeploymentScript::create([
-                    'script' => $string_deployment,
+                $deploymentScript = DeploymentScript::firstOrCreate([
                     'customer_subscription_id' => $customerSubscription->id
+                ],[
+                    'script' => $string_deployment
                 ]);
                 $deploymentScript->save();
                 try{
