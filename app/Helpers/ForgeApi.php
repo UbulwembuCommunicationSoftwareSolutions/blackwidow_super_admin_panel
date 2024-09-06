@@ -40,6 +40,9 @@ class ForgeApi
                 $string_env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
                 $customerSubscription->server_id = $site->serverId;
                 $customerSubscription->save();
+
+                $string_deployment = $this->forge->siteDeploymentScript($site->serverId, $site->id);
+                dd($string_deployment);
                 $env = $this->parseEnvContent($string_env);
                 try{
                 }catch (\Exception $e) {
