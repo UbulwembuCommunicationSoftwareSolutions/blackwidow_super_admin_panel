@@ -28,6 +28,7 @@ class DeploymentScriptRelationManager extends RelationManager
         return $form
             ->schema([
                 Forms\Components\Textarea::make('script')
+                    ->rows(50)
                     ->required(),
                 Select::make('customer_subscription_id')
                     ->label('Subscription')
