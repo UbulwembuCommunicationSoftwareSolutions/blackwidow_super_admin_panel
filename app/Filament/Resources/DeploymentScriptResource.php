@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\DeploymentScriptResource\Pages;
 use App\Models\DeploymentScript;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -35,7 +36,8 @@ class DeploymentScriptResource extends Resource
                     ->label('Last Modified Date')
                     ->content(fn(?DeploymentScript $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
 
-                TextInput::make('script')
+                Textarea::make('script')
+                    ->formatStateUsing(fn ($value) => nl2br(e($value)))
                     ->required(),
 
                 TextInput::make('customer_subscription_id')
