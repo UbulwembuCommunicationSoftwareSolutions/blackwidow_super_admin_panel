@@ -76,6 +76,7 @@ class DeploymentScriptRelationManager extends RelationManager
 
     public function sendToServer($record)
     {
+        dd($record);
         SendDeploymentScriptToForge::dispatch($this->ownerRecord->id);
     }
 }

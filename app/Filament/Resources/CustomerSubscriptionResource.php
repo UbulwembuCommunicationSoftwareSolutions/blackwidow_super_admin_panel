@@ -3,9 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
+use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\DeploymentScriptRelationManager;
 use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\EnvVariablesRelationManager;
 use App\Jobs\SendEnvToForge;
 use App\Models\CustomerSubscription;
+use App\Models\DeploymentScript;
 use App\Models\SubscriptionType;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -183,6 +185,7 @@ class CustomerSubscriptionResource extends Resource
     public static function getRelations(): array
     {
         return [
+            DeploymentScriptRelationManager::class,
             EnvVariablesRelationManager::class
         ];
     }

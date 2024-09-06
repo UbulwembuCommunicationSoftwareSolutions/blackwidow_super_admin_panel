@@ -37,7 +37,6 @@ class DeploymentScriptResource extends Resource
                     ->content(fn(?DeploymentScript $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
 
                 Textarea::make('script')
-                    ->formatStateUsing(fn ($value) => nl2br(e($value)))
                     ->required(),
 
                 TextInput::make('customer_subscription_id')
