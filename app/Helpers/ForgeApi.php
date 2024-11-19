@@ -42,6 +42,7 @@ class ForgeApi
         foreach($this->sites as $site){
             $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
             if($customerSubscription){
+                echo "Subscription Found for ".$site->name."\n";
                 $customerSubscription->forge_site_id = $site->id;
                 //echo $customerSubscription->url."\n";
                 $string_env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
