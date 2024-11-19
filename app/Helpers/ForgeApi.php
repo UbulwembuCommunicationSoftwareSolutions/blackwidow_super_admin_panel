@@ -84,6 +84,13 @@ class ForgeApi
             }
         }
     }
+
+    public function deployAllConsoles(){
+        $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
+        foreach($customerSubscriptions as $customerSubscription){
+            $this->deploySite($customerSubscription->id);
+        }
+    }
     public function parseEnvContent($content) {
         $lines = explode("\n", $content);
         $env = [];

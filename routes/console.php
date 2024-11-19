@@ -14,6 +14,13 @@ Artisan::command('syncForge', function () {
     $forgeApi->syncForge();
 })->purpose('Sync Forge')->daily();
 
+
+Artisan::command('deployAllConsoles', function () {
+    $forgeApi = new \App\Helpers\ForgeApi();
+    $forgeApi->deployAllConsoles();
+
+})->purpose('Deploy All Consoles')->daily();
+
 Artisan::command('syncOneRequiredOptions', function () {
     $required_options = \App\Models\RequiredEnvVariables::get();
     $subscription = $this->ask('Enter Subscription ID');
