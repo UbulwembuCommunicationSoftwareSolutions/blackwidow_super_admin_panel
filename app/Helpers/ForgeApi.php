@@ -60,23 +60,23 @@ class ForgeApi
                 }catch (\Exception $e) {
 //                    echo $e->getMessage();
                 }
-//                foreach($env as $key=>$value){
-//                    if($key!=='FORGE_API_KEY'){
-//                        $envVar = EnvVariables::where('key', $key)
-//                            ->where('customer_subscription_id', $customerSubscription->id)
-//                            ->first();
-//                        if(!$envVar){
-//                            $envVar = new EnvVariables();
-//                            $envVar->key = $key;
-//                            $envVar->value = $value;
-//                            $envVar->customer_subscription_id = $customerSubscription->id;
-//                            $envVar->save();
-//                        }else{
-//                            $envVar->value = $value;
-//                            $envVar->save();
-//                        }
-//                    }
-//                }
+                foreach($env as $key=>$value){
+                    if($key!=='FORGE_API_KEY'){
+                        $envVar = EnvVariables::where('key', $key)
+                            ->where('customer_subscription_id', $customerSubscription->id)
+                            ->first();
+                        if(!$envVar){
+                            $envVar = new EnvVariables();
+                            $envVar->key = $key;
+                            $envVar->value = $value;
+                            $envVar->customer_subscription_id = $customerSubscription->id;
+                            $envVar->save();
+                        }else{
+                            $envVar->value = $value;
+                            $envVar->save();
+                        }
+                    }
+                }
                 $customerSubscription->save();
             }else{
                 echo "No Subscription Found for ".$site->name."\n";
