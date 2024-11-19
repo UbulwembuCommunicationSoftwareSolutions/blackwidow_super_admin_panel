@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
 use App\Models\EnvVariables;
@@ -88,7 +89,11 @@ class ForgeApi
     public function deployAllConsoles(){
         $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
         foreach($customerSubscriptions as $customerSubscription){
-            $this->deploySite($customerSubscription->id);
+            if($customerSubscription->server_id == null || $customerSubscription->forge_site_id == null){
+                \Log::error("Server ID or Site ID not found for Subscription ID: ".$customerSubscription->id);
+            }else{
+                TriggerForgeDeployment::dispatch($customerSubscription->server_id, $customerSubscription->forge_site_id);
+            }
         }
     }
     public function parseEnvContent($content) {
