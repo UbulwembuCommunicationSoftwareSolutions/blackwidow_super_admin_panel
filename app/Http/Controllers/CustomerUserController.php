@@ -19,7 +19,8 @@ class CustomerUserController extends Controller
     }
 
     public function login(Request $request){
-        dd($request);
+        $input = $request->all();
+        dd($input);
     }
 
     public function store(Request $request)
