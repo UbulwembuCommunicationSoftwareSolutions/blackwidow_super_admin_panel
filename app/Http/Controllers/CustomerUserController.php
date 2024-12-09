@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\CustomerUserResource;
+use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -20,7 +21,23 @@ class CustomerUserController extends Controller
 
     public function login(Request $request){
         $input = $request->all();
-        return response()->json($input);
+        $email = $request->get('email');
+        $password = $request->get('password');
+        $url = $request->get('app_url');
+        $customerSubscription = CustomerSubscription::where('app_url', $url)->first();
+        $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
+        if (!$customerUser || !\Hash::check($request->password, $customerUser->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        // Create a new Sanctum token
+        $token = $customerUser->createToken('customer-user-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login successful',
+            'token' => $token,
+        ]);
+
     }
 
     public function store(Request $request)
