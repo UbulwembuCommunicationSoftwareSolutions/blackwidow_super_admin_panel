@@ -19,6 +19,8 @@ class EnvVariablesResource extends Resource
 {
     protected static ?string $model = EnvVariables::class;
 
+    protected static ?string $navigationGroup = 'System Settings';
+
     protected static ?string $slug = 'env-variables';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

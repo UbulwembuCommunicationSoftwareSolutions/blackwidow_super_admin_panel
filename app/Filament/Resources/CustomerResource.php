@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers\CustomerSubscriptionsRelationManager;
+use App\Filament\Resources\CustomerResource\RelationManagers\CustomerUserRelationManager;
 use App\Models\Customer;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
@@ -31,6 +32,8 @@ class CustomerResource extends Resource
 
     protected static ?string $slug = 'customers';
 
+    protected static ?string $navigationGroup = 'Customers';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -49,10 +52,10 @@ class CustomerResource extends Resource
                 TextColumn::make('company_name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('customer_subscriptions_count')
+                TextColumn::make('customerSubscriptions_count')
                     ->label('Subscriptions')
                     ->sortable()
-                    ->counts('customer_subscriptions'),
+                    ->counts('customerSubscriptions'),
             ])
             ->filters([
                 TrashedFilter::make(),
@@ -84,8 +87,8 @@ class CustomerResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with('customer_subscriptions')
-            ->withCount('customer_subscriptions')
+            ->with('customerSubscriptions')
+            ->withCount('customerSubscriptions')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
@@ -99,7 +102,8 @@ class CustomerResource extends Resource
     public static function getRelations(): array
     {
         return [
-            'customers' => CustomerSubscriptionsRelationManager::class,
+            'subscriptions' => CustomerSubscriptionsRelationManager::class,
+            'users' => CustomerUserRelationManager::class,
         ];
     }
 

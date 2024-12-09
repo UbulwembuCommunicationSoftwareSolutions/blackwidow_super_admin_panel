@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CustomerSubscriptionsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'customer_subscriptions';
+    protected static string $relationship = 'customerSubscriptions';
 
     public function form(Form $form): Form
     {

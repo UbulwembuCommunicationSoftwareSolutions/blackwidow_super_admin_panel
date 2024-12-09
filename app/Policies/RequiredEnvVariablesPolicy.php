@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\EnvVariables;
+use App\Models\RequiredEnvVariables;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class EnvVariablesPolicy
+class RequiredEnvVariablesPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class EnvVariablesPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_env::variables');
+        return $user->can('view_any_required::env::variables');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, EnvVariables $envVariables): bool
+    public function view(User $user, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('view_env::variables');
+        return $user->can('view_required::env::variables');
     }
 
     /**
@@ -31,23 +31,23 @@ class EnvVariablesPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_env::variables');
+        return $user->can('create_required::env::variables');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, EnvVariables $envVariables): bool
+    public function update(User $user, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('update_env::variables');
+        return $user->can('update_required::env::variables');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, EnvVariables $envVariables): bool
+    public function delete(User $user, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('delete_env::variables');
+        return $user->can('delete_required::env::variables');
     }
 
     /**
@@ -55,15 +55,15 @@ class EnvVariablesPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_env::variables');
+        return $user->can('delete_any_required::env::variables');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, EnvVariables $envVariables): bool
+    public function forceDelete(User $user, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('force_delete_env::variables');
+        return $user->can('force_delete_required::env::variables');
     }
 
     /**
@@ -71,15 +71,15 @@ class EnvVariablesPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_env::variables');
+        return $user->can('force_delete_any_required::env::variables');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, EnvVariables $envVariables): bool
+    public function restore(User $user, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('restore_env::variables');
+        return $user->can('restore_required::env::variables');
     }
 
     /**
@@ -87,15 +87,15 @@ class EnvVariablesPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_env::variables');
+        return $user->can('restore_any_required::env::variables');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, EnvVariables $envVariables): bool
+    public function replicate(User $user, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('replicate_env::variables');
+        return $user->can('replicate_required::env::variables');
     }
 
     /**
@@ -103,6 +103,6 @@ class EnvVariablesPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_env::variables');
+        return $user->can('reorder_required::env::variables');
     }
 }

@@ -2,10 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\DeploymentScriptResource\Pages;
-use App\Models\DeploymentScript;
+use App\Filament\Resources\CustomerUserResource\Pages;
+use App\Models\CustomerUser;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,12 +15,12 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class DeploymentScriptResource extends Resource
+class CustomerUserResource extends Resource
 {
-    protected static ?string $model = DeploymentScript::class;
-    protected static ?string $navigationGroup = 'System Settings';
+    protected static ?string $model = CustomerUser::class;
 
-    protected static ?string $slug = 'deployment-scripts';
+    protected static ?string $slug = 'customer-users';
+    protected static ?string $navigationGroup = 'Customers';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -29,20 +28,29 @@ class DeploymentScriptResource extends Resource
     {
         return $form
             ->schema([
+                TextInput::make('customer_id')
+                    ->required()
+                    ->integer(),
+
+                TextInput::make('email_address')
+                    ->required(),
+
+                TextInput::make('password')
+                    ->required(),
+
+                TextInput::make('first_name')
+                    ->required(),
+
+                TextInput::make('last_name')
+                    ->required(),
+
                 Placeholder::make('created_at')
                     ->label('Created Date')
-                    ->content(fn(?DeploymentScript $record): string => $record?->created_at?->diffForHumans() ?? '-'),
+                    ->content(fn(?CustomerUser $record): string => $record?->created_at?->diffForHumans() ?? '-'),
 
                 Placeholder::make('updated_at')
                     ->label('Last Modified Date')
-                    ->content(fn(?DeploymentScript $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
-
-                Textarea::make('script')
-                    ->required(),
-
-                TextInput::make('customer_subscription_id')
-                    ->required()
-                    ->integer(),
+                    ->content(fn(?CustomerUser $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
             ]);
     }
 
@@ -50,9 +58,13 @@ class DeploymentScriptResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('script'),
+                TextColumn::make('customer_id'),
 
-                TextColumn::make('customer_subscription_id'),
+                TextColumn::make('email_address'),
+
+                TextColumn::make('first_name'),
+
+                TextColumn::make('last_name'),
             ])
             ->filters([
                 //
@@ -71,9 +83,9 @@ class DeploymentScriptResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDeploymentScripts::route('/'),
-            'create' => Pages\CreateDeploymentScript::route('/create'),
-            'edit' => Pages\EditDeploymentScript::route('/{record}/edit'),
+            'index' => Pages\ListCustomerUsers::route('/'),
+            'create' => Pages\CreateCustomerUser::route('/create'),
+            'edit' => Pages\EditCustomerUser::route('/{record}/edit'),
         ];
     }
 

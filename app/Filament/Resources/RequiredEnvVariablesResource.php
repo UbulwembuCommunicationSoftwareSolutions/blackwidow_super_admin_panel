@@ -24,6 +24,8 @@ class RequiredEnvVariablesResource extends Resource
 
     protected static ?string $slug = 'required-env-variables';
 
+    protected static ?string $navigationGroup = 'System Settings';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form

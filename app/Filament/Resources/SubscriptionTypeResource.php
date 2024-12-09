@@ -28,6 +28,8 @@ class SubscriptionTypeResource extends Resource
 
     protected static ?string $slug = 'subscription-types';
 
+    protected static ?string $navigationGroup = 'System Administration';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form

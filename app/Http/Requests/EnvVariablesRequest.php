@@ -11,7 +11,7 @@ class EnvVariablesRequest extends FormRequest
         return [
             'key' => ['required'],
             'value' => ['required'],
-            'customer_subscription_id' => ['required', 'exists:customer_subscriptions'],
+            'customer_subscription_id' => ['required', 'exists:customerSubscriptions'],
         ];
     }
 

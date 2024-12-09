@@ -37,6 +37,8 @@ class CustomerSubscriptionResource extends Resource
 
     protected static ?string $slug = 'customer-subscriptions';
 
+    protected static ?string $navigationGroup = 'Customers';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
