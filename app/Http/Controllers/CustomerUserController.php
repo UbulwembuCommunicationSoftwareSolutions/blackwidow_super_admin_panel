@@ -18,6 +18,10 @@ class CustomerUserController extends Controller
         return CustomerUserResource::collection(CustomerUser::all());
     }
 
+    public function login(Request $request){
+        dd($request);
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', CustomerUser::class);
