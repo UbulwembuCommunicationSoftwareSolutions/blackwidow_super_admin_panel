@@ -20,7 +20,7 @@ class CustomerUserController extends Controller
 
     public function login(Request $request){
         $input = $request->all();
-        dd($input);
+        return response()->json($input);
     }
 
     public function store(Request $request)
