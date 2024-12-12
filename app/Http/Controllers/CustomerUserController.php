@@ -25,6 +25,9 @@ class CustomerUserController extends Controller
         $password = $request->get('password');
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
+        if(!$customerSubscription){
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
         $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
         if (!$customerUser || !\Hash::check($request->password, $customerUser->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
