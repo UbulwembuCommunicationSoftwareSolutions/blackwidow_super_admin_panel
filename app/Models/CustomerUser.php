@@ -12,4 +12,8 @@ class CustomerUser extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function setPasswordAttribute($value){
+        $this->attributes['password'] = \Hash::make($value);
+    }
 }

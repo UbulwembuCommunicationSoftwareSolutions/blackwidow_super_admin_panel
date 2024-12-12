@@ -15,4 +15,5 @@ class CreateCustomerUser extends CreateRecord
 
         ];
     }
+
 }
