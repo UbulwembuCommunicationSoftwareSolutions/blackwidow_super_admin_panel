@@ -12,7 +12,7 @@ class CustomerUser extends Model
     public $fillable = [
         'customer_id',
         'name',
-        'email',
+        'email_address',
         'password',
     ];
     public function customer(): BelongsTo
