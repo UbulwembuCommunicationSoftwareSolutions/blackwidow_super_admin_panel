@@ -11,7 +11,8 @@ class CustomerUser extends Model
 
     public $fillable = [
         'customer_id',
-        'name',
+        'first_name',
+        'last_name',
         'email_address',
         'password',
     ];
