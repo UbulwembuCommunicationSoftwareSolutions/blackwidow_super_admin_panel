@@ -14,15 +14,6 @@ class CustomerUser extends Model
         'name',
         'email',
         'password',
-        'phone',
-        'address',
-        'city',
-        'state',
-        'zip',
-        'country',
-        'lat',
-        'lng',
-        'google_address',
     ];
     public function customer(): BelongsTo
     {
