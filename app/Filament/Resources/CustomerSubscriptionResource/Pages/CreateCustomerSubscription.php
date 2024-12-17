@@ -60,14 +60,6 @@ class CreateCustomerSubscription extends CreateRecord
                         ->live()
                         ->reactive()
                         ->postfix(fn($get) => $get('postfix'))
-                        ->formatStateUsing(function($get){
-                             $type = $get('subscription_type_id');
-                             $state = '';
-                             if((int)$type == 1){
-                                 $state = 'console.'.$get('vertical');
-                             }
-                             return $state;
-                        })
                         ->required()
                         ->url(),
                     TextInput::make('app_name')
