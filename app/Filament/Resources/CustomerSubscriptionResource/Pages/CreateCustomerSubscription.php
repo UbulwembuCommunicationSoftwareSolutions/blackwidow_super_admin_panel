@@ -59,7 +59,7 @@ class CreateCustomerSubscription extends CreateRecord
                     TextInput::make('url')
                         ->live()
                         ->reactive()
-                        ->suffix(fn($get) => '<input type="text" class="form-input fake-input" value="'.$get('postfix').'" readonly>')
+                        ->suffix(fn($get) => $get('postfix'))
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
                         ->url(),
