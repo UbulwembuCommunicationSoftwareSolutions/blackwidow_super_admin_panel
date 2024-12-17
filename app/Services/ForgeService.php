@@ -47,6 +47,7 @@ class ForgeService
 
     public static function setSitesDeploymentScripts(){
         $customerSubscriptions = CustomerSubscription::get();
+        dd($customerSubscriptions->count());
         foreach($customerSubscriptions as $customerSubscription){
             if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
                 $forgeApi = new ForgeApi();
@@ -56,7 +57,6 @@ class ForgeService
                 $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
                 if($customerSubscription->server_id && $customerSubscription->forge_site_id){
                     try{
-                        var_dump($deploymentString);
                         $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
                         echo "Success ". $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id."\n";
 
