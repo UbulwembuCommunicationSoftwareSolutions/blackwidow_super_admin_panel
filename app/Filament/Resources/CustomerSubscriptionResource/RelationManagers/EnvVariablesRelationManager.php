@@ -39,17 +39,13 @@ class EnvVariablesRelationManager extends RelationManager
             ->whereNotIn('key', $addedEnv)
             ->get();
 
-        $array = [];
+        $array = '';
         foreach ($missing as $env) {
-            $array[] = [
-                'key' => $env->key,
-                'value' => $env->default_value,
-                'customer_subscription_id' => $this->ownerRecord->id
-            ];
+            $array .= $env->key.' , ';
         }
-        \Notification::make()
-            ->title('Missing Required Environment Variables')
-            ->message('The following environment variables are required for this subscription')
+        foreach($array as $value){}
+        \Filament\Notifications\Notification::make()
+            ->title('The following environment variables are required for this subscription: '.$array)
             ->send();
 
     }
