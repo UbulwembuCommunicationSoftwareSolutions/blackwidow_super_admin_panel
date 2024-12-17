@@ -2,3 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 @tailwind variants;
+
+
+.with-suffix {
+    display: flex;
+}
+
+.fake-input {
+    @apply border border-gray-300 rounded-r-md px-3 py-2 bg-gray-100 text-gray-500;
+    margin-left: -1px; /* Remove the gap between the two fields */
+    border-left: 0; /* Merge the border visually */
+    pointer-events: none; /* Prevent editing */
+}
