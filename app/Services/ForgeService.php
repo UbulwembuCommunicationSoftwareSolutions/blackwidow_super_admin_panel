@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Helpers\ForgeApi;
 use App\Jobs\SendDeploymentScriptToForge;
 use App\Models\CustomerSubscription;
+use App\Models\DeploymentScript;
 use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
 
@@ -55,6 +56,12 @@ class ForgeService
                 $baseUrl = str_replace('https://','',$customerSubscription->url);
                 $baseUrl = str_replace('http://','',$baseUrl);
                 $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
+                $deploymentScript = DeploymentScript::updateOrCreate([
+                    'customer_subscription_id' => $customerSubscription->id
+                ],[
+                    'script' => $deploymentString
+                ]);
+                $deploymentScript->save();
                 if($customerSubscription->server_id && $customerSubscription->forge_site_id){
                     SendDeploymentScriptToForge::dispatch($customerSubscription->id,$deploymentString);
                 }
