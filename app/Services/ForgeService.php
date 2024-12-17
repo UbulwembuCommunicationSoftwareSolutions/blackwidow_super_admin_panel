@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\SendDeploymentScriptToForge;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
@@ -47,7 +48,6 @@ class ForgeService
 
     public static function setSitesDeploymentScripts(){
         $customerSubscriptions = CustomerSubscription::get();
-        dd($customerSubscriptions->count());
         foreach($customerSubscriptions as $customerSubscription){
             if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
                 $forgeApi = new ForgeApi();
@@ -56,13 +56,7 @@ class ForgeService
                 $baseUrl = str_replace('http://','',$baseUrl);
                 $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
                 if($customerSubscription->server_id && $customerSubscription->forge_site_id){
-                    try{
-                        $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
-                        echo "Success ". $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id."\n";
-
-                    }catch (\Exception $e){
-                        echo $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id.' '.$e->getMessage()."\n";
-                    }
+                    SendDeploymentScriptToForge::dispatch($customerSubscription->id,$deploymentString);
                 }
             }
         }

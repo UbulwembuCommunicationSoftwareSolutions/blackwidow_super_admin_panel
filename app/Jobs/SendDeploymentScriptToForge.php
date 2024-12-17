@@ -14,12 +14,15 @@ class SendDeploymentScriptToForge implements ShouldQueue
 
 
     public $customerSubscriptionId;
+
+    public $script;
     /**
      * Create a new job instance.
      */
-    public function __construct($customerSubscriptionId)
+    public function __construct($customerSubscriptionId,$script)
     {
         $this->customerSubscriptionId = $customerSubscriptionId;
+        $this->script = $script;
     }
 
     /**
@@ -28,6 +31,6 @@ class SendDeploymentScriptToForge implements ShouldQueue
     public function handle(): void
     {
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->sendDeploymentScript($this->customerSubscriptionId);
+        $forgeApi->sendDeploymentScript($this->customerSubscriptionId,$this->script);
     }
 }

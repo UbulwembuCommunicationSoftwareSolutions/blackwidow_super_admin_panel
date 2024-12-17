@@ -28,10 +28,9 @@ class ForgeApi
         $this->forge->executeSiteCommand($customerSubscription->server_id, $customerSubscription->forge_site_id, $commands_array);
     }
 
-    public function sendDeploymentScript($customerSubscriptionId){
+    public function sendDeploymentScript($customerSubscriptionId,$script){
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
-        $deploymentScript = DeploymentScript::where('customer_subscription_id', $customerSubscriptionId)->first();
-        $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id, $deploymentScript->script);
+        $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id,$script);
     }
 
     public function syncForge(){
