@@ -43,13 +43,14 @@ Artisan::command('app:importExistingUsers',function (){
             $mysqli = new mysqli("localhost", $user->value, $password->value, $database->value);
             $result = $mysqli->query("SELECT * FROM users");
             while($row = $result->fetch_assoc()){
-                $user = new \App\Models\CustomerUser();
-                $user->customer_id = $console->customer_id;
-                $user->first_name = $row['name'];
-                $user->last_name = $row['surname'];
-                $user->email_address = $row['email'];
-                $user->password = $row['password'];
-                $user->save();
+                $user = \App\Models\CustomerUser::updateOrCreate([
+                    'email_address' => $row['email'],
+                    'customer_id' => $console->customer_id,
+                ],[
+                    'first_name' => $row['name'],
+                    'last_name' => $row['surname'],
+                    'password' => $row['password']
+                ]);
             }
         }catch (Exception $e){
             echo $e->getMessage();
