@@ -4,6 +4,8 @@ namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
 use App\Filament\Exports\EnvVariableExporter;
 use App\Jobs\SendEnvToForge;
+use App\Models\EnvVariables;
+use App\Models\RequiredEnvVariables;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Tables\Actions\BulkAction;
@@ -21,6 +23,36 @@ use Illuminate\Support\Collection;
 class EnvVariablesRelationManager extends RelationManager
 {
     protected static string $relationship = 'envVariables';
+
+
+    public function mount() : void
+    {
+        // This method runs when the RelationManager is mounted
+        $this->onFirstLoad();
+    }
+
+    public function onFirstLoad()
+    {
+        $addedEnv = EnvVariables::where('customer_subscription_id', $this->ownerRecord->id)->pluck('key');
+
+        $missing = RequiredEnvVariables::where('subscription_type_id', $this->ownerRecord->subscription_type_id)
+            ->whereNotIn('key', $addedEnv)
+            ->get();
+
+        $array = [];
+        foreach ($missing as $env) {
+            $array[] = [
+                'key' => $env->key,
+                'value' => $env->default_value,
+                'customer_subscription_id' => $this->ownerRecord->id
+            ];
+        }
+        \Notification::make()
+            ->title('Missing Required Environment Variables')
+            ->message('The following environment variables are required for this subscription')
+            ->send();
+
+    }
 
     public function form(Form $form): Form
     {
