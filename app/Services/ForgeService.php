@@ -54,7 +54,13 @@ class ForgeService
                 $baseUrl = str_replace('https://','',$customerSubscription->url);
                 $baseUrl = str_replace('http://','',$baseUrl);
                 $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
-                $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
+                if($customerSubscription->server_id && $customerSubscription->forge_site_id){
+                    try{
+                        $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
+                    }catch (\Exception $e){
+                        echo $customerSubscription->url;
+                    }
+                }
             }
         }
     }
