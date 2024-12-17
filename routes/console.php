@@ -133,6 +133,7 @@ Artisan::command('app:syncAllRequiredEnvVariables', function () {
             ->whereNotIn('key', $addedEnv)
             ->get();
         foreach($missing as $value){
+            $this->info($subscription->url.' is missing '.$value->key.' adding it');
             EnvVariables::create([
                 'key' => $value->key,
                 'value' => $value->value,
