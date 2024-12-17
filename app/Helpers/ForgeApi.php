@@ -20,6 +20,13 @@ class ForgeApi
     public function __construct()
     {
         $this->forge = new Forge(env('FORGE_API_KEY'));
+        $client = $this->forge->getHttpClient();
+        $client->getConfig('handler')->push(
+            \GuzzleHttp\Middleware::tap(function ($request, $options) {
+                dump('Request:', $request);
+                dump('Options:', $options);
+            })
+        );
     }
 
     public function sendCommand($customerSubscriptionId,$command){
