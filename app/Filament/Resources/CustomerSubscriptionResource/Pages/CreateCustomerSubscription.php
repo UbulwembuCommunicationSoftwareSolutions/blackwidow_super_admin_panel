@@ -45,17 +45,19 @@ class CreateCustomerSubscription extends CreateRecord
                             if((int)$type == 1){
                                 $set('postfix', '.console.'.$get('vertical'));
                             }elseif((int)$type == 2){
-                                $set('postfix', '.driver.'.$get('vertical'));
-                            }elseif((int)$type == 3){
                                 $set('postfix', '.firearm.'.$get('vertical'));
+                            }elseif((int)$type == 3){
+                                $set('postfix', '.responder.'.$get('vertical'));
                             }elseif((int)$type == 4){
                                 $set('postfix', '.reporter.'.$get('vertical'));
                             }elseif((int)$type == 5){
-                                $set('postfix', '.responder.'.$get('vertical'));
-                            }elseif((int)$type == 6){
                                 $set('postfix', '.security.'.$get('vertical'));
-                            }elseif((int)$type == 8){
+                            }elseif((int)$type == 6){
+                                $set('postfix', '.driver.'.$get('vertical'));
+                            }elseif((int)$type == 7){
                                 $set('postfix', '.survey.'.$get('vertical'));
+                            }elseif((int)$type == 8){
+                                $set('postfix', 'DO NOT USE');
                             }elseif((int)$type == 9){
                                 $set('postfix', '.time.'.$get('vertical'));
                             }elseif((int)$type == 10){
@@ -75,17 +77,19 @@ class CreateCustomerSubscription extends CreateRecord
                             if((int)$type == 1){
                                 $set('postfix', '.console.'.$get('vertical'));
                             }elseif((int)$type == 2){
-                                $set('postfix', '.driver.'.$get('vertical'));
-                            }elseif((int)$type == 3){
                                 $set('postfix', '.firearm.'.$get('vertical'));
+                            }elseif((int)$type == 3){
+                                $set('postfix', '.responder.'.$get('vertical'));
                             }elseif((int)$type == 4){
                                 $set('postfix', '.reporter.'.$get('vertical'));
                             }elseif((int)$type == 5){
-                                $set('postfix', '.responder.'.$get('vertical'));
-                            }elseif((int)$type == 6){
                                 $set('postfix', '.security.'.$get('vertical'));
-                            }elseif((int)$type == 8){
+                            }elseif((int)$type == 6){
+                                $set('postfix', '.driver.'.$get('vertical'));
+                            }elseif((int)$type == 7){
                                 $set('postfix', '.survey.'.$get('vertical'));
+                            }elseif((int)$type == 8){
+                                $set('postfix', 'DO NOT USE');
                             }elseif((int)$type == 9){
                                 $set('postfix', '.time.'.$get('vertical'));
                             }elseif((int)$type == 10){
