@@ -43,7 +43,6 @@ class EnvVariablesRelationManager extends RelationManager
         foreach ($missing as $env) {
             $array .= $env->key.' , ';
         }
-        foreach($array as $value){}
         \Filament\Notifications\Notification::make()
             ->title('The following environment variables are required for this subscription: '.$array)
             ->send();
