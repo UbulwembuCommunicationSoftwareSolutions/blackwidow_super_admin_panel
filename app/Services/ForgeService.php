@@ -51,7 +51,10 @@ class ForgeService
             if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
                 $forgeApi = new ForgeApi();
                 $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
-                dd($deploymentTemplate->script);
+                $baseUrl = str_replace('https://','',$customerSubscription->url);
+                $baseUrl = str_replace('http://','',$baseUrl);
+                $string = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
+                dd($string);
                 $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
             }
         }
