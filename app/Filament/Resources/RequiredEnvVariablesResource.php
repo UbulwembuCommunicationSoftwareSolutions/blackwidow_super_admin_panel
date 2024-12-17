@@ -69,9 +69,9 @@ class RequiredEnvVariablesResource extends Resource
                     ->label('Product')
                     ->form([
                         \Filament\Forms\Components\Select::make('subscriptionType')
-                            ->options([
+                            ->options(
                                 SubscriptionType::pluck('name', 'id'),
-                            ])
+                            )
                             ->label('Product'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
