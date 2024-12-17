@@ -58,8 +58,7 @@ class ForgeService
                     try{
                         $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
                     }catch (\Exception $e){
-                        echo $customerSubscription->url;
-                        echo $e->getMessage();
+                        echo $customerSubscription->server_id.','.$customerSubscriptions->forge_site_id.' '.$e->getMessage();
                     }
                 }
             }
