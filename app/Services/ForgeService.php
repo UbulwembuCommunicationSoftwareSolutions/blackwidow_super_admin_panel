@@ -53,8 +53,7 @@ class ForgeService
                 $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
                 $baseUrl = str_replace('https://','',$customerSubscription->url);
                 $baseUrl = str_replace('http://','',$baseUrl);
-                $string = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
-                dd($string);
+                $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
                 $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
             }
         }
