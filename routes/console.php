@@ -45,7 +45,8 @@ Artisan::command('app:importExistingUsers',function (){
             while($row = $result->fetch_assoc()){
                 $user = new \App\Models\CustomerUser();
                 $user->customer_id = $console->customer_id;
-                $user->name = $row['name'];
+                $user->first_name = $row['name'];
+                $user->last_name = $row['surname'];
                 $user->email_address = $row['email'];
                 $user->password = $row['password'];
                 $user->save();
