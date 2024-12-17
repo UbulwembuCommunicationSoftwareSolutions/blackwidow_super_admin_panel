@@ -132,6 +132,7 @@ Artisan::command('app:syncAllRequiredEnvVariables', function () {
         $missing = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)
             ->whereNotIn('key', $addedEnv)
             ->get();
+        $this->info('Subscription '.$subscription->url.' is missing '.count($missing).' required options');
         foreach($missing as $value){
             $this->info($subscription->url.' is missing '.$value->key.' adding it');
             EnvVariables::create([
