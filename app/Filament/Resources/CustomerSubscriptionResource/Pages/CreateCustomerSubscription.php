@@ -39,7 +39,15 @@ class CreateCustomerSubscription extends CreateRecord
                         ->reactive()
                         ->label('Subscription Type')
                         ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
-                        ->required(),
+                        ->required()
+                        ->afterStateUpdated(function($get,$set){
+                            $type = $get('subscription_type_id');
+                            if((int)$type == 1){
+                                $set('postfix', '.console.'.$get('vertical'));
+                            }elseif((int)$type == 2){
+                                $set('postfix', '.driver.'.$get('vertical'));
+                            }
+                        }),
                     Select::make('vertical')
                         ->live()
                         ->reactive()
