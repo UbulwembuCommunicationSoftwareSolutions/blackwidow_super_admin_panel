@@ -74,7 +74,7 @@ class ConsoleEnvSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            DB::table('your_table_name')->updateOrInsert(
+            DB::table('required_env_variables')->updateOrInsert(
                 ['key' => $setting['key']],
                 ['value' => $setting['value'], 'default_value' => $setting['default_value']]
             );
