@@ -36,20 +36,20 @@ class ForgeApi
 
     public function syncForge(){
         $this->getServers();
-        foreach($this->servers as $server){
-            $this->getSites($server->id);
-        }
-        foreach($this->sites as $site){
-            $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
-            if($customerSubscription){
-            }else{
-                echo "No Subscription Found for ".$site->name."\n";
-                $customerSubscription =  CustomerSubscription::create([
-                    'url' => $site->name,
-                    'subscription_type_id' => null,
-                    'server_id' => $site->server_id,
-                    'forge_site_id' => $site->id
-                ]);
+        foreach($this->servers as $server) {
+            $sites = $this->getSites($server->id);
+            foreach ($sites as $site) {
+                $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
+                if ($customerSubscription) {
+                } else {
+                    echo "No Subscription Found for " . $site->name . "\n";
+                    $customerSubscription = CustomerSubscription::create([
+                        'url' => $site->name,
+                        'subscription_type_id' => null,
+                        'server_id' => $server->id,
+                        'forge_site_id' => $site->id
+                    ]);
+                }
             }
         }
     }
@@ -88,10 +88,12 @@ class ForgeApi
     }
 
     public function getSites($serverId){
+        $sites = [];
         try{
             foreach($this->forge->sites($serverId) as $site){
-                $this->sites[] = $site;
+                $sites[] = $site;
             }
+            return $sites;
         }catch (\Exception $e){
            // echo $e->getMessage();
         }
