@@ -51,14 +51,15 @@ class CreateCustomerSubscription extends CreateRecord
                         ])->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
                             if((int)$type == 1){
-                                $set('url', '.console.'.$get('vertical'));
+                                $set('postfix', '.console.'.$get('vertical'));
                             }elseif((int)$type == 2){
-                                $set('url', '.driver.'.$get('vertical'));
+                                $set('postfix', '.driver.'.$get('vertical'));
                             }
                         }),
                     TextInput::make('url')
                         ->live()
                         ->reactive()
+                        ->postfix(fn($get) => $get('postfix'))
                         ->formatStateUsing(function($get){
                              $type = $get('subscription_type_id');
                              $state = '';
