@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
+use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
 
 class ForgeService
@@ -42,5 +43,17 @@ class ForgeService
             }
         }
         $subscription->save();
+    }
+
+    public static function setSitesDeploymentScripts(){
+        $customerSubscriptions = CustomerSubscription::get();
+        foreach($customerSubscriptions as $customerSubscription){
+            if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
+                $forgeApi = new ForgeApi();
+                $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
+                dd($deploymentTemplate->script);
+                $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
+            }
+        }
     }
 }

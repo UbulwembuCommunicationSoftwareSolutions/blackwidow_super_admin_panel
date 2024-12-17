@@ -20,7 +20,7 @@ Artisan::command('app:sendSiteEnvs',function (){
 })->purpose('Send Site Envs')->daily();
 
 Artisan::command('app:sendSiteDeploymentScript',function (){
-
+    \App\Services\ForgeService::setSitesDeploymentScripts();
 })->purpose('Send Site Deployment Script')->daily();
 
 Artisan::command('app:getSiteDeploymentScript',function (){
