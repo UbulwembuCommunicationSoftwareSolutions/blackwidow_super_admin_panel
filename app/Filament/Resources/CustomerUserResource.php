@@ -28,7 +28,7 @@ class CustomerUserResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('customer_id')
+                TextInput::make('customer.company_name')
                     ->required()
                     ->integer(),
 
