@@ -51,11 +51,10 @@ class CreateCustomerSubscription extends CreateRecord
                         ])->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
                             if((int)$type == 1){
-                                $set('url', 'console.'.$get('vertical'));
-                            }else{
-                                dd($type);
+                                $set('url', '.console.'.$get('vertical'));
+                            }elseif((int)$type == 2){
+                                $set('url', '.driver.'.$get('vertical'));
                             }
-                            $set('url', '.'.$get('vertical'));
                         }),
                     TextInput::make('url')
                         ->live()
