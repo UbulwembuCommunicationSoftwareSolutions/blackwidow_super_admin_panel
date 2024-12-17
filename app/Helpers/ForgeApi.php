@@ -38,6 +38,7 @@ class ForgeApi
         $this->getServers();
         foreach($this->servers as $server) {
             $sites = $this->getSites($server->id);
+            var_dump($sites);
             foreach ($sites as $site) {
                 $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
                 if ($customerSubscription) {
