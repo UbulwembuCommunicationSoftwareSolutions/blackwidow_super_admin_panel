@@ -57,7 +57,7 @@ class ForgeService
                 if($customerSubscription->server_id && $customerSubscription->forge_site_id){
                     try{
                         $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
-                        echo "Success ". $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id.' '.$e->getMessage()."\n";
+                        echo "Success ". $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id."\n";
 
                     }catch (\Exception $e){
                         echo $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id.' '.$e->getMessage()."\n";
