@@ -56,7 +56,7 @@ class ForgeService
                 $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
                 if($customerSubscription->server_id && $customerSubscription->forge_site_id){
                     try{
-                        $site = $forgeApi->forge->site($customerSubscription->server_id, $customerSubscription->forge_site_id);
+                        var_dump($deploymentString);
                         $forgeApi->forge->updateSiteDeploymentScript($customerSubscription->serverId, $customerSubscription->forge_site_id, $deploymentString);
                         echo "Success ". $customerSubscription->url.','.$customerSubscription->server_id.','.$customerSubscription->forge_site_id."\n";
 
