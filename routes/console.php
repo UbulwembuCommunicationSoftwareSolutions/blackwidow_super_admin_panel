@@ -32,6 +32,16 @@ Artisan::command('app:generateRequiredEnvsForSites',function (){
 Artisan::command('app:generateDeploymentScriptForSites',function (){
 
 })->purpose('Generate required env variables for site')->daily();
+
+Artisan::command('app:importExistingUsers',function (){
+    $consoles = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+    foreach($consoles as $console){
+        $database = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_DATABASE')->first();
+        $user = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_USERNAME')->first();
+        $password = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_PASSWORD')->first();
+        dd($database,$user,$password);
+    }
+})->purpose('Import existing Case Management Users')->daily();
 //
 //Artisan::command('inspire', function () {
 //    $this->comment(Inspiring::quote());
