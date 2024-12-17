@@ -44,7 +44,6 @@ class ForgeApi
             if($customerSubscription){
             }else{
                 echo "No Subscription Found for ".$site->name."\n";
-                dd($site);
                 $customerSubscription =  CustomerSubscription::create([
                     'url' => $site->name,
                     'subscription_type_id' => null,
