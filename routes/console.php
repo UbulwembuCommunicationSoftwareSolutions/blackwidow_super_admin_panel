@@ -39,7 +39,7 @@ Artisan::command('app:importExistingUsers',function (){
         $database = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_DATABASE')->first();
         $user = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_USERNAME')->first();
         $password = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_PASSWORD')->first();
-        dd($database->value,$user->value,$password->value);
+        $this->info($database->value,$user->value,$password->value);
     }
 })->purpose('Import existing Case Management Users')->daily();
 //
