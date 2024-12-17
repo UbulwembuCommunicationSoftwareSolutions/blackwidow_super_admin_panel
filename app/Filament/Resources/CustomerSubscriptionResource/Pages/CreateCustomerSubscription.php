@@ -35,17 +35,29 @@ class CreateCustomerSubscription extends CreateRecord
                         ->relationship('customer', 'company_name') // Specify the relationship and the display column
                         ->required(),
                     Select::make('subscription_type_id')
+                        ->live()
+                        ->reactive()
                         ->label('Subscription Type')
                         ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
                         ->required(),
                     Select::make('vertical')
+                        ->live()
+                        ->reactive()
                         ->options([
                             'blackwidow.org.za',
                             'aims.work',
                             'bvigilant.co.za',
                             'siyaleader.org.za'
-                        ]),
+                        ])->afterStateUpdated(function($get,$set){
+                            $type = $get('subscription_type_id');
+                            if((int)$type == 1){
+                                $set('url', 'console.'.$get('vertical'));
+                            }
+                            $set('url', '.'.$get('vertical'));
+                        }),
                     TextInput::make('url')
+                        ->live()
+                        ->reactive()
                         ->formatStateUsing(function($get){
                              $type = $get('subscription_type_id');
                              $state = '';
