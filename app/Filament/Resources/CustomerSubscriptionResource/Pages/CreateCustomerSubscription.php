@@ -44,15 +44,16 @@ class CreateCustomerSubscription extends CreateRecord
                         ->live()
                         ->reactive()
                         ->options([
-                            'blackwidow.org.za',
-                            'aims.work',
-                            'bvigilant.co.za',
-                            'siyaleader.org.za'
+                            'blackwidow.org.za' => 'blackwidow.org.za',
+                            'aims.work'=>'aims.work',
+                            'bvigilant.co.za'=>'bvigilant.co.za',
+                            'siyaleader.org.za'=>'siyaleader.org.za'
                         ])->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
-                            dd($type);
                             if((int)$type == 1){
                                 $set('url', 'console.'.$get('vertical'));
+                            }else{
+                                dd($type);
                             }
                             $set('url', '.'.$get('vertical'));
                         }),
