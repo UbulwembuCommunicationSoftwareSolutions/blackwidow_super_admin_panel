@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\RequiredEnvVariablesResource\Pages;
 use App\Models\RequiredEnvVariables;
+use App\Models\SubscriptionType;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -64,7 +65,18 @@ class RequiredEnvVariablesResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                \Filament\Tables\Filters\Filter::make('subscriptionType')
+                    ->label('Product')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('subscriptionType')
+                            ->options([
+                                SubscriptionType::pluck('name', 'id'),
+                            ])
+                            ->label('Product'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->where('subscription_type_id', $data['subscriptionType']);
+                    }),
             ])
             ->actions([
                 EditAction::make(),
