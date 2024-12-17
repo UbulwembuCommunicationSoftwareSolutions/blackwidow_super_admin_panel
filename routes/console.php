@@ -39,16 +39,21 @@ Artisan::command('app:importExistingUsers',function (){
         $database = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_DATABASE')->first();
         $user = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_USERNAME')->first();
         $password = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_PASSWORD')->first();
-        $mysqli = new mysqli("localhost", $user->value, $password->value, $database->value);
-        $result = $mysqli->query("SELECT * FROM users");
-        while($row = $result->fetch_assoc()){
-            $user = new \App\Models\CustomerUser();
-            $user->customer_id = $console->customer_id;
-            $user->name = $row['name'];
-            $user->email_address = $row['email'];
-            $user->password = $row['password'];
-            $user->save();
+        try{
+            $mysqli = new mysqli("localhost", $user->value, $password->value, $database->value);
+            $result = $mysqli->query("SELECT * FROM users");
+            while($row = $result->fetch_assoc()){
+                $user = new \App\Models\CustomerUser();
+                $user->customer_id = $console->customer_id;
+                $user->name = $row['name'];
+                $user->email_address = $row['email'];
+                $user->password = $row['password'];
+                $user->save();
+            }
+        }catch (Exception $e){
+            echo $e->getMessage();
         }
+
     }
 })->purpose('Import existing Case Management Users')->daily();
 //
