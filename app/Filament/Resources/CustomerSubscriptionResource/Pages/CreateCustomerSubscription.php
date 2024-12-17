@@ -50,6 +50,7 @@ class CreateCustomerSubscription extends CreateRecord
                             'siyaleader.org.za'
                         ])->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
+                            dd($type);
                             if((int)$type == 1){
                                 $set('url', 'console.'.$get('vertical'));
                             }
