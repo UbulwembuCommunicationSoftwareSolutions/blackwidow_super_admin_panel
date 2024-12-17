@@ -43,45 +43,14 @@ class ForgeApi
         foreach($this->sites as $site){
             $customerSubscription = CustomerSubscription::where('url','like','%'.$site->name.'%')->first();
             if($customerSubscription){
-                echo "Subscription Found for ".$site->name."\n";
-                $customerSubscription->forge_site_id = $site->id;
-                //echo $customerSubscription->url."\n";
-                $string_env = $this->forge->siteEnvironmentFile($site->serverId, $site->id);
-                $customerSubscription->server_id = $site->serverId;
-                $customerSubscription->save();
-
-                $string_deployment = $this->forge->siteDeploymentScript($site->serverId, $site->id);
-                $env = $this->parseEnvContent($string_env);
-                $deploymentScript = DeploymentScript::firstOrCreate([
-                    'customer_subscription_id' => $customerSubscription->id
-                ],[
-                    'script' => $string_deployment
-                ]);
-                $deploymentScript->save();
-                try{
-                }catch (\Exception $e) {
-//                    echo $e->getMessage();
-                }
-                foreach($env as $key=>$value){
-                    if($key!=='FORGE_API_KEY'){
-                        $envVar = EnvVariables::where('key', $key)
-                            ->where('customer_subscription_id', $customerSubscription->id)
-                            ->first();
-                        if(!$envVar){
-                            $envVar = new EnvVariables();
-                            $envVar->key = $key;
-                            $envVar->value = $value;
-                            $envVar->customer_subscription_id = $customerSubscription->id;
-                            $envVar->save();
-                        }else{
-                            $envVar->value = $value;
-                            $envVar->save();
-                        }
-                    }
-                }
-                $customerSubscription->save();
             }else{
                 echo "No Subscription Found for ".$site->name."\n";
+                $customerSubscription =  CustomerSubscription::create([
+                    'url' => $site->name,
+                    'subscription_type_id' => null,
+                    'server_id' => $site->server_id,
+                    'forge_site_id' => $site->id
+                ]);
             }
         }
     }
