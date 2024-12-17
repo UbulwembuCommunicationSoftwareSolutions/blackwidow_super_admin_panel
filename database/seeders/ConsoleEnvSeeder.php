@@ -75,6 +75,7 @@ class ConsoleEnvSeeder extends Seeder
 
         foreach ($settings as $setting) {
             DB::table('required_env_variables')->updateOrInsert(
+                ['subscription_type_id' => 1],
                 ['key' => $setting['key']],
                 ['value' => $setting['value']]
             );
