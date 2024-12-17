@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\EnvVariables;
+use App\Models\RequiredEnvVariables;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
@@ -123,24 +125,24 @@ Artisan::command('app:importExistingUsers',function (){
 //});
 //
 //
-//Artisan::command('syncAllRequiredOptions', function () {
-//    $required_options = \Illuminate\Support\Facades\DB::select('select DISTINCT(env_variables.key) from env_variables
-//JOIN customer_subscriptions on customer_subscriptions.id = env_variables.customer_subscription_id
-//where customer_subscriptions.subscription_type_id="1"');
-//    foreach($required_options as $option){
-//        $option = (array)$option;
-//        $option = $option['key'];
-//        $required_option = \App\Models\RequiredEnvVariables::where('key', $option)->first();
-//        if(!$required_option){
-//            $required_option = new \App\Models\RequiredEnvVariables();
-//            $required_option->key = $option;
-//            $required_option->value = '';
-//            $required_option->subscription_type_id = 1;
-//            $required_option->save();
-//        }
-//    }
-//
-//})->purpose('Sync All Required Options')->daily();
+Artisan::command('app:syncAllRequiredEnvVariables', function () {
+    $subscriptions = \App\Models\CustomerSubscription::get();
+    foreach($subscriptions as $subscription){
+        $addedEnv = EnvVariables::where('customer_subscription_id', $subscription->id)->pluck('key');
+        $missing = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)
+            ->whereNotIn('key', $addedEnv)
+            ->get();
+        foreach($missing as $value){
+            EnvVariables::create([
+                'key' => $value->key,
+                'value' => $value->value,
+                'customer_subscription_id' => $subscription->id
+            ]);
+        }
+
+    }
+
+})->purpose('Sync All Required Options')->daily();
 //
 //Artisan::command('syncAllRequiredOptionsForSubscription', function () {
 //    \App\Models\CustomerSubscription::createMissingEnv();
