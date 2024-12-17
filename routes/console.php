@@ -4,6 +4,11 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
 
+Artisan::command('app:syncForge',function (){
+        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi->syncForge();
+})->purpose('Get Site Envs')->daily();
+
 Artisan::command('app:getSiteEnvs',function (){
 
 })->purpose('Get Site Envs')->daily();
