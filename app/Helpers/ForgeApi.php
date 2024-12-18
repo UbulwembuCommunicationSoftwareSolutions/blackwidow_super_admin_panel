@@ -127,7 +127,7 @@ class ForgeApi
         ]);
     }
 
-    public function addMissingEnv($customerSubscription){
+    public function addMissingEnv(CustomerSubscription $customerSubscription){
         $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
         $missing = RequiredEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
             ->whereNotIn('key', $addedEnv)
@@ -141,6 +141,47 @@ class ForgeApi
                 'value' => $env->value
             ]);
         }
+        $database = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','DB_DATABASE')
+            ->first();
+        if($database){
+            $database->value = $customerSubscription->database_name;
+            $database->save();
+        }
+
+        $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','APP_NAME')
+            ->first();
+        if($appName){
+            $appName->value = $customerSubscription->app_name;
+            $appName->save();
+        }
+
+        $appUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','APP_URL')
+            ->first();
+        if($appUrl){
+            $appUrl->value = $customerSubscription->url;
+            $appUrl->save();
+        }
+
+        $elasticSearch = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','ELASTICSEARCH_INDEX')
+            ->first();
+        if($elasticSearch){
+            $elasticSearch->value = $customerSubscription->database_name;
+            $elasticSearch->save();
+        }
+
+        $minioBucket = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','MINIO_BUCKET')
+            ->first();
+        if($minioBucket){
+            $minioBucket->value = $customerSubscription->database_name;
+            $minioBucket->save();
+        }
+
+
     }
 
 
