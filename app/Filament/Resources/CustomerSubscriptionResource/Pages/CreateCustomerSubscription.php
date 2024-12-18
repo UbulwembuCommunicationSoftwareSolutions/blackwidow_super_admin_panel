@@ -17,6 +17,8 @@ class CreateCustomerSubscription extends CreateRecord
 {
     protected static string $resource = CustomerSubscriptionResource::class;
 
+    public $urlConfirmed = false;
+
     protected function getHeaderActions(): array
     {
         return [
@@ -110,11 +112,18 @@ class CreateCustomerSubscription extends CreateRecord
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
                         ->afterStateUpdated(function($get,$set){
+                            $this->urlConfirmed = false;
                             $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
                         })
                         ->hintAction(
                             Action::make('verifyUrl')
-                                ->icon('heroicon-m-clipboard')
+                                ->icon(function(){
+                                   if($this->urlConfirmed){
+                                       return 'check-circle';
+                                   }else{
+                                       return 'exclamation-circle';
+                                   }
+                                })
                                 ->requiresConfirmation()
                                 ->action(function ($get,$set) {
                                    $this->domainResolvesToIp($get('url').$get('postfix'),$set,$get);
@@ -197,6 +206,7 @@ class CreateCustomerSubscription extends CreateRecord
                             ->title('Domain Resolves to IP '.$domain)
                             ->success()
                             ->send();
+                        $this->urlConfirmed = true;
                         $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
                     }
                 }
