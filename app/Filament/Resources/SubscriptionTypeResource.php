@@ -63,6 +63,9 @@ class SubscriptionTypeResource extends Resource
                 TextColumn::make('github_repo')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('branch')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 TrashedFilter::make(),
