@@ -49,6 +49,8 @@ class SubscriptionTypeResource extends Resource
 
                 TextInput::make('github_repo')
                     ->required(),
+                TextInput::make('branch')
+                    ->required(),
             ]);
     }
 
