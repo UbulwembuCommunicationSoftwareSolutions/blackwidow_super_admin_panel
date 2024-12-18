@@ -186,6 +186,7 @@ class CreateCustomerSubscription extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        dd($data);
         $url = $data['url'].$data['postfix'];
         $app_name = $data['app_name'];
         $database_name = $data['database_name'];
