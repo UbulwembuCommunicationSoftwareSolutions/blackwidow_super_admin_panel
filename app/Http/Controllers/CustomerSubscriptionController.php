@@ -27,13 +27,18 @@ class CustomerSubscriptionController extends Controller
             $url = $request->customer_url;
             \Log::info('URL: '.$url);
             $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            return response()->json([
-                "logo_1" => $customerSubscription->logo_1,
-                "logo_2" => $customerSubscription->logo_2,
-                "logo_3" => $customerSubscription->logo_3,
-                "logo_4" => $customerSubscription->logo_4,
-                "logo_5" => $customerSubscription->logo_5,
-            ]);
+            if($customerSubscription){
+                return response()->json([
+                    "logo_1" => $customerSubscription->logo_1,
+                    "logo_2" => $customerSubscription->logo_2,
+                    "logo_3" => $customerSubscription->logo_3,
+                    "logo_4" => $customerSubscription->logo_4,
+                    "logo_5" => $customerSubscription->logo_5,
+                ]);
+            }else{
+                return response()->json($logos = []);
+            }
+
         }else{
             return response()->json($logos = []);
         }
