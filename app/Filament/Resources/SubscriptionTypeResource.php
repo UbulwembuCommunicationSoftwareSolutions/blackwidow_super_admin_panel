@@ -46,11 +46,12 @@ class SubscriptionTypeResource extends Resource
 
                 TextInput::make('name')
                     ->required(),
-
                 TextInput::make('github_repo')
                     ->required(),
                 TextInput::make('branch')
                     ->required(),
+                Placeholder::make()
+                ->content('The branch name is the name of the branch in the GitHub repository that will be used to deploy the subscription type. The branch must exist in the GitHub repository and be accessible to the GitHub App that is used to deploy the subscription type.'),
             ]);
     }
 
