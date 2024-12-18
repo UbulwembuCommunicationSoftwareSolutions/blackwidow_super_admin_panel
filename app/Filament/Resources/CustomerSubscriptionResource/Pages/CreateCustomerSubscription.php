@@ -79,40 +79,28 @@ class CreateCustomerSubscription extends CreateRecord
                             'siyaleader.org.za'=>'siyaleader.org.za'
                         ])->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
-                            $theType = 'console';
-                            if($get('vertical') == 'blackwidow.org.za'){
-                                $set('theVertical','blackwidow');
-                            }
-                            if($get('vertical') == 'aims.work'){
-                                $set('theVertical','aims_work');
-                            }
-                            if($get('vertical') == 'bvigilant.co.za'){
-                                $set('theVertical','bvigilant');
-                            }
-                            if($get('vertical') == 'siyaleader.org.za'){
-                                $set('theVertical','siyaleader');
-                            }
-                            if((int)$type == 1){
-                                $theType = 'console';
-                            }elseif((int)$type == 2){
-                                $theType = 'firearm';
-                            }elseif((int)$type == 3){
-                                $theType = 'responder';
-                            }elseif((int)$type == 4){
-                                $theType = 'reporter';
-                            }elseif((int)$type == 5){
-                                $theType = 'security';
-                            }elseif((int)$type == 6){
-                                $theType = 'driver';
-                            }elseif((int)$type == 7){
-                                $theType = 'survey';
-                            }elseif((int)$type == 8){
-                                $theType = 'DONOTUSE';
-                            }elseif((int)$type == 9){
-                                $theType = 'time';
-                            }elseif((int)$type == 10){
-                                $theType = 'stock';
-                            }
+                            $verticalMap = [
+                                'blackwidow.org.za' => 'blackwidow',
+                                'aims.work' => 'aims_work',
+                                'bvigilant.co.za' => 'bvigilant',
+                                'siyaleader.org.za' => 'siyaleader',
+                            ];
+                            $theType = match ((int) $type) {
+                                1 => 'console',
+                                2 => 'firearm',
+                                3 => 'responder',
+                                4 => 'reporter',
+                                5 => 'security',
+                                6 => 'driver',
+                                7 => 'survey',
+                                8 => 'DONOTUSE',
+                                9 => 'time',
+                                10 => 'stock',
+                                default => 'unknown',
+                            };
+                            $set('theVertical', $verticalMap[$get('vertical')] ?? 'unknown');
+                            $set('theType', $theType);
+                            $set('postfix', '.' . $theType . '.' . $get('vertical'));
                             $set('theType',$theType);
                             $set('postfix', '.'.$theType.'.'.$get('vertical'));
                         }),
