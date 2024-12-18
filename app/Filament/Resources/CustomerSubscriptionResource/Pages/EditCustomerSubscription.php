@@ -57,10 +57,10 @@ class EditCustomerSubscription extends EditRecord
                 Section::make('ENV File')->schema([
                     Placeholder::make('forge_site_id')
                         ->label('Forge Site ID')
-                        ->disabled(),
+                        ->content(fn($record) => $record->forge_site_id),
                     Placeholder::make('forge_server_id')
                         ->label('Forge Server ID')
-                        ->disabled(),
+                        ->content(fn($record) => $record->forge_server_id),
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
