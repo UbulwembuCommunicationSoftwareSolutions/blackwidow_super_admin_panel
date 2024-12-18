@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
+use App\Models\CustomerSubscription;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -13,6 +14,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class CreateCustomerSubscription extends CreateRecord
 {
@@ -186,21 +189,28 @@ class CreateCustomerSubscription extends CreateRecord
             ]);
     }
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        dd($data);
-        $url = $data['url'].$data['postfix'];
-        $app_name = $data['app_name'];
-        $database_name = $data['database_name'];
-        return $data;
-    }
+   protected function handleRecordCreation(array $data): Model
+   {
+       $domain = $data['url'].$data['postfix'];
+       if(!$this->domainResolvesToIp($domain)){
+          new ValidationException('Domain does not resolve to IP');
+       }else{
+           $customerSubscription = CustomerSubscription::create([
+               'customer_id' => $data['customer_id'],
+               'subscription_type_id' => $data['subscription_type_id'],
+               'url' => 'https://'.$data['url'].'.'.$data['vertical'],
+
+           ]);
+       }
+
+   }
 
     public  function afterCreate():void
     {
 
     }
 
-    function domainResolvesToIp($domain,$set,$get) {
+    function domainResolvesToIp($domain,$set =null,$get =null) {
         try{
             $dnsRecords = dns_get_record($domain, DNS_A); // Check for AAAA records (IPv6)
             if (!empty($dnsRecords)) {
@@ -210,8 +220,11 @@ class CreateCustomerSubscription extends CreateRecord
                             ->title('Domain Resolves to IP '.$domain)
                             ->success()
                             ->send();
-                        $set('urlConfirmed',true);
-                        $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
+                        if($set){
+                            $set('urlConfirmed',true);
+                            $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
+                        }
+                        return true;
                     }
                 }
             }else{
@@ -219,12 +232,14 @@ class CreateCustomerSubscription extends CreateRecord
                     ->title('Domain does not resolve to IP '.$domain)
                     ->danger()
                     ->send();
+                return false;
             }
         }catch (\Exception $e){
             Notification::make()
                 ->title('Domain does not resolve to IP '.$domain)
                 ->danger()
                 ->send();
+            return false;
         }
     }
 
