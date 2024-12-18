@@ -106,7 +106,6 @@ class CreateCustomerSubscription extends CreateRecord
                         }),
                     TextInput::make('url')
                         ->live(debounce: 1000) // Debounce updates for 500ms
-                        ->reactive()
                         ->suffix(fn($get) => $get('postfix'))
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
