@@ -193,7 +193,9 @@ class CreateCustomerSubscription extends CreateRecord
    {
        $domain = $data['url'].$data['postfix'];
        if(!$this->domainResolvesToIp($domain)){
-          new ValidationException('Domain does not resolve to IP');
+              throw ValidationException::withMessages([
+                'url' => 'Domain does not resolve to IP',
+              ]);
        }else{
            $customerSubscription = CustomerSubscription::create([
                'customer_id' => $data['customer_id'],
