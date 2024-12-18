@@ -10,7 +10,6 @@ return new class extends Migration {
         Schema::create('my_forge_servers', function (Blueprint $table) {
             $table->id();
             $table->integer('forge_server_id');
-            $table->integer('id');
             $table->string('name')->nullable();
             $table->string('ip_address')->nullable();
             $table->timestamps();
