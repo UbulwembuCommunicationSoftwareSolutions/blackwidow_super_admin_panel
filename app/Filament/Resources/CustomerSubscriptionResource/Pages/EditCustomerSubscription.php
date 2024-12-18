@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\DeploySite;
+use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -32,8 +33,8 @@ class EditCustomerSubscription extends EditRecord
                     Select::make('forge_server_id')
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                 ])
-                ->action(function (array $data,  $record): void {
-                    $record->forge_server_id = $data('forge_server_id');
+                ->action(function (array $data,  CustomerSubscription $record): void {
+                    $record->server_id = $data('forge_server_id');
                     $record->save();
                 })
         ];
@@ -69,7 +70,7 @@ class EditCustomerSubscription extends EditRecord
                         ->content(fn($record) => $record->forge_site_id),
                     Placeholder::make('forge_server_id')
                         ->label('Forge Server ID')
-                        ->content(fn($record) => $record->forge_server_id),
+                        ->content(fn($record) => $record->server_id),
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
