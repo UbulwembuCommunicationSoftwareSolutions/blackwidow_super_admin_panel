@@ -34,7 +34,7 @@ class EditCustomerSubscription extends EditRecord
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                 ])
                 ->action(function (array $data,  CustomerSubscription $record): void {
-                    $record->server_id = $data('forge_server_id');
+                    $record->server_id = $data['forge_server_id'];
                     $record->save();
                 })
         ];
