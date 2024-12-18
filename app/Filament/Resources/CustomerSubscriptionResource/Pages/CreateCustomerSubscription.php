@@ -187,10 +187,9 @@ class CreateCustomerSubscription extends CreateRecord
         try{
             $dnsRecords = dns_get_record($domain, DNS_A); // Check for AAAA records (IPv6)
             if (!empty($dnsRecords)) {
-                dd($dnsRecords);
                 foreach ($dnsRecords as $record) {
-                    if (isset($record['ipv'])) {
-                        return $record['ipv6']; // Return the resolved IPv6 address
+                    if (isset($record['ip'])) {
+                        return $record['ip']; // Return the resolved IPv6 address
                     }
                 }
             }else{
