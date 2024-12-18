@@ -109,11 +109,13 @@ class CreateCustomerSubscription extends CreateRecord
                             if($ip){
                                Notification::make()
                                    ->title('Domain Resolves to IP')
-                                   ->success();
+                                   ->success()
+                                   ->send();
                             }else{
                                 Notification::make()
                                     ->title('Domain Does Not Resolve to IP')
-                                    ->danger();
+                                    ->danger()
+                                    ->send();
                             }
                         })
                         ->url(),
@@ -183,7 +185,7 @@ class CreateCustomerSubscription extends CreateRecord
 
     function domainResolvesToIp($domain) {
         try{
-            $dnsRecords = dns_get_record($domain, DNS_AAAA); // Check for AAAA records (IPv6)
+            $dnsRecords = dns_get_record($domain, DNS_A); // Check for AAAA records (IPv6)
             if (!empty($dnsRecords)) {
                 foreach ($dnsRecords as $record) {
                     if (isset($record['ipv6'])) {
