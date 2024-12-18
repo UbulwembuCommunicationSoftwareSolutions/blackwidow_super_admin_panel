@@ -126,7 +126,6 @@ class CreateCustomerSubscription extends CreateRecord
                                        return 'heroicon-o-exclamation-circle';
                                    }
                                 })
-                                ->requiresConfirmation()
                                 ->action(function ($get,$set) {
                                    $this->domainResolvesToIp($get('url').$get('postfix'),$set,$get);
                                 })
