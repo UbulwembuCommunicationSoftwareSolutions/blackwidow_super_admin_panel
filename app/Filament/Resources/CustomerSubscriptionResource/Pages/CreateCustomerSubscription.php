@@ -157,4 +157,26 @@ class CreateCustomerSubscription extends CreateRecord
             ]);
     }
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        dd($data);
+    }
+
+    public  function afterCreate():void
+    {
+        dd($this->record);
+    }
+
+    function domainResolvesToIp($domain) {
+        $dnsRecords = dns_get_record($domain, DNS_A); // Check for A records (IPv4)
+        if (!empty($dnsRecords)) {
+            foreach ($dnsRecords as $record) {
+                if (isset($record['ip'])) {
+                    return $record['ip']; // Return the resolved IP address
+                }
+            }
+        }
+        return false; // No A records found
+    }
+
 }
