@@ -69,10 +69,10 @@ class ForgeApi
                 ]);
             }
         }
-        dd("here");
         $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('github_sent_at')
             ->get();
+        dd($customerSubscriptions);
         foreach($customerSubscriptions as $customerSubscription){
             $this->forge->updateSiteGitRepository(
                 $customerSubscription->server_id,
