@@ -116,8 +116,8 @@ class CreateCustomerSubscription extends CreateRecord
                             Action::make('verifyUrl')
                                 ->icon('heroicon-m-clipboard')
                                 ->requiresConfirmation()
-                                ->action(function ($get) {
-                                   $this->domainResolvesToIp($get('url').$get('postfix'));
+                                ->action(function ($get,$set) {
+                                   $this->domainResolvesToIp($get('url').$get('postfix'),$set,$get);
                                 })
                         ),
                     TextInput::make('app_name')
@@ -187,7 +187,7 @@ class CreateCustomerSubscription extends CreateRecord
 
     }
 
-    function domainResolvesToIp($domain) {
+    function domainResolvesToIp($domain,$set,$get) {
         try{
             $dnsRecords = dns_get_record($domain, DNS_A); // Check for AAAA records (IPv6)
             if (!empty($dnsRecords)) {
@@ -197,6 +197,7 @@ class CreateCustomerSubscription extends CreateRecord
                             ->title('Domain Resolves to IP '.$domain)
                             ->success()
                             ->send();
+                        $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
                     }
                 }
             }else{
