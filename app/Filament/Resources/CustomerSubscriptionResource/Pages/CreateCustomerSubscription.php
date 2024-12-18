@@ -104,7 +104,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
                         ->afterStateUpdated(function($get,$set){
-                            $url = $get('url');
+                            $url = $get('url').$get('postfix');
                             $ip = $this->domainResolvesToIp($url);
                             if($ip){
                                Notification::make()
