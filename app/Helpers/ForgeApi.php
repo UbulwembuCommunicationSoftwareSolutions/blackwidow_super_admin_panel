@@ -36,6 +36,7 @@ class ForgeApi
 
     public function syncForge(){
         $this->getServers();
+        dd($this->servers);
         foreach($this->servers as $server) {
             $sites = $this->getSites($server->id);
             foreach ($sites as $site) {
