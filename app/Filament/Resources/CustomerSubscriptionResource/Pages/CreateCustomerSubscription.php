@@ -33,12 +33,12 @@ class CreateCustomerSubscription extends CreateRecord
                         ->label('Customer')
                         ->searchable()
                         ->preload()
-                        ->reactive()
+
                         ->relationship('customer', 'company_name') // Specify the relationship and the display column
                         ->required(),
                     Select::make('subscription_type_id')
                         ->live()
-                        ->reactive()
+
                         ->label('Subscription Type')
                         ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
                         ->required()
@@ -71,7 +71,7 @@ class CreateCustomerSubscription extends CreateRecord
                         }),
                     Select::make('vertical')
                         ->live()
-                        ->reactive()
+
                         ->options([
                             'blackwidow.org.za' => 'blackwidow.org.za',
                             'aims.work'=>'aims.work',
