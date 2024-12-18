@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Filament\Resources\CustomerSubscriptionResource;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -17,7 +18,6 @@ class CreateCustomerSubscription extends CreateRecord
 {
     protected static string $resource = CustomerSubscriptionResource::class;
 
-    public $urlConfirmed = false;
 
     protected function getHeaderActions(): array
     {
@@ -31,6 +31,8 @@ class CreateCustomerSubscription extends CreateRecord
         return $form
             ->schema([
                 Section::make('Customer Info')->schema([
+                    Hidden::make('urlConfirmed')
+                        ->default(false),
                     Select::make('customer_id')
                         ->label('Customer')
                         ->searchable()
@@ -112,13 +114,13 @@ class CreateCustomerSubscription extends CreateRecord
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
                         ->afterStateUpdated(function($get,$set){
-                            $this->urlConfirmed = false;
+                            $set('urlConfirmed', false);
                             $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
                         })
                         ->hintAction(
                             Action::make('verifyUrl')
-                                ->icon(function(){
-                                   if($this->urlConfirmed){
+                                ->icon(function($get){
+                                   if($get('urlConfirmed')){
                                        return 'check-circle';
                                    }else{
                                        return 'exclamation-circle';
@@ -206,7 +208,7 @@ class CreateCustomerSubscription extends CreateRecord
                             ->title('Domain Resolves to IP '.$domain)
                             ->success()
                             ->send();
-                        $this->urlConfirmed = true;
+                        $set('urlConfirmed',true);
                         $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
                     }
                 }
