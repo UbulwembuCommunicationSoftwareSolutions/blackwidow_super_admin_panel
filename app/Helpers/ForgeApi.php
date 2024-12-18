@@ -56,7 +56,7 @@ class ForgeApi
         foreach ($sites as $site) {
             $customerSubscription = CustomerSubscription::where('url', 'like', '%' . 'https://'.$site->name . '%')->first();
             if ($customerSubscription) {
-                echo $customerSubscription->url."\n";
+                echo $customerSubscription->url.' '.$site->name."\n";
                 $customerSubscription->forge_site_id = $site->id;
                 $customerSubscription->save();
             } else {
