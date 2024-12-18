@@ -112,7 +112,7 @@ class ForgeApi
 
     public function createSite($server_id, CustomerSubscription $customerSubscription){
         $this->addMissingEnv($customerSubscription);
-        $this->forge->createSite($server_id,[
+        $payload = [
             'domain' => $customerSubscription->url,
             'project_type' => 'php',
             'directory' => '/public',
@@ -124,7 +124,9 @@ class ForgeApi
             'php_version' => 'php83',
             'database' => $customerSubscription->database_name,
             'env' => $this->collectEnv($customerSubscription)
-        ]);
+        ];
+        \Log::info(json_encode($payload));
+        $this->forge->createSite($server_id,$payload);
     }
 
     public function addMissingEnv(CustomerSubscription $customerSubscription){
