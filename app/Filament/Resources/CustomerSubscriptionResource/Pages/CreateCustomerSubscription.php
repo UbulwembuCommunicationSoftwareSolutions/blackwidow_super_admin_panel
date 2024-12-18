@@ -135,7 +135,7 @@ class CreateCustomerSubscription extends CreateRecord
                                     ->danger()
                                     ->send();
                             }
-                            $set('database_name',$get('theType').'_'.$get('theVertical'));
+                            $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
                         }),
                     TextInput::make('app_name')
                         ->required(),
