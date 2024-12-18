@@ -46,6 +46,9 @@ class SubscriptionTypeResource extends Resource
 
                 TextInput::make('name')
                     ->required(),
+
+                TextInput::make('github_repo')
+                    ->required(),
             ]);
     }
 
@@ -55,6 +58,9 @@ class SubscriptionTypeResource extends Resource
             ->columns([
                 TextColumn::make('id'),
                 TextColumn::make('name')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('github_repo')
                     ->searchable()
                     ->sortable(),
             ])
