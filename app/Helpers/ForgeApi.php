@@ -6,6 +6,7 @@ use App\Jobs\SendEnvToForge;
 use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
+use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
 use App\Models\ForgeServer;
 use App\Models\RequiredEnvVariables;
@@ -59,6 +60,31 @@ class ForgeApi
                     ]);
                 }
             }
+        }
+        $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
+            ->whereNull('deployment_script_sent_at')
+            ->get();
+        foreach($customerSubscriptions as $customerSubscription){
+           $siteDeployment = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
+           if($siteDeployment){
+                $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
+                $customerSubscription->deployment_script_sent_at = now();
+                $customerSubscription->save();
+           }else{
+               $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
+               $baseUrl = str_replace('https://','',$customerSubscription->url);
+               $baseUrl = str_replace('http://','',$baseUrl);
+               $siteDeployment = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
+               $deploymentScript = DeploymentScript::updateOrCreate([
+                   'customer_subscription_id' => $customerSubscription->id
+               ],[
+                   'script' => $siteDeployment
+               ]);
+               $deploymentScript->save();
+               $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
+               $customerSubscription->deployment_script_sent_at = now();
+               $customerSubscription->save();
+           }
         }
     }
 

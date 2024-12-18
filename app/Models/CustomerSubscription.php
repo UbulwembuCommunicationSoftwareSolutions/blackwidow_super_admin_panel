@@ -22,6 +22,13 @@ class CustomerSubscription extends Model
         'updated_at',
         'database_name',
         'app_name',
+        'env',
+        'site_created_at',
+        'github_sent_at',
+        'env_sent_at',
+        'deployment_script_sent_at',
+        'ssl_deployed_at',
+        'deployed_at',
     ];
 
     public $appends = ['null_variable_count'];
