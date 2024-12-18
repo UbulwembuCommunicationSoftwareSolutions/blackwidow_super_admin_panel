@@ -61,6 +61,22 @@ class ForgeApi
                 }
             }
         }
+
+        $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
+            ->whereNull('github_sent_at')
+            ->get();
+        foreach($customerSubscriptions as $customerSubscription){
+            $this->forge->updateSiteGitRepository(
+                $customerSubscription->server_id,
+                $customerSubscription->forge_site_id,
+                [
+                    'provider' => 'github',
+                    'repository' => $customerSubscription->subscriptionType->github_repo,
+                    'branch' => $customerSubscription->subscriptionType->branch,
+                ]
+            );
+        }
+
         $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
             ->whereNull('deployment_script_sent_at')
             ->get();
@@ -85,6 +101,15 @@ class ForgeApi
                $customerSubscription->deployment_script_sent_at = now();
                $customerSubscription->save();
            }
+        }
+
+        $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
+            ->whereNull('env_sent_at')
+            ->get();
+        foreach($customerSubscriptions as $customerSubscription){
+            $this->sendEnv($customerSubscription->id);
+            $customerSubscription->env_sent_at = now();
+            $customerSubscription->save();
         }
     }
 
