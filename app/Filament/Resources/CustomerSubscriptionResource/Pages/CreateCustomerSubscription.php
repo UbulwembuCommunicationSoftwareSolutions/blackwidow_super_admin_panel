@@ -182,15 +182,20 @@ class CreateCustomerSubscription extends CreateRecord
     }
 
     function domainResolvesToIp($domain) {
-        $dnsRecords = dns_get_record($domain, DNS_A); // Check for A records (IPv4)
-        if (!empty($dnsRecords)) {
-            foreach ($dnsRecords as $record) {
-                if (isset($record['ip'])) {
-                    return $record['ip']; // Return the resolved IP address
+        try{
+            $dnsRecords = dns_get_record($domain, DNS_AAAA); // Check for AAAA records (IPv6)
+            if (!empty($dnsRecords)) {
+                foreach ($dnsRecords as $record) {
+                    if (isset($record['ipv6'])) {
+                        return $record['ipv6']; // Return the resolved IPv6 address
+                    }
                 }
+            }else{
+                return false;
             }
+        }catch (\Exception $e){
+            return false;
         }
-        return false; // No A records found
     }
 
 }
