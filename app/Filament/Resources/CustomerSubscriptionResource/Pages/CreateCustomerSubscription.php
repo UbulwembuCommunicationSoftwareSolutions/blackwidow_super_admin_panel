@@ -9,6 +9,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateCustomerSubscription extends CreateRecord
@@ -102,6 +103,19 @@ class CreateCustomerSubscription extends CreateRecord
                         ->suffix(fn($get) => $get('postfix'))
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
+                        ->afterStateUpdated(function($get,$set){
+                            $url = $get('url');
+                            $ip = $this->domainResolvesToIp($url);
+                            if($ip){
+                               Notification::make()
+                                   ->title('Domain Resolves to IP')
+                                   ->success();
+                            }else{
+                                Notification::make()
+                                    ->title('Domain Does Not Resolve to IP')
+                                    ->danger();
+                            }
+                        })
                         ->url(),
                     TextInput::make('app_name')
                         ->required(),
