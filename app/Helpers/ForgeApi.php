@@ -119,8 +119,6 @@ class ForgeApi
             'repository' => 'git@'.$customerSubscription->subscriptionType->github_repo.'.git',
             'branch' => $customerSubscription->subscriptionType->branch,
             'provider' => 'github',
-            'wildcards' => false,
-            'force_https' => false,
             'php_version' => 'php83',
             'database' => $customerSubscription->database_name,
             'env' => $this->collectEnv($customerSubscription)
