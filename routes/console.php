@@ -165,13 +165,12 @@ Artisan::command('app:syncAllRequiredEnvVariables', function () {
 //
 //})->purpose('Send Deploymeny Script To All Consoles')->daily();
 //
-//Artisan::command('sendEnvToAllConsoles',function (){
-//    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
-//    foreach($subscriptions as $subscription){
-//        $job = \App\Jobs\SendEnvToForge::dispatch($subscription->id);
-//    }
-//
-//})->purpose('Send Env To All Consoles')->daily();
+Artisan::command('sendEnvToAllConsoles',function (){
+    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+    foreach($subscriptions as $subscription){
+        $job = \App\Jobs\SendEnvToForge::dispatch($subscription->id);
+    }
+})->purpose('Send Env To All Consoles')->daily();
 //
 //
 //Artisan::command('sendCommandToAllConsoles',function (){
