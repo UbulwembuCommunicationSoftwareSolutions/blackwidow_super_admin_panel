@@ -123,7 +123,7 @@ class ForgeApi
             'provider' => 'github',
             'php_version' => 'php83',
             'database' => $customerSubscription->database_name,
-            'env' => $this->collectEnv($customerSubscription)
+//            'env' => $this->collectEnv($customerSubscription)
         ];
         \Log::info(json_encode($payload));
         $this->forge->createSite($server_id,$payload);
