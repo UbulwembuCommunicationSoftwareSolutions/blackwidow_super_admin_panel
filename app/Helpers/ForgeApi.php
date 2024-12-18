@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Jobs\GetSitesForServerJob;
 use App\Jobs\SendEnvToForge;
 use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
@@ -46,23 +47,26 @@ class ForgeApi
                 'name' => $server->name,
                 'ip_address' => $server->ipAddress
             ]);
-            $sites = $this->getSites($server->id);
-            foreach ($sites as $site) {
-                $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
-                if ($customerSubscription) {
-                } else {
-                    echo "No Subscription Found for " . $site->name . "\n";
-                    $customerSubscription = CustomerSubscription::create([
-                        'url' => $site->name,
-                        'subscription_type_id' => null,
-                        'server_id' => $server->id,
-                        'forge_site_id' => $site->id
-                    ]);
-                }
+            GetSitesForServerJob::dispatch($server->id);
+        }
+    }
+
+    public function getSitesForServer($serverId){
+        $sites = $this->getSites($serverId);
+        foreach ($sites as $site) {
+            $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
+            if ($customerSubscription) {
+            } else {
+                echo "No Subscription Found for " . $site->name . "\n";
+                $customerSubscription = CustomerSubscription::create([
+                    'url' => $site->name,
+                    'subscription_type_id' => null,
+                    'server_id' => $serverId,
+                    'forge_site_id' => $site->id
+                ]);
             }
         }
-
-        $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
+        $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('github_sent_at')
             ->get();
         foreach($customerSubscriptions as $customerSubscription){
@@ -77,33 +81,33 @@ class ForgeApi
             );
         }
 
-        $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
+        $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('deployment_script_sent_at')
             ->get();
         foreach($customerSubscriptions as $customerSubscription){
-           $siteDeployment = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
-           if($siteDeployment){
+            $siteDeployment = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
+            if($siteDeployment){
                 $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
                 $customerSubscription->deployment_script_sent_at = now();
                 $customerSubscription->save();
-           }else{
-               $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
-               $baseUrl = str_replace('https://','',$customerSubscription->url);
-               $baseUrl = str_replace('http://','',$baseUrl);
-               $siteDeployment = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
-               $deploymentScript = DeploymentScript::updateOrCreate([
-                   'customer_subscription_id' => $customerSubscription->id
-               ],[
-                   'script' => $siteDeployment
-               ]);
-               $deploymentScript->save();
-               $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
-               $customerSubscription->deployment_script_sent_at = now();
-               $customerSubscription->save();
-           }
+            }else{
+                $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
+                $baseUrl = str_replace('https://','',$customerSubscription->url);
+                $baseUrl = str_replace('http://','',$baseUrl);
+                $siteDeployment = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
+                $deploymentScript = DeploymentScript::updateOrCreate([
+                    'customer_subscription_id' => $customerSubscription->id
+                ],[
+                    'script' => $siteDeployment
+                ]);
+                $deploymentScript->save();
+                $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
+                $customerSubscription->deployment_script_sent_at = now();
+                $customerSubscription->save();
+            }
         }
 
-        $customerSubscriptions = CustomerSubscription::whereNotNull('forge_site_id')
+        $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('env_sent_at')
             ->get();
         foreach($customerSubscriptions as $customerSubscription){
