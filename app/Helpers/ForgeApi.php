@@ -53,7 +53,6 @@ class ForgeApi
 
     public function getSitesForServer($serverId){
         $sites = $this->getSites($serverId);
-        dd($sites);
         foreach ($sites as $site) {
             $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
             if ($customerSubscription) {
