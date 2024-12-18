@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\DeploySite;
+use App\Models\ForgeServer;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\FileUpload;
@@ -25,8 +26,16 @@ class EditCustomerSubscription extends EditRecord
             DeleteAction::make(),
             Action::make('deploySite')
                 ->label('Deploy Site')
-                ->action(fn ($record) => DeploySite::dispatch($record->id))
-
+                ->action(fn ($record) => DeploySite::dispatch($record->id)),
+            Action::make('EditServerDetails')
+                ->form([
+                    Select::make('forge_server_id')
+                        ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
+                ])
+                ->action(function (array $data,  $record): void {
+                    $record->forge_server_id = $data('forge_server_id');
+                    $record->save();
+                })
         ];
     }
 
