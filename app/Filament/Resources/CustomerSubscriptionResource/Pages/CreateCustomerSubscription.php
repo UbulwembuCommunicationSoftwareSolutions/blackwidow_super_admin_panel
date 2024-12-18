@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\CreateSiteOnForge;
 use App\Models\CustomerSubscription;
+use App\Models\ForgeServer;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -136,6 +137,8 @@ class CreateCustomerSubscription extends CreateRecord
                                    $this->domainResolvesToIp($get('url').$get('postfix'),$set,$get);
                                 })
                         ),
+                    Select::make('forge_server_id')
+                        ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                     TextInput::make('app_name')
                         ->required(),
                     TextInput::make('database_name')
@@ -246,6 +249,7 @@ class CreateCustomerSubscription extends CreateRecord
                 ->send();
             return false;
         }
+        return false;
     }
 
 }
