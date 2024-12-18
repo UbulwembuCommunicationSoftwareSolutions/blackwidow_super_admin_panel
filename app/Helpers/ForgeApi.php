@@ -73,7 +73,7 @@ class ForgeApi
             ->whereNull('github_sent_at')
             ->where('url','like','https%')
             ->get();
-        dd($customerSubscriptions);
+
         foreach($customerSubscriptions as $customerSubscription){
             $this->forge->updateSiteGitRepository(
                 $customerSubscription->server_id,
@@ -85,6 +85,7 @@ class ForgeApi
                 ]
             );
         }
+        dd("Here");
 
         $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('deployment_script_sent_at')
