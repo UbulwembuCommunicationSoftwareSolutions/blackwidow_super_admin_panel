@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
+use App\Jobs\CreateSiteOnForge;
 use App\Models\CustomerSubscription;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -211,7 +212,7 @@ class CreateCustomerSubscription extends CreateRecord
 
     public  function afterCreate():void
     {
-        dd($this->record);
+        CreateSiteOnForge::dispatch($this->record);
     }
 
     function domainResolvesToIp($domain,$set =null,$get =null) {
