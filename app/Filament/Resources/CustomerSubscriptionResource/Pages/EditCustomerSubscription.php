@@ -58,6 +58,9 @@ class EditCustomerSubscription extends EditRecord
                     Placeholder::make('forge_site_id')
                         ->label('Forge Site ID')
                         ->disabled(),
+                    Placeholder::make('forge_server_id')
+                        ->label('Forge Server ID')
+                        ->disabled(),
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
