@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
@@ -122,21 +123,16 @@ class CreateCustomerSubscription extends CreateRecord
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
                         ->afterStateUpdated(function($get,$set){
-                            $url = $get('url').$get('postfix');
-                            $ip = $this->domainResolvesToIp($url);
-                            if($ip){
-                               Notification::make()
-                                   ->title('Domain Resolves to IP '.$url)
-                                   ->success()
-                                   ->send();
-                            }else{
-                                Notification::make()
-                                    ->title('Domain Does Not Resolve to IP '.$url)
-                                    ->danger()
-                                    ->send();
-                            }
                             $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
-                        }),
+                        })
+                        ->hintAction(
+                            Action::make('verifyUrl')
+                                ->icon('heroicon-m-clipboard')
+                                ->requiresConfirmation()
+                                ->action(function ($get) {
+                                   $this->domainResolvesToIp($get('url').$get('postfix'));
+                                })
+                        ),
                     TextInput::make('app_name')
                         ->required(),
                     TextInput::make('database_name')
@@ -193,12 +189,14 @@ class CreateCustomerSubscription extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        dd($data);
+        $url = $data['url'].$data['postfix'];
+        $app_name = $data['app_name'];
+        $database_name = $data['database_name'];
     }
 
     public  function afterCreate():void
     {
-        dd($this->record);
+
     }
 
     function domainResolvesToIp($domain) {
@@ -207,14 +205,23 @@ class CreateCustomerSubscription extends CreateRecord
             if (!empty($dnsRecords)) {
                 foreach ($dnsRecords as $record) {
                     if (isset($record['ip'])) {
-                        return $record['ip']; // Return the resolved IPv6 address
+                        Notification::make()
+                            ->title('Domain Resolves to IP '.$domain)
+                            ->success()
+                            ->send();
                     }
                 }
             }else{
-                return false;
+                Notification::make()
+                    ->title('Domain does not resolve to IP '.$domain)
+                    ->danger()
+                    ->send();
             }
         }catch (\Exception $e){
-            return false;
+            Notification::make()
+                ->title('Domain does not resolve to IP '.$domain)
+                ->danger()
+                ->send();
         }
     }
 
