@@ -73,6 +73,7 @@ class ForgeApi
             ->whereNull('github_sent_at')
             ->where('url','like','https%')
             ->get();
+        dd($customerSubscriptions);
         foreach($customerSubscriptions as $customerSubscription){
             $this->forge->updateSiteGitRepository(
                 $customerSubscription->server_id,
