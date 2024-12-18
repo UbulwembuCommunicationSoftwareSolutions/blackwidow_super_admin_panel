@@ -121,9 +121,9 @@ class CreateCustomerSubscription extends CreateRecord
                             Action::make('verifyUrl')
                                 ->icon(function($get){
                                    if($get('urlConfirmed')){
-                                       return 'heroicon-check-circle';
+                                       return 'heroicon-o-check-circle';
                                    }else{
-                                       return 'heroicon-exclamation-circle';
+                                       return 'heroicon-o-exclamation-circle';
                                    }
                                 })
                                 ->requiresConfirmation()
