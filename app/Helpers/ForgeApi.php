@@ -56,6 +56,8 @@ class ForgeApi
         foreach ($sites as $site) {
             $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
             if ($customerSubscription) {
+                $customerSubscription->forge_site_id = $site->id;
+                $customerSubscription->save();
             } else {
                 echo "No Subscription Found for " . $site->name . "\n";
                 $customerSubscription = CustomerSubscription::create([
