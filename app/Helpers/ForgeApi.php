@@ -71,8 +71,8 @@ class ForgeApi
         }
         $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('github_sent_at')
+            ->where('url','like','https%')
             ->get();
-        dd($customerSubscriptions);
         foreach($customerSubscriptions as $customerSubscription){
             $this->forge->updateSiteGitRepository(
                 $customerSubscription->server_id,
@@ -87,6 +87,7 @@ class ForgeApi
 
         $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('deployment_script_sent_at')
+            ->where('url','like','https%')
             ->get();
         foreach($customerSubscriptions as $customerSubscription){
             $siteDeployment = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
@@ -113,6 +114,7 @@ class ForgeApi
 
         $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('env_sent_at')
+            ->where('url','like','https%')
             ->get();
         foreach($customerSubscriptions as $customerSubscription){
             $this->sendEnv($customerSubscription->id);
