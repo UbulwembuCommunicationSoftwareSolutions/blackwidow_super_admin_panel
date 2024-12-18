@@ -28,6 +28,8 @@ class CreateSiteOnForge implements ShouldQueue
     public function handle(): void
     {
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->createSite($this->customerSubscriptionId);
+        $customerSubscription = \App\Models\CustomerSubscription::find($this->customerSubscriptionId);
+
+        $forgeApi->createSite($customerSubscription->server_id,$this->$this->customerSubscriptionId);
     }
 }
