@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('forge_servers', function (Blueprint $table) {
+        Schema::create('my_forge_servers', function (Blueprint $table) {
             $table->id();
             $table->integer('forge_server_id');
             $table->integer('id');
@@ -19,6 +19,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('forge_servers');
+        Schema::dropIfExists('my_forge_servers');
     }
 };

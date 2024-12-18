@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ForgeServer extends Model
 {
+    protected $table = 'my_forge_servers';
     protected $fillable = [
         'forge_server_id',
         'id',
