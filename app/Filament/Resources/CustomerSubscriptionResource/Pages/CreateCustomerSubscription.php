@@ -117,8 +117,7 @@ class CreateCustomerSubscription extends CreateRecord
                                     ->danger()
                                     ->send();
                             }
-                        })
-                        ->url(),
+                        }),
                     TextInput::make('app_name')
                         ->required(),
                     TextInput::make('database_name')

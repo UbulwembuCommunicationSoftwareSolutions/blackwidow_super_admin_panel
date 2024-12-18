@@ -6,6 +6,7 @@ use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
 use App\Models\EnvVariables;
+use App\Models\RequiredEnvVariables;
 use Dotenv\Dotenv;
 use Laravel\Forge\Forge;
 
@@ -102,19 +103,53 @@ class ForgeApi
         $this->forge->deploySite($server_id, $site_id);
     }
 
+    public function createSite($server_id, CustomerSubscription $customerSubscription){
+        $this->addMissingEnv($customerSubscription);
+        $this->forge->createSite($server_id,[
+            'domain' => $customerSubscription->url,
+            'project_type' => 'php',
+            'directory' => '/public',
+            'wildcards' => false,
+            'force_https' => false,
+            'php_version' => 'php83',
+            'database' => $customerSubscription->database_name,
+            'env' => $this->collectEnv($customerSubscription)
+        ]);
+    }
+
+    public function addMissingEnv($customerSubscription){
+        $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
+        $missing = RequiredEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
+            ->whereNotIn('key', $addedEnv)
+            ->get();
+
+        foreach ($missing as $env) {
+            EnvVariables::updateOrCreate([
+                'key' => $env->key,
+                'customer_subscription_id' => $customerSubscription->id
+            ],[
+                'value' => $env->value
+            ]);
+        }
+    }
+
 
     public function sendEnv($customerSubscriptionId){
 
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
+        $env = $this->collectEnv($customerSubscription);
+        $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
+    }
+
+    public function collectEnv($customerSubscription){
+
         $envFileStr = '';
-        $envVariables = EnvVariables::where('customer_subscription_id', $customerSubscriptionId)->orderBy('key')->get();
+        $envVariables = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->orderBy('key')->get();
         foreach($envVariables as $env){
             $envFileStr.= $env->key."=".$env->value."\r";
         }
         //echo $envFileStr;
-        echo "Site Id: ". $customerSubscription->forge_site_id."\n";
-        echo "Server Id: ". $customerSubscription->server_id."\n";
+       return $envFileStr;
 
-        $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $envFileStr);
     }
 }
