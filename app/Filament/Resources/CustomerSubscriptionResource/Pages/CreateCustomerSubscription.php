@@ -108,12 +108,12 @@ class CreateCustomerSubscription extends CreateRecord
                             $ip = $this->domainResolvesToIp($url);
                             if($ip){
                                Notification::make()
-                                   ->title('Domain Resolves to IP')
+                                   ->title('Domain Resolves to IP '.$url)
                                    ->success()
                                    ->send();
                             }else{
                                 Notification::make()
-                                    ->title('Domain Does Not Resolve to IP')
+                                    ->title('Domain Does Not Resolve to IP '.$url)
                                     ->danger()
                                     ->send();
                             }
