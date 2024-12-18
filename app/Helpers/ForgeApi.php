@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Jobs\SendEnvToForge;
 use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
@@ -118,16 +119,16 @@ class ForgeApi
             'domain' => $domain,
             'project_type' => 'php',
             'directory' => '/public',
-            'repository' => 'git@'.$customerSubscription->subscriptionType->github_repo.'.git',
-            'branch' => $customerSubscription->subscriptionType->branch,
-            'provider' => 'github',
             'php_version' => 'php83',
             'database' => $customerSubscription->database_name,
 //            'env' => $this->collectEnv($customerSubscription)
         ];
         \Log::info(json_encode($payload));
         $this->forge->createSite($server_id,$payload);
+        $this->syncForge();
     }
+
+
 
     public function addMissingEnv(CustomerSubscription $customerSubscription){
         $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
