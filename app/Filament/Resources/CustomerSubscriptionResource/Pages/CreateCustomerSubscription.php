@@ -43,27 +43,30 @@ class CreateCustomerSubscription extends CreateRecord
                         ->required()
                         ->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
+                            $theType = 'console';
                             if((int)$type == 1){
-                                $set('postfix', '.console.'.$get('vertical'));
+                                $theType = 'console';
                             }elseif((int)$type == 2){
-                                $set('postfix', '.firearm.'.$get('vertical'));
+                                $theType = 'firearm';
                             }elseif((int)$type == 3){
-                                $set('postfix', '.responder.'.$get('vertical'));
+                                $theType = 'responder';
                             }elseif((int)$type == 4){
-                                $set('postfix', '.reporter.'.$get('vertical'));
+                                $theType = 'reporter';
                             }elseif((int)$type == 5){
-                                $set('postfix', '.security.'.$get('vertical'));
+                                $theType = 'security';
                             }elseif((int)$type == 6){
-                                $set('postfix', '.driver.'.$get('vertical'));
+                                $theType = 'driver';
                             }elseif((int)$type == 7){
-                                $set('postfix', '.survey.'.$get('vertical'));
+                                $theType = 'survey';
                             }elseif((int)$type == 8){
-                                $set('postfix', 'DO NOT USE');
+                                $theType = 'DONOTUSE';
                             }elseif((int)$type == 9){
-                                $set('postfix', '.time.'.$get('vertical'));
+                                $theType = 'time';
                             }elseif((int)$type == 10){
-                                $set('postfix', '.stock.'.$get('vertical'));
+                                $theType = 'stock';
                             }
+                            $set('theType',$theType);
+                            $set('postfix', '.'.$theType.'.'.$get('vertical'));
                         }),
                     Select::make('vertical')
                         ->live()
@@ -75,27 +78,42 @@ class CreateCustomerSubscription extends CreateRecord
                             'siyaleader.org.za'=>'siyaleader.org.za'
                         ])->afterStateUpdated(function($get,$set){
                             $type = $get('subscription_type_id');
-                            if((int)$type == 1){
-                                $set('postfix', '.console.'.$get('vertical'));
-                            }elseif((int)$type == 2){
-                                $set('postfix', '.firearm.'.$get('vertical'));
-                            }elseif((int)$type == 3){
-                                $set('postfix', '.responder.'.$get('vertical'));
-                            }elseif((int)$type == 4){
-                                $set('postfix', '.reporter.'.$get('vertical'));
-                            }elseif((int)$type == 5){
-                                $set('postfix', '.security.'.$get('vertical'));
-                            }elseif((int)$type == 6){
-                                $set('postfix', '.driver.'.$get('vertical'));
-                            }elseif((int)$type == 7){
-                                $set('postfix', '.survey.'.$get('vertical'));
-                            }elseif((int)$type == 8){
-                                $set('postfix', 'DO NOT USE');
-                            }elseif((int)$type == 9){
-                                $set('postfix', '.time.'.$get('vertical'));
-                            }elseif((int)$type == 10){
-                                $set('postfix', '.stock.'.$get('vertical'));
+                            $theType = 'console';
+                            if($get('vertical') == 'blackwidow.org.za'){
+                                $set('theVertical','blackwidow');
                             }
+                            if($get('vertical') == 'aims.work'){
+                                $set('theVertical','aims_work');
+                            }
+                            if($get('vertical') == 'bvigilant.co.za'){
+                                $set('theVertical','bvigilant');
+                            }
+                            if($get('vertical') == 'siyaleader.org.za'){
+                                $set('theVertical','siyaleader');
+                            }
+                            if((int)$type == 1){
+                                $theType = 'console';
+                            }elseif((int)$type == 2){
+                                $theType = 'firearm';
+                            }elseif((int)$type == 3){
+                                $theType = 'responder';
+                            }elseif((int)$type == 4){
+                                $theType = 'reporter';
+                            }elseif((int)$type == 5){
+                                $theType = 'security';
+                            }elseif((int)$type == 6){
+                                $theType = 'driver';
+                            }elseif((int)$type == 7){
+                                $theType = 'survey';
+                            }elseif((int)$type == 8){
+                                $theType = 'DONOTUSE';
+                            }elseif((int)$type == 9){
+                                $theType = 'time';
+                            }elseif((int)$type == 10){
+                                $theType = 'stock';
+                            }
+                            $set('theType',$theType);
+                            $set('postfix', '.'.$theType.'.'.$get('vertical'));
                         }),
                     TextInput::make('url')
                         ->live()
@@ -117,6 +135,7 @@ class CreateCustomerSubscription extends CreateRecord
                                     ->danger()
                                     ->send();
                             }
+                            $set('database_name',$get('theType').'_'.$get('theVertical'));
                         }),
                     TextInput::make('app_name')
                         ->required(),
