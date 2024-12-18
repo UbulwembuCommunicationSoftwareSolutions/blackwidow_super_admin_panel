@@ -179,6 +179,7 @@ class CreateCustomerSubscription extends CreateRecord
         $url = $data['url'].$data['postfix'];
         $app_name = $data['app_name'];
         $database_name = $data['database_name'];
+        return $data;
     }
 
     public  function afterCreate():void
