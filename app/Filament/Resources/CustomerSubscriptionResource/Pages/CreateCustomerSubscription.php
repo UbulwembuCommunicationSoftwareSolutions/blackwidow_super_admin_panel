@@ -33,6 +33,8 @@ class CreateCustomerSubscription extends CreateRecord
                 Section::make('Customer Info')->schema([
                     Hidden::make('urlConfirmed')
                         ->default(false),
+                    Hidden::make('postfix')
+                        ->default(''),
                     Select::make('customer_id')
                         ->label('Customer')
                         ->searchable()
