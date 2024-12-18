@@ -6,6 +6,7 @@ use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
 use App\Models\EnvVariables;
+use App\Models\ForgeServer;
 use App\Models\RequiredEnvVariables;
 use Dotenv\Dotenv;
 use Laravel\Forge\Forge;
@@ -36,8 +37,13 @@ class ForgeApi
 
     public function syncForge(){
         $this->getServers();
-        dd($this->servers);
         foreach($this->servers as $server) {
+            ForgeServer::updateOrCreate([
+                'forge_server_id' => $server->id
+            ],[
+                'name' => $server->name,
+                'ip_address' => $server->ipAddress
+            ]);
             $sites = $this->getSites($server->id);
             foreach ($sites as $site) {
                 $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $site->name . '%')->first();
