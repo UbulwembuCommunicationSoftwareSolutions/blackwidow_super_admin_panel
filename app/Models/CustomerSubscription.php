@@ -8,6 +8,7 @@ class CustomerSubscription extends Model
 {
     protected $fillable = [
         'url',
+        'domain',
         'subscription_type_id',
         'server_id',
         'customer_id',
