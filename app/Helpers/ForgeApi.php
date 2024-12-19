@@ -131,6 +131,15 @@ class ForgeApi
         $this->forge->deploySite($server_id, $site_id);
     }
 
+    public function letsEncryptCertificate(CustomerSubscription $customerSubscription){
+        $domain = str_replace('http://','',$customerSubscription->url);
+        $domain = str_replace('https://','',$domain);
+        $this->forge->obtainLetsEncryptCertificate($customerSubscription->server_id, $customerSubscription->forge_site_id, [
+            'domains' => [$domain],
+            'wildcard' => false
+        ]);
+    }
+
     public function createSite($server_id, CustomerSubscription $customerSubscription){
         $this->addMissingEnv($customerSubscription);
         $domain = str_replace('http://','',$customerSubscription->url);
