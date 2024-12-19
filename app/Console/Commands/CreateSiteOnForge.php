@@ -28,6 +28,7 @@ class CreateSiteOnForge extends Command
     public function handle()
     {
         $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
+        dd($customerSubscription->server_id);
         CreateSiteOnForgeJob::dispatch($customerSubscription->id);
     }
 }
