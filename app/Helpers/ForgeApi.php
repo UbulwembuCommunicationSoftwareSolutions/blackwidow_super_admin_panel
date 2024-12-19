@@ -61,7 +61,7 @@ class ForgeApi
                 $customerSubscription->save();
             } else {
                 echo "No Subscription Found for " . $site->name . "\n";
-                $customerSubscription = CustomerSubscription::create([
+                $customerSubscription = CustomerSubscription::updateOrCreate([
                     'url' => $site->name,
                     'subscription_type_id' => null,
                     'server_id' => $serverId,
