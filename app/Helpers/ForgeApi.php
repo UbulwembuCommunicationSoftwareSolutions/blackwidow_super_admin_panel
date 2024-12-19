@@ -145,7 +145,7 @@ class ForgeApi
         $this->addMissingEnv($customerSubscription);
         $payload = [
             'domain' => $customerSubscription->domain,
-            'project_type' => 'php/laravel',
+            'project_type' => $customerSubscription->subscriptionType->project_type,
             'directory' => '/public',
             'php_version' => 'php83',
             'repository' => $customerSubscription->subscriptionType->github_repo,
