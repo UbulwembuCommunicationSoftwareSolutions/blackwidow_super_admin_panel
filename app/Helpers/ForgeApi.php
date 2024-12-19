@@ -142,10 +142,8 @@ class ForgeApi
 
     public function createSite($server_id, CustomerSubscription $customerSubscription){
         $this->addMissingEnv($customerSubscription);
-        $domain = str_replace('http://','',$customerSubscription->url);
-        $domain = str_replace('https://','',$domain);
         $payload = [
-            'domain' => $domain,
+            'domain' => $customerSubscription->domain,
             'project_type' => 'php',
             'directory' => '/public',
             'php_version' => 'php83',
