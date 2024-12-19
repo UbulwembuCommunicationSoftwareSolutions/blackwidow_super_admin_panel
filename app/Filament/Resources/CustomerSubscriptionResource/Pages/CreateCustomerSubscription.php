@@ -138,6 +138,7 @@ class CreateCustomerSubscription extends CreateRecord
                                 })
                         ),
                     Select::make('server_id')
+                        ->required()
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                     TextInput::make('app_name')
                         ->required(),
