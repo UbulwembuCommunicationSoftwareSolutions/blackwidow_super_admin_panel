@@ -50,6 +50,8 @@ class SubscriptionTypeResource extends Resource
                     ->required(),
                 TextInput::make('branch')
                     ->required(),
+                TextInput::make('project_type')
+                    ->required(),
             ]);
     }
 

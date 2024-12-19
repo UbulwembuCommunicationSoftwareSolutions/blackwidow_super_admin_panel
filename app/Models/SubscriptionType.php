@@ -13,6 +13,7 @@ class SubscriptionType extends Model
     protected $fillable = [
         'name',
         'github_repo',
+        'project_type',
         'branch'
     ];
 }
