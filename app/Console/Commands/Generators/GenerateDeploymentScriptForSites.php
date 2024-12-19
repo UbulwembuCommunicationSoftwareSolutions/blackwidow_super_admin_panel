@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Generators;
 
 use Illuminate\Console\Command;
 
-class GetSiteDeploymentScript extends Command
+class GenerateDeploymentScriptForSites extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:get-site-deployment-script';
+    protected $signature = 'app:generate-deployment-script-for-sites';
 
     /**
      * The console command description.

@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Generators;
 
 use Illuminate\Console\Command;
 
-class SyncForge extends Command
+class GenerateRequiredEnvsForSites extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:sync-forge';
+    protected $signature = 'app:generate-required-envs-for-sites';
 
     /**
      * The console command description.
@@ -25,7 +25,6 @@ class SyncForge extends Command
      */
     public function handle()
     {
-        $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->syncForge();
+        //
     }
 }

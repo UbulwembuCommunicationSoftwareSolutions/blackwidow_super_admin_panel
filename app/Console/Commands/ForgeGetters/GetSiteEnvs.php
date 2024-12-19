@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\ForgeGetters;
 
 use Illuminate\Console\Command;
 
-class GenerateDeploymentScriptForSites extends Command
+class GetSiteEnvs extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:generate-deployment-script-for-sites';
+    protected $signature = 'app:get-site-envs';
 
     /**
      * The console command description.
