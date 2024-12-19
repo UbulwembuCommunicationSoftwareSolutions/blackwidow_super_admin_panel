@@ -204,6 +204,7 @@ class CreateCustomerSubscription extends CreateRecord
            $customerSubscription = CustomerSubscription::create([
                'customer_id' => $data['customer_id'],
                'subscription_type_id' => $data['subscription_type_id'],
+               'domain' => $data['url'].$data['vertical'],
                'url' => 'https://'.$data['url'].'.'.$data['vertical'],
                'app_name' => $data['app_name'],
                'database_name' => $data['database_name'],

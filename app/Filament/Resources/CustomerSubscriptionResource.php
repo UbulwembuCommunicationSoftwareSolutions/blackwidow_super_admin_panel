@@ -51,6 +51,9 @@ class CustomerSubscriptionResource extends Resource
                     ->formatStateUsing(fn ($state) => '<a href="' . $state . '" target="_blank" rel="noopener noreferrer">'.$state.'</a>')
                     ->html()
                     ->sortable(),
+                TextColumn::make('domain')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('app_name')
                     ->label('App Name')
                     ->searchable()
