@@ -81,59 +81,6 @@ class ForgeApi
                 ]);
             }
         }
-        $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
-            ->whereNull('github_sent_at')
-            ->where('url','like','https%')
-            ->get();
-
-        foreach($customerSubscriptions as $customerSubscription){
-            $this->forge->updateSiteGitRepository(
-                $customerSubscription->server_id,
-                $customerSubscription->forge_site_id,
-                [
-                    'provider' => 'github',
-                    'repository' => $customerSubscription->subscriptionType->github_repo,
-                    'branch' => $customerSubscription->subscriptionType->branch,
-                ]
-            );
-        }
-
-        $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
-            ->whereNull('deployment_script_sent_at')
-            ->where('url','like','https%')
-            ->get();
-        foreach($customerSubscriptions as $customerSubscription){
-            $siteDeployment = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
-            if($siteDeployment){
-                $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
-                $customerSubscription->deployment_script_sent_at = now();
-                $customerSubscription->save();
-            }else{
-                $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
-                $baseUrl = str_replace('https://','',$customerSubscription->url);
-                $baseUrl = str_replace('http://','',$baseUrl);
-                $siteDeployment = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
-                $deploymentScript = DeploymentScript::updateOrCreate([
-                    'customer_subscription_id' => $customerSubscription->id
-                ],[
-                    'script' => $siteDeployment
-                ]);
-                $deploymentScript->save();
-                $this->sendDeploymentScript($customerSubscription->id, $siteDeployment->script);
-                $customerSubscription->deployment_script_sent_at = now();
-                $customerSubscription->save();
-            }
-        }
-
-        $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
-            ->whereNull('env_sent_at')
-            ->where('url','like','https%')
-            ->get();
-        foreach($customerSubscriptions as $customerSubscription){
-            $this->sendEnv($customerSubscription->id);
-            $customerSubscription->env_sent_at = now();
-            $customerSubscription->save();
-        }
     }
 
     public function deployAllConsoles(){
@@ -262,9 +209,8 @@ class ForgeApi
     }
 
 
-    public function sendEnv($customerSubscriptionId){
+    public function sendEnv(CustomerSubscription $customerSubscription){
 
-        $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
         $env = $this->collectEnv($customerSubscription);
         $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
     }

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
-use App\Jobs\DeploySite;
+use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use Filament\Actions\Action;
@@ -15,7 +15,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Collection;
 
 class EditCustomerSubscription extends EditRecord
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs;
+namespace App\Jobs\SiteDeployment;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -8,7 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class DeploySite implements ShouldQueue
+class AddEnvVariablesOnForgeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -28,6 +28,8 @@ class DeploySite implements ShouldQueue
     public function handle(): void
     {
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->deploySite($this->customerSubscriptionId);
+        $customerSubscription = \App\Models\CustomerSubscription::find($this->customerSubscriptionId);
+        $forgeApi->addMissingEnv($customerSubscription);
+        $forgeApi->sendEnv($customerSubscription);
     }
 }
