@@ -2,6 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\ForgeApi;
+use App\Models\CustomerSubscription;
+use App\Models\DeploymentScript;
+use App\Models\DeploymentTemplate;
 use Illuminate\Console\Command;
 
 class SendSiteDeploymentScript extends Command
@@ -11,7 +15,7 @@ class SendSiteDeploymentScript extends Command
      *
      * @var string
      */
-    protected $signature = 'app:send-site-deployment-script';
+    protected $signature = 'app:send-site-deployment-script {customer-subscription-id}';
 
     /**
      * The console command description.
@@ -23,9 +27,25 @@ class SendSiteDeploymentScript extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle():void
     {
-        \App\Services\ForgeService::setSitesDeploymentScripts();
-
+        $customerSubscription = CustomerSubscription::findOrFail($this->argument('customer-subscription-id'));
+        $forgeApi = new ForgeApi();
+        $script = DeploymentScript::where('customer_subscription_id',$customerSubscription->id)->first();
+        if(!$script){
+            $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
+            $baseUrl = str_replace('https://','',$customerSubscription->url);
+            $baseUrl = str_replace('http://','',$baseUrl);
+            $siteDeployment = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
+            $script = DeploymentScript::updateOrCreate([
+                'customer_subscription_id' => $customerSubscription->id
+            ],[
+                'script' => $siteDeployment
+            ]);
+            $script->save();
+        }
+        if($script){
+            $forgeApi->sendDeploymentScript($customerSubscription,$script->script);
+        }
     }
 }
