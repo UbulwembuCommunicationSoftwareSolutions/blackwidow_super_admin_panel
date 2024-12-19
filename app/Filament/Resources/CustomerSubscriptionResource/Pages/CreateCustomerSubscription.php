@@ -137,7 +137,7 @@ class CreateCustomerSubscription extends CreateRecord
                                    $this->domainResolvesToIp($get('url').$get('postfix'),$set,$get);
                                 })
                         ),
-                    Select::make('forge_server_id')
+                    Select::make('server_id')
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                     TextInput::make('app_name')
                         ->required(),
