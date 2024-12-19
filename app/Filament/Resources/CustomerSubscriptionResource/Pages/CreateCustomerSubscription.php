@@ -197,7 +197,6 @@ class CreateCustomerSubscription extends CreateRecord
    protected function handleRecordCreation(array $data): Model
    {
        $domain = $data['url'].$data['postfix'];
-       dd($domain);
        if (!$this->domainResolvesToIp($domain)) {
            throw ValidationException::withMessages([
                'url' => ['The domain does not resolve to a valid IP.'], // Pass an array of error messages
@@ -206,8 +205,8 @@ class CreateCustomerSubscription extends CreateRecord
            $customerSubscription = CustomerSubscription::create([
                'customer_id' => $data['customer_id'],
                'subscription_type_id' => $data['subscription_type_id'],
-               'domain' => $data['url'].$data['vertical'],
-               'url' => 'https://'.$data['url'].'.'.$data['vertical'],
+               'domain' => $domain,
+               'url' => 'https://'.$domain,
                'app_name' => $data['app_name'],
                'database_name' => $data['database_name'],
            ]);
