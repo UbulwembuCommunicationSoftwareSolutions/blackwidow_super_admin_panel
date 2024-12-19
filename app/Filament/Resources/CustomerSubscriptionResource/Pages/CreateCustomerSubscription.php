@@ -206,6 +206,7 @@ class CreateCustomerSubscription extends CreateRecord
                'customer_id' => $data['customer_id'],
                'subscription_type_id' => $data['subscription_type_id'],
                'domain' => $domain,
+               'server_id' => $data['server_id'],
                'url' => 'https://'.$domain,
                'app_name' => $data['app_name'],
                'database_name' => $data['database_name'],
