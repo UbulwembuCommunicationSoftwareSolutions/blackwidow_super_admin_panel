@@ -59,8 +59,7 @@ class EditCustomerSubscription extends EditRecord
                         ->required()
                         ->url(),
                     TextInput::make('domain')
-                        ->required()
-                        ->url(),
+                        ->required(),
                     Select::make('server_id')
                         ->default(fn() => $this->record->server_id)
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
