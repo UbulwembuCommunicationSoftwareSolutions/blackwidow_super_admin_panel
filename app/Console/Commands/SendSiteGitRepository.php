@@ -29,6 +29,6 @@ class SendSiteGitRepository extends Command
     {
         $subscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
         $forge = new ForgeApi();
-        $forge->sendSiteGitRepository($subscription);
+        $forge->sendGitRepository($subscription);
     }
 }
