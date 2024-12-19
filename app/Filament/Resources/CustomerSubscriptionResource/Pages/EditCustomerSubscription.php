@@ -58,6 +58,9 @@ class EditCustomerSubscription extends EditRecord
                     TextInput::make('url')
                         ->required()
                         ->url(),
+                    TextInput::make('domain')
+                        ->required()
+                        ->url(),
                     TextInput::make('app_name')
                         ->required(),
                     TextInput::make('database_name')
