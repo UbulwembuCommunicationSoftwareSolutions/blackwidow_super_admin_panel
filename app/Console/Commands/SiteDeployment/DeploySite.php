@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\SiteDeployment;
 
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
-class SendSiteEnvs extends Command
+class DeploySite extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:send-site-envs {customer-subscription-id}';
+    protected $signature = 'app:deploy-site {customer-subscription-id}';
 
     /**
      * The console command description.
@@ -28,6 +28,6 @@ class SendSiteEnvs extends Command
     {
         $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->sendEnv($customerSubscription);
+        $forgeApi->deploySite($customerSubscription->server_id,$customerSubscription->forge_site_id);
     }
 }

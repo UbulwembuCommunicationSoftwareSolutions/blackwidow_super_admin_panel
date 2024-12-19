@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\SiteDeployment;
 
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;

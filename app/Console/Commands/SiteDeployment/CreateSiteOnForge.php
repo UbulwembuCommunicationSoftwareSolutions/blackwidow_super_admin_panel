@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\SiteDeployment;
 
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Models\CustomerSubscription;

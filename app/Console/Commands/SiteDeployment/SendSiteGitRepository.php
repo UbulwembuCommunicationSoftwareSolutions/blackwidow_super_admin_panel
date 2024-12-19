@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\SiteDeployment;
 
 use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
