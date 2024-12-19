@@ -34,9 +34,7 @@ class SendSiteDeploymentScript extends Command
         $script = DeploymentScript::where('customer_subscription_id',$customerSubscription->id)->first();
         if(!$script){
             $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
-            $baseUrl = str_replace('https://','',$customerSubscription->url);
-            $baseUrl = str_replace('http://','',$baseUrl);
-            $siteDeployment = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
+            $siteDeployment = str_replace('#WEBSITE_URL#',$customerSubscription->domain,$deploymentTemplate->script);
             $script = DeploymentScript::updateOrCreate([
                 'customer_subscription_id' => $customerSubscription->id
             ],[
