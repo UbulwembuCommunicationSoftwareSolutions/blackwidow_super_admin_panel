@@ -120,6 +120,7 @@ class ForgeApi
         try{
             foreach($this->forge->sites($serverId) as $site){
                 $sites[] = $site;
+                \Log::info(json_encode($site));
             }
             return $sites;
         }catch (\Exception $e){
