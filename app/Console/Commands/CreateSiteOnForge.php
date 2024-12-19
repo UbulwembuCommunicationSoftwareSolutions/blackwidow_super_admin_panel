@@ -13,7 +13,7 @@ class CreateSiteOnForge extends Command
      *
      * @var string
      */
-    protected $signature = 'app:deploy-site {customer-subscription-id}';
+    protected $signature = 'app:create-site-on-forge {customer-subscription-id}';
 
     /**
      * The console command description.
