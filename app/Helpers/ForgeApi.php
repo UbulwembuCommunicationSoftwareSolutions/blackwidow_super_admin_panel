@@ -149,8 +149,8 @@ class ForgeApi
             'directory' => '/public',
             'php_version' => 'php83',
             'repository' => $customerSubscription->subscriptionType->github_repo,
-            'repository_provider' => 'github',
-            'repository_branch' => $customerSubscription->subscriptionType->branch,
+//            'repository_provider' => 'github',
+//            'repository_branch' => $customerSubscription->subscriptionType->branch,
             'database' => $customerSubscription->database_name,
 //            'env' => $this->collectEnv($customerSubscription)
         ];
