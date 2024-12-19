@@ -6,60 +6,26 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
 
-Artisan::command('app:syncForge',function (){
-        $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->syncForge();
-})->purpose('Get Site Envs')->daily();
 
-Artisan::command('app:getSiteEnvs',function (){
-
-})->purpose('Get Site Envs')->daily();
-
-Artisan::command('app:sendSiteEnvs',function (){
-
-})->purpose('Send Site Envs')->daily();
-
-Artisan::command('app:sendSiteDeploymentScript',function (){
-    \App\Services\ForgeService::setSitesDeploymentScripts();
-})->purpose('Send Site Deployment Script')->daily();
-
-Artisan::command('app:getSiteDeploymentScript',function (){
-
-})->purpose('Send Site Deployment Script')->daily();
-
-Artisan::command('app:generateRequiredEnvsForSites',function (){
-
-})->purpose('Generate required env variables for site')->daily();
-
-Artisan::command('app:generateDeploymentScriptForSites',function (){
-
-})->purpose('Generate required env variables for site')->daily();
-
-Artisan::command('app:importExistingUsers',function (){
-    $consoles = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
-    foreach($consoles as $console){
-        $database = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_DATABASE')->first();
-        $user = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_USERNAME')->first();
-        $password = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_PASSWORD')->first();
-        try{
-            $mysqli = new mysqli("localhost", $user->value, $password->value, $database->value);
-            $result = $mysqli->query("SELECT * FROM users");
-            while($row = $result->fetch_assoc()){
-                $user = \App\Models\CustomerUser::updateOrCreate([
-                    'email_address' => $row['email'],
-                    'customer_id' => $console->customer_id,
-                ],[
-                    'first_name' => $row['name'],
-                    'last_name' => $row['surname'],
-                    'password' => $row['password']
-                ]);
-            }
-        }catch (Exception $e){
-            echo $e->getMessage();
-        }
-
-    }
-})->purpose('Import existing Case Management Users')->daily();
+//
+//
+//Artisan::command('sendCommandToAllConsoles',function (){
+//    $command = $this->ask('Enter Command');
+//    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+//    foreach($subscriptions as $subscription){
+//        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
+//    }
+//
+//})->purpose('Send Command To All Consoles');
+//
+//Artisan::command('sendCommandToAllResponders',function (){
+//    $command = $this->ask('Enter Command');
+//    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 3)->get();
+//    foreach($subscriptions as $subscription){
+//        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
+//    }
+//
+//})->purpose('Send Command To All Consoles');
 //
 //Artisan::command('inspire', function () {
 //    $this->comment(Inspiring::quote());
@@ -125,26 +91,6 @@ Artisan::command('app:importExistingUsers',function (){
 //});
 //
 //
-Artisan::command('app:syncAllRequiredEnvVariables', function () {
-    $subscriptions = \App\Models\CustomerSubscription::get();
-    foreach($subscriptions as $subscription){
-        $addedEnv = EnvVariables::where('customer_subscription_id', $subscription->id)->pluck('key');
-        $missing = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)
-            ->whereNotIn('key', $addedEnv)
-            ->get();
-        $this->info('Subscription '.$subscription->url.' is missing '.count($missing).' required options');
-        foreach($missing as $value){
-            $this->info($subscription->url.' is missing '.$value->key.' adding it');
-            EnvVariables::create([
-                'key' => $value->key,
-                'value' => $value->value,
-                'customer_subscription_id' => $subscription->id
-            ]);
-        }
-
-    }
-
-})->purpose('Sync All Required Options')->daily();
 //
 //Artisan::command('syncAllRequiredOptionsForSubscription', function () {
 //    \App\Models\CustomerSubscription::createMissingEnv();
@@ -165,28 +111,3 @@ Artisan::command('app:syncAllRequiredEnvVariables', function () {
 //
 //})->purpose('Send Deploymeny Script To All Consoles')->daily();
 //
-Artisan::command('sendEnvToAllConsoles',function (){
-    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
-    foreach($subscriptions as $subscription){
-        $job = \App\Jobs\SendEnvToForge::dispatch($subscription->id);
-    }
-})->purpose('Send Env To All Consoles')->daily();
-//
-//
-//Artisan::command('sendCommandToAllConsoles',function (){
-//    $command = $this->ask('Enter Command');
-//    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
-//    foreach($subscriptions as $subscription){
-//        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
-//    }
-//
-//})->purpose('Send Command To All Consoles');
-//
-//Artisan::command('sendCommandToAllResponders',function (){
-//    $command = $this->ask('Enter Command');
-//    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 3)->get();
-//    foreach($subscriptions as $subscription){
-//        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
-//    }
-//
-//})->purpose('Send Command To All Consoles');

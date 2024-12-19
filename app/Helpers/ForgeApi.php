@@ -85,7 +85,6 @@ class ForgeApi
                 ]
             );
         }
-        dd("Here");
 
         $customerSubscriptions = CustomerSubscription::where('server_id',$serverId)->whereNotNull('forge_site_id')
             ->whereNull('deployment_script_sent_at')
