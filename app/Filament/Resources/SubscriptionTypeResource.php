@@ -67,6 +67,9 @@ class SubscriptionTypeResource extends Resource
                 TextColumn::make('branch')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('project_type')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 TrashedFilter::make(),
