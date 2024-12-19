@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\ForgeApi;
+use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
 class SendSiteGitRepository extends Command
@@ -11,7 +13,7 @@ class SendSiteGitRepository extends Command
      *
      * @var string
      */
-    protected $signature = 'app:send-site-git-repository';
+    protected $signature = 'app:send-site-git-repository {customer-subscription-id}';
 
     /**
      * The console command description.
@@ -25,6 +27,8 @@ class SendSiteGitRepository extends Command
      */
     public function handle()
     {
-        //
+        $subscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
+        $forge = new ForgeApi();
+        $forge->sendSiteGitRepository($subscription);
     }
 }

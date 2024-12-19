@@ -38,6 +38,18 @@ class ForgeApi
         $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id,$script);
     }
 
+    public function sendGitRepository($customerSubscription){
+        $this->forge->updateSiteGitRepository(
+            $customerSubscription->server_id,
+            $customerSubscription->forge_site_id,
+            [
+                'provider' => 'github',
+                'repository' => $customerSubscription->subscriptionType->github_repo,
+                'branch' => $customerSubscription->subscriptionType->branch,
+            ]
+        );
+    }
+
     public function syncForge(){
         $this->getServers();
         foreach($this->servers as $server) {
