@@ -38,10 +38,7 @@ class ForgeApi
     }
 
     public function sendGitRepository($customerSubscription){
-        dd(['provider' => 'github',
-            'repository' => $customerSubscription->subscriptionType->github_repo,
-            'branch' => $customerSubscription->subscriptionType->branch]);
-        $this->forge->updateSiteGitRepository(
+        $this->forge->installGitRepositoryOnSite(
             $customerSubscription->server_id,
             $customerSubscription->forge_site_id,
             [
