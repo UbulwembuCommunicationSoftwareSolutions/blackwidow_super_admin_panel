@@ -12,7 +12,7 @@ class SendCommandToSite extends Command
      *
      * @var string
      */
-    protected $signature = 'app:send-command-to-site {site-id} {command}';
+    protected $signature = 'app:send-command-to-site {site-id}';
 
     /**
      * The console command description.
@@ -26,7 +26,8 @@ class SendCommandToSite extends Command
      */
     public function handle()
     {
-        SendCommandToForgeJob::dispatch($this->argument('site-id'), $this->argument('command'));
+        $command = $this->ask('Provide command');
+        SendCommandToForgeJob::dispatch($this->argument('site-id'), $command);
         $this->info('Command has been dispatched to all consoles.');
         return Command::SUCCESS;
     }
