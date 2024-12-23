@@ -33,8 +33,7 @@ class ForgeApi
         $this->forge->executeSiteCommand($customerSubscription->server_id, $customerSubscription->forge_site_id, $commands_array);
     }
 
-    public function horizonCreator($customerSubscriptionId){
-        $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
+    public function horizonCreator($customerSubscription{
         $data = [
             'command' => 'php /home/forge/'.$customerSubscription->domain.'/artisan horizon'
         ];
