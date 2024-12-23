@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
-use App\Jobs\SendCommandToForge;
+use App\Jobs\SendCommandToForgeJob;
 use Illuminate\Console\Command;
 
 class SendCommandToSite extends Command
@@ -26,7 +26,7 @@ class SendCommandToSite extends Command
      */
     public function handle()
     {
-        SendCommandToForge::dispatch($this->argument('site-id'), $this->argument('command'));
+        SendCommandToForgeJob::dispatch($this->argument('site-id'), $this->argument('command'));
         $this->info('Command has been dispatched to all consoles.');
         return Command::SUCCESS;
     }
