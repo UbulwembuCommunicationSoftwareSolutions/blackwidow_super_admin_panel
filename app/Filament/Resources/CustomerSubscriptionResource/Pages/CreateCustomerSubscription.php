@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
+use App\Jobs\SendCommandToForge;
+use App\Jobs\SendCommandToForgeJob;
 use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
 use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
 use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
 use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
+use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use Filament\Forms\Components\Actions\Action;
@@ -247,6 +250,28 @@ class CreateCustomerSubscription extends CreateRecord
             'id' => AddSSLOnSiteJob::dispatch($this->record->id)->delay(5),
             'progress' => 0
         );
+
+        $jobs[] = array(
+            'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(6),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan migrate --force')->delay(7),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan db:seed BaseLineSeeder --force')->delay(7),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => DeploySite::dispatch($this->record->id)->delay(8),
+            'progress' => 0
+        );
+
+
         Notification::make()
             ->title('Customer Subscription Created')
             ->message('The customer subscription has been created and the deployment process has started.')
