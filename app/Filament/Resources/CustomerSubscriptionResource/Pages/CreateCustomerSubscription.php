@@ -273,8 +273,7 @@ class CreateCustomerSubscription extends CreateRecord
 
 
         Notification::make()
-            ->title('Customer Subscription Created')
-            ->message('The customer subscription has been created and the deployment process has started.')
+            ->title('The customer subscription has been created and the deployment process has started.')
             ->success()
             ->send();
         $this->record->jobs = json_encode($jobs);
