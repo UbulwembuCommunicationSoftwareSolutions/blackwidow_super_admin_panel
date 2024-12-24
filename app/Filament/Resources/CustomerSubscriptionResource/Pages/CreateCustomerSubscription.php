@@ -3,6 +3,10 @@
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
 use App\Filament\Resources\CustomerSubscriptionResource;
+use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
+use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
+use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
+use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
@@ -218,7 +222,12 @@ class CreateCustomerSubscription extends CreateRecord
 
     public  function afterCreate():void
     {
-        CreateSiteOnForgeJob::dispatch($this->record);
+        CreateSiteOnForgeJob::dispatch($this->record->id);
+        AddGitRepoOnForgeJob::delay(2)->dispatch($this->record->id);
+        AddEnvVariablesOnForgeJob::delay(3)->dispatch($this->record->id);
+        AddDeploymentScriptOnForgeJob::delay(4)->dispatch($this->record->id);
+        AddSSLOnSiteJob::delay(5)->dispatch($this->record->id);
+
     }
 
     function domainResolvesToIp($domain,$set =null,$get =null) {
