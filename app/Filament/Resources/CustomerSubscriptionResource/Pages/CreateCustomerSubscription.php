@@ -272,6 +272,10 @@ class CreateCustomerSubscription extends CreateRecord
             'progress' => 0
         );
 
+        $jobs[] = array(
+            'id' => DeploySite::dispatch($this->record->id)->delay(now()->addMinutes(10)),
+            'progress' => 0
+        );
 
 
 
