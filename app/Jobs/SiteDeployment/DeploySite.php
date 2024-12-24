@@ -2,6 +2,7 @@
 
 namespace App\Jobs\SiteDeployment;
 
+use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,7 +28,8 @@ class DeploySite implements ShouldQueue
      */
     public function handle(): void
     {
+        $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
         $forgeApi = new \App\Helpers\ForgeApi();
-        $forgeApi->deploySite($this->customerSubscriptionId);
+        $forgeApi->deploySite($customerSubscription->server_id,$customerSubscription->forge_site_id);
     }
 }
