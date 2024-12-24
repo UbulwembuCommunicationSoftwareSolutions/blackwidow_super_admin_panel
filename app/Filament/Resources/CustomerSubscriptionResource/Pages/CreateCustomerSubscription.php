@@ -222,12 +222,19 @@ class CreateCustomerSubscription extends CreateRecord
 
     public  function afterCreate():void
     {
-        CreateSiteOnForgeJob::dispatch($this->record->id);
-        AddGitRepoOnForgeJob::delay(2)->dispatch($this->record->id);
-        AddEnvVariablesOnForgeJob::delay(3)->dispatch($this->record->id);
-        AddDeploymentScriptOnForgeJob::delay(4)->dispatch($this->record->id);
-        AddSSLOnSiteJob::delay(5)->dispatch($this->record->id);
-
+        $jobs = [];
+        $jobs[] = CreateSiteOnForgeJob::dispatch($this->record->id);
+        $jobs[] = AddGitRepoOnForgeJob::delay(2)->dispatch($this->record->id);
+        $jobs[] = AddEnvVariablesOnForgeJob::delay(3)->dispatch($this->record->id);
+        $jobs[] = AddDeploymentScriptOnForgeJob::delay(4)->dispatch($this->record->id);
+        $jobs[] = AddSSLOnSiteJob::delay(5)->dispatch($this->record->id);
+        Notification::make()
+            ->title('Customer Subscription Created')
+            ->message('The customer subscription has been created and the deployment process has started.')
+            ->success()
+            ->send();
+        $this->record->jobs = json_encode($jobs);
+        $this->record->save();
     }
 
     function domainResolvesToIp($domain,$set =null,$get =null) {
