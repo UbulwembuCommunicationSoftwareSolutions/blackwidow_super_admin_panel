@@ -37,6 +37,7 @@ class ForgeApi
         $data = [
             'command' => 'php /home/forge/'.$customerSubscription->domain.'/artisan horizon'
         ];
+        $this->forge->
         $this->forge->createDaemon($customerSubscription->server_id, $data);
     }
 
@@ -150,11 +151,13 @@ class ForgeApi
 
     public function createSite($server_id, CustomerSubscription $customerSubscription){
         $this->addMissingEnv($customerSubscription);
+        $template = null;
         $payload = [
             'domain' => $customerSubscription->domain,
             'project_type' => $customerSubscription->subscriptionType->project_type,
             'directory' => '/public',
             'php_version' => 'php83',
+            'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
             'repository' => $customerSubscription->subscriptionType->github_repo,
             'repository_provider' => 'github',
             'repository_branch' => $customerSubscription->subscriptionType->branch,
