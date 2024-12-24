@@ -223,11 +223,30 @@ class CreateCustomerSubscription extends CreateRecord
     public  function afterCreate():void
     {
         $jobs = [];
-        $jobs[] = CreateSiteOnForgeJob::dispatch($this->record->id);
-        $jobs[] = AddGitRepoOnForgeJob::delay(2)->dispatch($this->record->id);
-        $jobs[] = AddEnvVariablesOnForgeJob::delay(3)->dispatch($this->record->id);
-        $jobs[] = AddDeploymentScriptOnForgeJob::delay(4)->dispatch($this->record->id);
-        $jobs[] = AddSSLOnSiteJob::delay(5)->dispatch($this->record->id);
+        $jobs[] = array(
+            'id' => CreateSiteOnForgeJob::dispatch($this->record->id),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => AddGitRepoOnForgeJob::dispatch($this->record->id)->delay(2),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => AddEnvVariablesOnForgeJob::dispatch($this->record->id)->delay(3),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => AddDeploymentScriptOnForgeJob::dispatch($this->record->id)->delay(4),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => AddSSLOnSiteJob::dispatch($this->record->id)->delay(5),
+            'progress' => 0
+        );
         Notification::make()
             ->title('Customer Subscription Created')
             ->message('The customer subscription has been created and the deployment process has started.')
