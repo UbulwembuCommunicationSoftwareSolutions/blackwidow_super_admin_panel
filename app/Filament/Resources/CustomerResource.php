@@ -53,8 +53,6 @@ class CustomerResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('customerSubscriptions')
-                    ->formatState(fn($state) =>dd($state)),
-                TextColumn::make('customerSubscriptions')
                     ->label('Subscriptions')
                     ->sortable()
                     ->counts('customerSubscriptions'),
