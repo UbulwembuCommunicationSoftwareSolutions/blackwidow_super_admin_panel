@@ -211,6 +211,16 @@ class ForgeApi
             $appName->save();
         }
 
+        $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','VUE_APP_NAME')
+            ->first();
+        if($appName){
+            $appName->value = $customerSubscription->app_name;
+            $appName->save();
+        }
+
+
+
         $appUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
             ->where('key','APP_URL')
             ->first();
