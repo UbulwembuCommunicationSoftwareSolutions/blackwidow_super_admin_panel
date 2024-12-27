@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
+use App\Console\Commands\ForgeGetters\SyncForge;
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\SendCommandToForge;
 use App\Jobs\SendCommandToForgeJob;
@@ -228,6 +229,11 @@ class CreateCustomerSubscription extends CreateRecord
         $jobs = [];
         $jobs[] = array(
             'id' => CreateSiteOnForgeJob::dispatch($this->record->id),
+            'progress' => 0
+        );
+
+        $jobs[] = array(
+            'id' => SyncForge::dispatch($this->record->id)->delay(now()->addSeconds(30)),
             'progress' => 0
         );
 

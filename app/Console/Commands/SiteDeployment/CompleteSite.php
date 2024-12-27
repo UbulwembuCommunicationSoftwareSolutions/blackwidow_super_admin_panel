@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
+use App\Console\Commands\ForgeGetters\SyncForge;
 use App\Jobs\SendCommandToForgeJob;
 use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
 use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
@@ -38,6 +39,10 @@ class CompleteSite extends Command
         CreateSiteOnForgeJob::dispatch($customerSubscription->id);
         $jobs[] = array(
             'id' => CreateSiteOnForgeJob::dispatch($customerSubscription->id),
+            'progress' => 0
+        );
+        $jobs[] = array(
+            'id' => SyncForge::dispatch($customerSubscription->id)->delay(now()->addSeconds(30)),
             'progress' => 0
         );
 
