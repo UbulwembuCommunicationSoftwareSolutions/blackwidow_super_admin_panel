@@ -52,6 +52,8 @@ class CustomerResource extends Resource
                 TextColumn::make('company_name')
                     ->searchable()
                     ->sortable(),
+                Placeholder::make()
+                    ->content(fn($record) =>dd($record)),
                 TextColumn::make('customerSubscriptions')
                     ->label('Subscriptions')
                     ->sortable()
