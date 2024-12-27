@@ -10,6 +10,7 @@ use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
 use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
+use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
 use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
@@ -42,7 +43,7 @@ class CompleteSite extends Command
             'progress' => 0
         );
         $jobs[] = array(
-            'id' => SyncForge::dispatch($customerSubscription->id)->delay(now()->addSeconds(30)),
+            'id' => SyncForgeJob::dispatch()->delay(now()->addSeconds(30)),
             'progress' => 0
         );
 
