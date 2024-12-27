@@ -152,18 +152,38 @@ class ForgeApi
     public function createSite($server_id, CustomerSubscription $customerSubscription){
         $this->addMissingEnv($customerSubscription);
         $template = null;
-        $payload = [
-            'domain' => $customerSubscription->domain,
-            'project_type' => $customerSubscription->subscriptionType->project_type,
-            'directory' => $customerSubscription->subscriptionType->public_dir,
-            'php_version' => 'php83',
-            'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
-            'repository' => $customerSubscription->subscriptionType->github_repo,
-            'repository_provider' => 'github',
-            'repository_branch' => $customerSubscription->subscriptionType->branch,
-            'database' => $customerSubscription->database_name,
+        if($customerSubscription->subscription_type_id == 1){
+            $database = $customerSubscription->database_name;
+        }else{
+            $database = null;
+        }
+        if($database){
+            $payload = [
+                'domain' => $customerSubscription->domain,
+                'project_type' => $customerSubscription->subscriptionType->project_type,
+                'directory' => $customerSubscription->subscriptionType->public_dir,
+                'php_version' => 'php83',
+                'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
+                'repository' => $customerSubscription->subscriptionType->github_repo,
+                'repository_provider' => 'github',
+                'repository_branch' => $customerSubscription->subscriptionType->branch,
+                'database' => $customerSubscription->database_name,
 //            'env' => $this->collectEnv($customerSubscription)
-        ];
+            ];
+        }else{
+            $payload = [
+                'domain' => $customerSubscription->domain,
+                'project_type' => $customerSubscription->subscriptionType->project_type,
+                'directory' => $customerSubscription->subscriptionType->public_dir,
+                'php_version' => 'php83',
+                'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
+                'repository' => $customerSubscription->subscriptionType->github_repo,
+                'repository_provider' => 'github',
+                'repository_branch' => $customerSubscription->subscriptionType->branch,
+//            'env' => $this->collectEnv($customerSubscription)
+            ];
+        }
+
         \Log::info(json_encode($payload));
         $this->forge->createSite($server_id,$payload);
         $this->syncForge();
