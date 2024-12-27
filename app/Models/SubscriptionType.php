@@ -14,6 +14,7 @@ class SubscriptionType extends Model
         'name',
         'github_repo',
         'project_type',
+        'public_dir',
         'branch'
     ];
 }
