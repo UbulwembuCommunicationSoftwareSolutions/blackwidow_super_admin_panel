@@ -193,6 +193,16 @@ class ForgeApi
             $database->save();
         }
 
+        $cmsUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','VUE_APP_API_BASE_URL')
+            ->first();
+
+        if($cmsUrl){
+            $caseManagement = CustomerSubscription::where('subscription_type_id', 1)->first();
+            $cmsUrl->value = $caseManagement->url;
+            $cmsUrl->save();
+        }
+
         $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
             ->where('key','APP_NAME')
             ->first();
