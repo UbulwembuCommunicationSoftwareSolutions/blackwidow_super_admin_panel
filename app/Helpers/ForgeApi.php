@@ -155,7 +155,7 @@ class ForgeApi
         $payload = [
             'domain' => $customerSubscription->domain,
             'project_type' => $customerSubscription->subscriptionType->project_type,
-            'directory' => '/public',
+            'directory' => $customerSubscription->subscriptionType->public_dir,
             'php_version' => 'php83',
             'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
             'repository' => $customerSubscription->subscriptionType->github_repo,
