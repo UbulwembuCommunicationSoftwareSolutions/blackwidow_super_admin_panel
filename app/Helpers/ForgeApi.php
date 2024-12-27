@@ -218,7 +218,7 @@ class ForgeApi
             ->first();
 
         if($cmsUrl){
-            $caseManagement = CustomerSubscription::where('subscription_type_id', 1)->first();
+            $caseManagement = CustomerSubscription::where('customer_id',$customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
             $cmsUrl->value = $caseManagement->url;
             $cmsUrl->save();
         }
