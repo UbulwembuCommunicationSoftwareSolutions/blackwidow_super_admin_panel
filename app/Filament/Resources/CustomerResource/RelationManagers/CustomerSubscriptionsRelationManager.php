@@ -91,11 +91,12 @@ class CustomerSubscriptionsRelationManager extends RelationManager
             ->recordTitleAttribute('url')
             ->columns([
                 TextColumn::make('subscriptionType.name')
-                    ->label('Subscription Type'),
+                    ->label('Subscription Type')
+                    ->sortable(),
 
                 TextColumn::make('url')
-                    ->label('URL'),
-
+                    ->label('URL')
+                    ->searchable(),
             ])
             ->filters([
                 SelectFilter::make('subscription_type_id')
