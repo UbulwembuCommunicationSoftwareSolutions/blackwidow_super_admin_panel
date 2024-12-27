@@ -28,6 +28,7 @@ class SendSiteEnvs extends Command
     {
         $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
         $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi->addMissingEnv($customerSubscription);
         $forgeApi->sendEnv($customerSubscription);
     }
 }
