@@ -73,7 +73,7 @@ class CompleteSite extends Command
             'progress' => 0
         );
 
-        if($this->record->subscription_type_id == 1){
+        if($customerSubscription->subscription_type_id == 1){
             $jobs[] = array(
                 'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'php artisan key:generate --force')->delay(now()->addMinutes(7)),
                 'progress' => 0
