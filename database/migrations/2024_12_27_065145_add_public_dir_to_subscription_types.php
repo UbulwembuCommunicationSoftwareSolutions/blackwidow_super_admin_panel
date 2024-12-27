@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('subscription_types', function (Blueprint $table) {
-            $table->string('public_dir')->default('dist');
+            $table->string('public_dir')->default('/dist');
         });
     }
 
