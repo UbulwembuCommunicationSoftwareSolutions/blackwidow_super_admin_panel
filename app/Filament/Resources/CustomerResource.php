@@ -52,7 +52,7 @@ class CustomerResource extends Resource
                 TextColumn::make('company_name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('customerSubscriptions_count')
+                TextColumn::make('customerSubscriptions')
                     ->label('Subscriptions')
                     ->sortable()
                     ->counts('customerSubscriptions'),
