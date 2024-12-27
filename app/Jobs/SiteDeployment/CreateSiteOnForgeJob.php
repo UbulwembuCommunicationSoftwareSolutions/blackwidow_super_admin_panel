@@ -29,6 +29,6 @@ class CreateSiteOnForgeJob implements ShouldQueue
     {
         $forgeApi = new \App\Helpers\ForgeApi();
         $customerSubscription = \App\Models\CustomerSubscription::find($this->customerSubscriptionId);
-        $forgeApi->createSite($customerSubscription->server_id,$customerSubscription->forge_site_id);
+        $forgeApi->createSite($customerSubscription->server_id,$customerSubscription);
     }
 }
