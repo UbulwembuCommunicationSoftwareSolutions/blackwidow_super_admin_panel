@@ -279,10 +279,6 @@ class CreateCustomerSubscription extends CreateRecord
         }
 
 
-
-
-
-
         Notification::make()
             ->title('The customer subscription has been created and the deployment process has started.')
             ->success()
