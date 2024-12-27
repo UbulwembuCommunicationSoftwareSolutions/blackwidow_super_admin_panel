@@ -21,7 +21,7 @@ class CompleteSite extends Command
      *
      * @var string
      */
-    protected $signature = 'app:create-site-on-forge {customer-subscription-id}';
+    protected $signature = 'app:complete-creation {customer-subscription-id}';
 
     /**
      * The console command description.
