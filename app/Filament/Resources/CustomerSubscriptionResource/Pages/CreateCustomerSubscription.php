@@ -257,25 +257,29 @@ class CreateCustomerSubscription extends CreateRecord
             'progress' => 0
         );
 
-        $jobs[] = array(
-            'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(now()->addMinutes(7)),
-            'progress' => 0
-        );
+        if($this->record->subscription_type_id == 1){
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(now()->addMinutes(7)),
+                'progress' => 0
+            );
 
-        $jobs[] = array(
-            'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan migrate --force')->delay(now()->addMinutes(8)),
-            'progress' => 0
-        );
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan migrate --force')->delay(now()->addMinutes(8)),
+                'progress' => 0
+            );
 
-        $jobs[] = array(
-            'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan db:seed BaseLineSeeder --force')->delay(now()->addMinutes(9)),
-            'progress' => 0
-        );
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan db:seed BaseLineSeeder --force')->delay(now()->addMinutes(9)),
+                'progress' => 0
+            );
+            $jobs[] = array(
+                'id' => DeploySite::dispatch($this->record->id)->delay(now()->addMinutes(10)),
+                'progress' => 0
+            );
+        }
 
-        $jobs[] = array(
-            'id' => DeploySite::dispatch($this->record->id)->delay(now()->addMinutes(10)),
-            'progress' => 0
-        );
+
+
 
 
 
