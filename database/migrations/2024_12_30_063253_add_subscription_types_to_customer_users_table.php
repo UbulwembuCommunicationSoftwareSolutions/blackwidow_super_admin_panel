@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->boolean('survey_access')->default(false);
             $table->boolean('time_and_attendance_access')->default(false);
             $table->boolean('stock_access')->default(false);
+            $table->string('cellphone')->nullable();
         });
     }
 

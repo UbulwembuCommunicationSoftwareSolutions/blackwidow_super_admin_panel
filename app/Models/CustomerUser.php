@@ -15,6 +15,17 @@ class CustomerUser extends Model
         'last_name',
         'email_address',
         'password',
+        'console_access',
+        'firearm_access',
+        'responder_access',
+        'reporter_access',
+        'security_access',
+        'driver_access',
+        'survey_access',
+        'time_and_attendance_access',
+        'stock_access',
+        'created_at',
+        'cellphone'
     ];
     public function customer(): BelongsTo
     {
