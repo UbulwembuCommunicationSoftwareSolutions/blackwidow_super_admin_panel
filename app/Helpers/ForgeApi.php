@@ -152,9 +152,9 @@ class ForgeApi
     public function createSite($server_id, CustomerSubscription $customerSubscription){
         $this->addMissingEnv($customerSubscription);
         $template = null;
-        if($customerSubscription->subscription_type_id == 1){
+        if (in_array($customerSubscription->subscription_type_id, [1, 2, 9, 10])) {
             $database = $customerSubscription->database_name;
-        }else{
+        } else {
             $database = null;
         }
         if($database){
