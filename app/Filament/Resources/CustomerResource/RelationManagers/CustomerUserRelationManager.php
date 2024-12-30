@@ -71,7 +71,7 @@ class CustomerUserRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('email')
+                TextColumn::make('email_address')
                     ->label('Email'),
                 TextColumn::make('first_name')
                     ->label('First Name'),
