@@ -41,6 +41,22 @@ class CustomerUserRelationManager extends RelationManager
                     ->required(),
                 TextInput::make('password')
                     ->required(),
+                Forms\Components\Toggle::make('console_access')
+                    ->required(),
+                Forms\Components\Toggle::make('firearm_access')
+                    ->required(),
+                Forms\Components\Toggle::make('responder_access')
+                    ->required(),
+                Forms\Components\Toggle::make('reporter_access')
+                    ->required(),
+                Forms\Components\Toggle::make('security_access')
+                    ->required(),
+                Forms\Components\Toggle::make('survey_access')
+                    ->required(),
+                Forms\Components\Toggle::make('time_and_attendance_access')
+                    ->required(),
+                Forms\Components\Toggle::make('stock_access')
+                    ->required(),
             ]);
     }
 
@@ -54,6 +70,24 @@ class CustomerUserRelationManager extends RelationManager
                     ->label('First Name'),
                 TextColumn::make('customerUser.last_name')
                     ->label('Last Name'),
+                TextColumn::make('customerUser.cellphone')
+                    ->label('Cellphone'),
+                TextColumn::make('customerUser.console_access')
+                    ->label('Console Access'),
+                TextColumn::make('customerUser.firearm_access')
+                    ->label('Firearm Access'),
+                TextColumn::make('customerUser.responder_access')
+                    ->label('Responder Access'),
+                TextColumn::make('customerUser.reporter_access')
+                    ->label('Reporter Access'),
+                TextColumn::make('customerUser.security_access')
+                    ->label('Security Access'),
+                TextColumn::make('customerUser.survey_access')
+                    ->label('Survey Access'),
+                TextColumn::make('customerUser.time_and_attendance_access')
+                    ->label('Time and Attendance Access'),
+                TextColumn::make('customerUser.stock_access')
+                    ->label('Stock Access'),
 
             ])
             ->filters([
