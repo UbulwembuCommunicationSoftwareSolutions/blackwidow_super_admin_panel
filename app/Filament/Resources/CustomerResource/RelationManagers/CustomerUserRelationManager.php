@@ -27,36 +27,43 @@ class CustomerUserRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Select::make('customer_id')
-                    ->label('Customer')
-                    ->searchable()
-                    ->relationship('customer', 'company_name') // Specify the relationship and the display column
-                    ->required()
-                    ->default(fn () => $this->ownerRecord->id),
-                TextInput::make('first_name')
-                    ->required(),
-                TextInput::make('last_name')
-                    ->required(),
-                TextInput::make('email_address')
-                    ->required(),
-                TextInput::make('password')
-                    ->required(),
-                Forms\Components\Toggle::make('console_access')
-                    ->required(),
-                Forms\Components\Toggle::make('firearm_access')
-                    ->required(),
-                Forms\Components\Toggle::make('responder_access')
-                    ->required(),
-                Forms\Components\Toggle::make('reporter_access')
-                    ->required(),
-                Forms\Components\Toggle::make('security_access')
-                    ->required(),
-                Forms\Components\Toggle::make('survey_access')
-                    ->required(),
-                Forms\Components\Toggle::make('time_and_attendance_access')
-                    ->required(),
-                Forms\Components\Toggle::make('stock_access')
-                    ->required(),
+
+            Forms\Components\Section::make('User Information')
+                ->schema([
+                    Select::make('customer_id')
+                        ->label('Customer')
+                        ->searchable()
+                        ->relationship('customer', 'company_name') // Specify the relationship and the display column
+                        ->required()
+                        ->default(fn () => $this->ownerRecord->id),
+                    TextInput::make('first_name')
+                        ->required(),
+                    TextInput::make('last_name')
+                        ->required(),
+                    TextInput::make('email_address')
+                        ->required(),
+                    TextInput::make('password')
+                        ->required(),
+            ]),
+            Forms\Components\Section::make('Access Rights')
+                ->schema([
+                    Forms\Components\Toggle::make('console_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('firearm_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('responder_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('reporter_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('security_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('survey_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('time_and_attendance_access')
+                        ->required(),
+                    Forms\Components\Toggle::make('stock_access')
+                        ->required(),
+                ])->columns(2)
             ]);
     }
 
@@ -64,29 +71,29 @@ class CustomerUserRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('customerUser.email')
+                TextColumn::make('email')
                     ->label('Email'),
-                TextColumn::make('customerUser.first_name')
+                TextColumn::make('first_name')
                     ->label('First Name'),
-                TextColumn::make('customerUser.last_name')
+                TextColumn::make('last_name')
                     ->label('Last Name'),
-                TextColumn::make('customerUser.cellphone')
+                TextColumn::make('cellphone')
                     ->label('Cellphone'),
-                TextColumn::make('customerUser.console_access')
+                TextColumn::make('console_access')
                     ->label('Console Access'),
-                TextColumn::make('customerUser.firearm_access')
+                TextColumn::make('firearm_access')
                     ->label('Firearm Access'),
-                TextColumn::make('customerUser.responder_access')
+                TextColumn::make('responder_access')
                     ->label('Responder Access'),
-                TextColumn::make('customerUser.reporter_access')
+                TextColumn::make('reporter_access')
                     ->label('Reporter Access'),
-                TextColumn::make('customerUser.security_access')
+                TextColumn::make('security_access')
                     ->label('Security Access'),
-                TextColumn::make('customerUser.survey_access')
+                TextColumn::make('survey_access')
                     ->label('Survey Access'),
-                TextColumn::make('customerUser.time_and_attendance_access')
+                TextColumn::make('time_and_attendance_access')
                     ->label('Time and Attendance Access'),
-                TextColumn::make('customerUser.stock_access')
+                TextColumn::make('stock_access')
                     ->label('Stock Access'),
 
             ])
