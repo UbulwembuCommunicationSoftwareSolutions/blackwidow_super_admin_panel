@@ -264,7 +264,23 @@ class CreateCustomerSubscription extends CreateRecord
             'progress' => 0
         );
 
-        if($this->record->subscription_type_id == 1){
+        if (in_array($this->record->subscription_type_id, [1, 2, 9, 10])) {
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'mkdir storage/framework')->delay(now()->addMinutes(7)),
+                'progress' => 0
+            );
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'mkdir storage/framework/cache')->delay(now()->addMinutes(7)),
+                'progress' => 0
+            );
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'mkdir storage/framework/views')->delay(now()->addMinutes(7)),
+                'progress' => 0
+            );
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'mkdir storage/framework/sessions')->delay(now()->addMinutes(7)),
+                'progress' => 0
+            );
             $jobs[] = array(
                 'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(now()->addMinutes(7)),
                 'progress' => 0
