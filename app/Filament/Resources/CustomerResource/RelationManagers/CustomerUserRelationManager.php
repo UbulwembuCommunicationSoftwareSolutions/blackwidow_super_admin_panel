@@ -81,19 +81,22 @@ class CustomerUserRelationManager extends RelationManager
                     ->label('Cellphone'),
                 TextColumn::make('console_access')
                     ->label('Console Access'),
-                TextColumn::make('firearm_access')
+                Tables\Columns\CheckboxColumn::make('console_access')
+                    ->label('Console Access')
+                    ->toggleable(),
+                Tables\Columns\CheckboxColumn::make('firearm_access')
                     ->label('Firearm Access'),
-                TextColumn::make('responder_access')
+                Tables\Columns\CheckboxColumn::make('responder_access')
                     ->label('Responder Access'),
-                TextColumn::make('reporter_access')
+                Tables\Columns\CheckboxColumn::make('reporter_access')
                     ->label('Reporter Access'),
-                TextColumn::make('security_access')
+                Tables\Columns\CheckboxColumn::make('security_access')
                     ->label('Security Access'),
-                TextColumn::make('survey_access')
+                Tables\Columns\CheckboxColumn::make('survey_access')
                     ->label('Survey Access'),
-                TextColumn::make('time_and_attendance_access')
+                Tables\Columns\CheckboxColumn::make('time_and_attendance_access')
                     ->label('Time and Attendance Access'),
-                TextColumn::make('stock_access')
+                Tables\Columns\CheckboxColumn::make('stock_access')
                     ->label('Stock Access'),
 
             ])
