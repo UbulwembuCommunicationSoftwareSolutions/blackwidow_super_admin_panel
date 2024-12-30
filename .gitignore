@@ -6,6 +6,8 @@
 /storage/*.key
 /vendor
 .env
+composer.lock
+package-lock.json
 .env.backup
 .env.production
 .phpactor.json
