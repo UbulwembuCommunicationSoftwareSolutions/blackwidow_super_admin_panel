@@ -38,6 +38,7 @@ class CustomerUserController extends Controller
 
         return response()->json([
             'message' => 'Login successful',
+            'user' => $customerUser,
             'token' => $token,
         ]);
 
