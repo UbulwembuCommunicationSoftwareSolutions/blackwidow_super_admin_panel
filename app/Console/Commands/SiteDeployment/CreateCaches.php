@@ -42,15 +42,15 @@ class CreateCaches extends Command
             'progress' => 0
         );
         $jobs[] = array(
-            'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'mkdir storage/framework/cache'),
+            'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'mkdir storage/framework/cache')->delay(now()->addSeconds(5)),
             'progress' => 0
         );
         $jobs[] = array(
-            'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'mkdir storage/framework/views'),
+            'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'mkdir storage/framework/views')->delay(now()->addSeconds(5)),
             'progress' => 0
         );
         $jobs[] = array(
-            'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'mkdir storage/framework/sessions'),
+            'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'mkdir storage/framework/sessions')->delay(now()->addSeconds(5)),
             'progress' => 0
         );
 
