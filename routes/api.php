@@ -9,4 +9,4 @@ Route::get('/user', function (Request $request) {
 
 
 Route::post('user-login', 'App\Http\Controllers\CustomerUserController@login');
-Route::get('user-import', 'App\Http\Controllers\CustomerUserController@index');
+Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
