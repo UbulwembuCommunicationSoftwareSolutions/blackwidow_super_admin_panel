@@ -25,7 +25,7 @@ class SendEnvToAllConsoles extends Command
      */
     public function handle()
     {
-        $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+        $subscriptions = \App\Models\CustomerSubscription::get();
         foreach($subscriptions as $subscription){
             $job = \App\Jobs\SendEnvToForge::dispatch($subscription->id);
         }
