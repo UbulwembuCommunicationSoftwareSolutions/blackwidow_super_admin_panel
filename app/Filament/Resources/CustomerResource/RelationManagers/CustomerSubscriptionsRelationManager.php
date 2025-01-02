@@ -46,7 +46,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     ->icon('heroicon-o-plus')
                     ->action(function () {
                         // Redirect to the custom create page
-                        return redirect()->route('filament.resources.customer-subscriptions.create', [
+                        return redirect()->route('filament.admin.resources.customer-subscriptions.create', [
                             'customer' => $this->ownerRecord->id,
                         ]);
                     }),
