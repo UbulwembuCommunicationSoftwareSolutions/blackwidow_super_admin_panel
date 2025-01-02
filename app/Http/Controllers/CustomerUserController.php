@@ -21,14 +21,29 @@ class CustomerUserController extends Controller
 
     public function login(Request $request){
         $input = $request->all();
-        $email = $request->get('email');
+        if($request->has('email')){
+            $email = $request->get('email');
+        }else{
+            $email = null;
+        }
+        if($request->has('cellphone')){
+            $cellphone = $request->get('cellphone');
+        }else{
+            $cellphone = null;
+        }
         $password = $request->get('password');
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
         if(!$customerSubscription){
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-        $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
+        $customerUser = null;
+        if($email){
+            $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
+        }
+        if($cellphone){
+            $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
+        }
         if (!$customerUser || !\Hash::check($request->password, $customerUser->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
