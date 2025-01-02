@@ -14,7 +14,6 @@ class CustomerUserController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorize('viewAny', CustomerUser::class);
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
         $users = CustomerUser::where('customer_id',$customerSubscription->customer_id)->get();
