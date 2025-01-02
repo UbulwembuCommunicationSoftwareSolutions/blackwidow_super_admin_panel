@@ -31,7 +31,7 @@ class EditCustomerSubscription extends EditRecord
                 ->label('Back to Customer')
                 ->action(function ($record) {
                     // Redirect to the custom create page
-                    return redirect()->route('filament.admin.resources.customers.edit ', [
+                    return redirect()->route('filament.admin.resources.customers.edit', [
                         'record' => $record->customer_id,
                     ]);
                 }),
