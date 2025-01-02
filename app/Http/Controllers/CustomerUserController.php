@@ -12,11 +12,13 @@ class CustomerUserController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', CustomerUser::class);
-
-        return CustomerUserResource::collection(CustomerUser::all());
+        $url = $request->get('app_url');
+        $customerSubscription = CustomerSubscription::where('url', $url)->first();
+        $users = CustomerUser::where('customer_id',$customerSubscription->customer_id)->get();
+        return CustomerUserResource::collection($users);
     }
 
     public function login(Request $request){
