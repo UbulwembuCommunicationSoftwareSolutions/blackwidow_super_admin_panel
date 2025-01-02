@@ -223,6 +223,16 @@ class ForgeApi
             $cmsUrl->save();
         }
 
+        $cmsUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+            ->where('key','CMS_URL')
+            ->first();
+
+        if($cmsUrl){
+            $caseManagement = CustomerSubscription::where('customer_id',$customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
+            $cmsUrl->value = $caseManagement->url;
+            $cmsUrl->save();
+        }
+
         $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
             ->where('key','APP_NAME')
             ->first();
