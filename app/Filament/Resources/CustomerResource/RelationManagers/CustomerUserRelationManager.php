@@ -17,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
 class CustomerUserRelationManager extends RelationManager
 {
@@ -39,6 +40,8 @@ class CustomerUserRelationManager extends RelationManager
                     TextInput::make('first_name')
                         ->required(),
                     TextInput::make('last_name')
+                        ->required(),
+                    PhoneInput::make('cellphone')
                         ->required(),
                     TextInput::make('email_address')
                         ->required(),
