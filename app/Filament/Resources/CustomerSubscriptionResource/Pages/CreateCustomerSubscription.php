@@ -53,7 +53,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->label('Customer')
                         ->searchable()
                         ->preload()
-
+                        ->default(request('customer'))  // Prefill using the query parameter
                         ->relationship('customer', 'company_name') // Specify the relationship and the display column
                         ->required(),
                     Select::make('subscription_type_id')
