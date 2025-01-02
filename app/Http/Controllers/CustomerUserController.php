@@ -45,7 +45,12 @@ class CustomerUserController extends Controller
             $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
         }
         if (!$customerUser || !\Hash::check($request->password, $customerUser->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            return response()->json(
+                [
+                    'message' => 'Invalid credentials',
+                    'customer_user' => $customerUser,
+                ], 401
+            );
         }
 
         // Create a new Sanctum token
