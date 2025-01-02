@@ -27,6 +27,14 @@ class EditCustomerSubscription extends EditRecord
             Action::make('deploySite')
                 ->label('Deploy Site')
                 ->action(fn ($record) => DeploySite::dispatch($record->id)),
+            Action::make('backToCustomer')
+                ->label('Back to Customer')
+                ->action(function ($record) {
+                    // Redirect to the custom create page
+                    return redirect()->route('filament.admin.resources.customers.edit ', [
+                        'record' => $record->customer_id,
+                    ]);
+                }),
             Action::make('EditServerDetails')
                 ->form([
                     Select::make('forge_server_id')
