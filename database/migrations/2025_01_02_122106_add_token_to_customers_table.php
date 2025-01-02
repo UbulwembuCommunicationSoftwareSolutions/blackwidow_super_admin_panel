@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::table('customers', function (Blueprint $table) {
             $table->uuid('token')
                 ->unique()
-                ->default(DB::raw('(UUID())'));
+                ->nullable();
         });
     }
 
