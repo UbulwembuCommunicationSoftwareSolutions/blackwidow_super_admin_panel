@@ -282,7 +282,6 @@ class ForgeApi
     public function sendEnv(CustomerSubscription $customerSubscription){
 
         $env = $this->collectEnv($customerSubscription);
-        dd($env);
         $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
     }
 
