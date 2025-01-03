@@ -16,4 +16,8 @@ class SystemsController extends Controller
         $customerSubscription = CustomerSubscription::where('url', $request->app_url)->first();
         return new CustomerResource($customerSubscription->customer);
     }
+    public function setSystemDescriptions(Request $request){
+        $customerSubscription = CustomerSubscription::where('url', $request->app_url)->first();
+        return new CustomerResource($customerSubscription->customer);
+    }
 }
