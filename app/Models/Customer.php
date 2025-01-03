@@ -32,8 +32,11 @@ class Customer extends Model
         'docket_description',
         'task_description',
         'level_one_description',
+        'level_one_in_use',
         'level_two_description',
+        'level_two_in_use',
         'level_three_description',
+        'level_three_in_use',
         'level_four_description',
         'level_five_description',
     ];

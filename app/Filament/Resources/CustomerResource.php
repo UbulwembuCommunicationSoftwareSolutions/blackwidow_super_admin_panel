@@ -8,6 +8,7 @@ use App\Filament\Resources\CustomerResource\RelationManagers\CustomerUserRelatio
 use App\Models\Customer;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
@@ -42,6 +43,24 @@ class CustomerResource extends Resource
             ->schema([
                 TextInput::make('company_name')
                     ->required(),
+                TextInput::make('docket_description')
+                    ->required(),
+                TextInput::make('task_description')
+                    ->required(),
+                Toggle::make('level_one_in_use'),
+                TextInput::make('level_one_description')
+                    ->required(),
+                Toggle::make('level_two_in_use'),
+                TextInput::make('level_two_description')
+                    ->required(),
+                Toggle::make('level_three_in_use'),
+                TextInput::make('level_three_description')
+                    ->required(),
+                TextInput::make('level_four_description')
+                    ->required(),
+                TextInput::make('level_five_description')
+                    ->required(),
+
             ]);
     }
 
