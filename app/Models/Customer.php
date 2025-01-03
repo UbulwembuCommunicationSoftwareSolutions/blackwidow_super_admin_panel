@@ -29,6 +29,13 @@ class Customer extends Model
     protected $fillable = [
         'company_name',
         'token',
+        'docket_description',
+        'task_description',
+        'level_one_description',
+        'level_two_description',
+        'level_three_description',
+        'level_four_description',
+        'level_five_description',
     ];
 
     public function customerSubscriptions() : hasMany

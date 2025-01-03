@@ -13,6 +13,8 @@ class CustomerResource extends JsonResource
         return [
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'docket_description' => $this->docket_description,
+            'task_description' => $this->task_description,
             'id' => $this->id,
             'name' => $this->name,
             'surname' => $this->surname,
