@@ -49,6 +49,8 @@ class CustomerResource extends Resource
                         TextInput::make('docket_description')
                             ->required(),
                         TextInput::make('task_description')
+                            ->required(),
+                        TextInput::make('token')
                             ->required()
                     ]),
                 Section::make('Company Details')
