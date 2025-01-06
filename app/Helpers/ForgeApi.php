@@ -66,6 +66,7 @@ class ForgeApi
                 'name' => $server->name,
                 'ip_address' => $server->ipAddress
             ]);
+            echo "Syncing Server: ".$server->name." with ID of : ".$server->id." \n";
             GetSitesForServerJob::dispatch($server->id);
         }
     }
