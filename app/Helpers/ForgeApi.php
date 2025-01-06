@@ -60,8 +60,8 @@ class ForgeApi
     public function syncForge(){
         $servers = ForgeServer::get();
         foreach($servers as $server) {
-            echo "Syncing Server: ".$server->name." with ID of : ".$server->id." \n";
-            GetSitesForServerJob::dispatch($server->getSitesForServer);
+            echo "Syncing Server: ".$server->name." with ID of : ".$server->forge_server_id." \n";
+            GetSitesForServerJob::dispatch($server->forge_server_id);
         }
     }
 
