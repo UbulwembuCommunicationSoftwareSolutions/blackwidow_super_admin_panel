@@ -262,12 +262,12 @@ class ForgeApi
             $elasticSearch->save();
         }
 
-        $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+        $secureToken = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
             ->where('key','SECURE_TOKEN')
             ->first();
-        if($appName){
-            $appName->value = $customerSubscription->customer->token;
-            $appName->save();
+        if($secureToken){
+            $secureToken->value = $customerSubscription->customer->token;
+            $secureToken->save();
         }
 
         $minioBucket = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
