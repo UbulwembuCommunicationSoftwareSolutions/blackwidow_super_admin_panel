@@ -50,8 +50,6 @@ class CustomerResource extends Resource
                             ->required(),
                         TextInput::make('task_description')
                             ->required(),
-                        TextInput::make('token')
-                            ->required()
                     ]),
                 Section::make('Company Details')
                     ->schema([
