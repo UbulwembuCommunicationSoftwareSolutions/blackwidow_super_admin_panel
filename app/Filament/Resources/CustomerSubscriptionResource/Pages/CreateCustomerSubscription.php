@@ -12,6 +12,7 @@ use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
 use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
+use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
@@ -228,61 +229,87 @@ class CreateCustomerSubscription extends CreateRecord
     public  function afterCreate():void
     {
         $jobs = [];
+        $seconds = 30;
         $jobs[] = array(
             'id' => CreateSiteOnForgeJob::dispatch($this->record->id),
             'progress' => 0
         );
 
         $jobs[] = array(
-            'id' => SyncForgeJob::dispatch($this->record->id)->delay(now()->addSeconds(30)),
+            'id' => SyncForgeJob::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
             'progress' => 0
         );
+
+        $seconds += 30;
 
         $jobs[] = array(
-            'id' => AddGitRepoOnForgeJob::dispatch($this->record->id)->delay(now()->addMinutes(2)),
+            'id' => AddGitRepoOnForgeJob::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
             'progress' => 0
         );
+
+        $seconds += 30;
+
+        $jobs[] = array(
+            'id' => AddEnvVariablesOnForgeJob::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
+            'progress' => 0
+        );
+        $seconds += 30;
 
 
         $jobs[] = array(
-            'id' => AddEnvVariablesOnForgeJob::dispatch($this->record->id)->delay(now()->addMinutes(3)),
+            'id' => AddDeploymentScriptOnForgeJob::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
             'progress' => 0
         );
+        $seconds += 30;
+
 
         $jobs[] = array(
-            'id' => AddDeploymentScriptOnForgeJob::dispatch($this->record->id)->delay(now()->addMinutes(4)),
+            'id' => AddSSLOnSiteJob::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
             'progress' => 0
         );
+        $seconds += 30;
+
 
         $jobs[] = array(
-            'id' => AddSSLOnSiteJob::dispatch($this->record->id)->delay(now()->addMinutes(5)),
+            'id' => DeploySite::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
             'progress' => 0
         );
+        $seconds += 30;
 
-        $jobs[] = array(
-            'id' => DeploySite::dispatch($this->record->id)->delay(now()->addMinutes(6)),
-            'progress' => 0
-        );
 
         if (in_array($this->record->subscription_type_id, [1, 2, 9, 10])) {
             $jobs[] = array(
-                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(now()->addMinutes(7)),
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(now()->addSeconds($seconds)),
                 'progress' => 0
             );
+            $seconds += 30;
+
 
             $jobs[] = array(
-                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan migrate --force')->delay(now()->addMinutes(8)),
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan migrate --force')->delay(now()->addSeconds($seconds)),
                 'progress' => 0
             );
+            $seconds += 30;
+
 
             $jobs[] = array(
-                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan db:seed BaseLineSeeder --force')->delay(now()->addMinutes(9)),
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan db:seed BaseLineSeeder --force')->delay(now()->addSeconds($seconds)),
                 'progress' => 0
             );
+            $seconds += 30;
+
             $jobs[] = array(
-                'id' => DeploySite::dispatch($this->record->id)->delay(now()->addMinutes(10)),
+                'id' => DeploySite::dispatch($this->record->id)->delay(now()->addSeconds($seconds)),
                 'progress' => 0
             );
+            $seconds += 30;
+
+            $jobs[] = array(
+                'id' => SendSystemConfigJob::dispatch($this->record->customer_id)->delay(now()->addSeconds($seconds)),
+                'progress' => 0
+            );
+            $seconds += 30;
+
         }
 
 
