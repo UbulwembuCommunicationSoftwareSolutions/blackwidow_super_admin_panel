@@ -120,9 +120,13 @@ class CustomerUserController extends Controller
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         \Log::info('Password update for Customer: ' . $request->app_url);
         $customer = $customerSub->customer;
+        if($customer){
+            \Log::info('Customer Found: ' . $customer->name);
+        }
         $customerUser = CustomerUser::where('email_address', $user)
             ->where('customer_id', $customer->id)
             ->first();
+        \Log::info('User found: '.$customerUser->id);
         $customerUser->password = $password;
         $customerUser->save();
         \Log::info('Password updated for user: ' . $user);
