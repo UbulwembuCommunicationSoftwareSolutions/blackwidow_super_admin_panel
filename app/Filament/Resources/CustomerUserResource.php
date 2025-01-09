@@ -14,6 +14,8 @@ use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CustomerUserResource extends Resource
 {
@@ -78,6 +80,23 @@ class CustomerUserResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = \Auth::user();
+        if ($user->hasRole('customer_manager')) {
+            return parent::getEloquentQuery()->whereHas('users', function ($query) use ($user) {
+                $query->where('users.id', $user->id);
+            });
+        }else{
+            return parent::getEloquentQuery()
+                ->with('customerSubscriptions')
+                ->withCount('customerSubscriptions')
+                ->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+        }
     }
 
     public static function getPages(): array
