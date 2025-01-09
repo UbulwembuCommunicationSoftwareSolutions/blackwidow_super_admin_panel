@@ -23,7 +23,7 @@ class CustomerUserResource extends Resource
 
     protected static ?string $slug = 'customer-users';
     protected static ?string $navigationGroup = 'Customers';
-
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
