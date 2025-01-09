@@ -18,6 +18,11 @@ class CustomerPolicy
         return $user->can('view_any_customer');
     }
 
+    public function viewMyself(User $user): bool
+    {
+
+    }
+
     /**
      * Determine whether the user can view the model.
      */
