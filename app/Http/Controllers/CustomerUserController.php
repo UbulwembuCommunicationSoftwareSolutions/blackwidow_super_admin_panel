@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\CustomerUserResource;
+use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -111,5 +112,17 @@ class CustomerUserController extends Controller
         $customerUser->delete();
 
         return response()->json();
+    }
+
+    public function updatePassword(Request $request){
+        $user = $request->get('email');
+        $password = $request->get('password');
+        $customer = Customer::where('url', $request->app_url)->first();
+        $customerUser = CustomerUser::where('email_address', $user)
+            ->where('customer_id', $customer->id)
+            ->first();
+        $customerUser->password = $password;
+        $customerUser->save();
+        return response()->json(['message' => 'Password updated successfully']);
     }
 }

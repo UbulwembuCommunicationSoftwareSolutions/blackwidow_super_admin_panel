@@ -10,3 +10,4 @@ Route::get('/user', function (Request $request) {
 
 Route::post('user-login', 'App\Http\Controllers\CustomerUserController@login');
 Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
+Route::post('user-password', 'App\Http\Controllers\CustomerUserController@updatePassword');
