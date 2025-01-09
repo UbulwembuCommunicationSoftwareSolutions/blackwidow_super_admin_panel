@@ -115,7 +115,7 @@ class CustomerUserController extends Controller
     }
 
     public function updatePassword(Request $request){
-        $user = $request->get('email');
+        $email = $request->get('email');
         $password = $request->get('password');
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         \Log::info('Password update for Customer: ' . $request->app_url);
@@ -123,7 +123,7 @@ class CustomerUserController extends Controller
         if($customer){
             \Log::info('Customer Found: ' . $customer->name);
         }
-        $customerUser = CustomerUser::where('email_address', $user)
+        $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)
             ->first();
         \Log::info('User found: '.$customerUser->id);
