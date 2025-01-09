@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CustomerSubscription;
+use App\Models\CustomerUser;
 use Illuminate\Support\Facades\Http;
 
 class CMSService
@@ -25,6 +26,19 @@ class CMSService
 
         $response = Http::withToken($subscription->customer->token)->post($url,$data);
         dd($response->body());
+    }
+
+
+    public function sendWelcomeEmail(CustomerUser $customerUser){
+        $subscription = CustomerSubscription::where('subscription_type_id',1)
+            ->where('customer_id',$customerUser->customer_id)
+            ->first();
+        $url = $subscription->url.'/admin-api/send-welcome-email';
+        echo 'Doing request to '.$url.' with token '.$subscription->customer->token.PHP_EOL;
+        $data = [
+            'email' => $customerUser->email_address
+        ];
+        $response = Http::withToken($subscription->customer->token)->post($url,$data);
     }
 
 }

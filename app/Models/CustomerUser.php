@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\SendWelcomeEmailJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
@@ -27,6 +28,17 @@ class CustomerUser extends Model
         'created_at',
         'cellphone'
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($model) {
+            // Your logic here
+            // For example, call a method on the model
+            SendWelcomeEmailJob::dispatch($model);
+        });
+    }
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
