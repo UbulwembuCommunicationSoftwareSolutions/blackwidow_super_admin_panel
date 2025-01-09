@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Customer;
-use App\Models\UserCustomer;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CustomerPolicy
@@ -18,7 +17,6 @@ class CustomerPolicy
     {
         return $user->can('view_any_customer');
     }
-
 
     /**
      * Determine whether the user can view the model.
