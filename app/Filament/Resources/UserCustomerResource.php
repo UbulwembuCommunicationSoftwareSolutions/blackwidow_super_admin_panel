@@ -30,6 +30,8 @@ class UserCustomerResource extends Resource
 
     protected static ?string $slug = 'user-customers';
 
+    protected static ?string $navigationGroup = 'System Administration';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form

@@ -25,7 +25,7 @@ class RequiredEnvVariablesResource extends Resource
 
     protected static ?string $slug = 'required-env-variables';
 
-    protected static ?string $navigationGroup = 'System Settings';
+    protected static ?string $navigationGroup = 'System Administration';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 

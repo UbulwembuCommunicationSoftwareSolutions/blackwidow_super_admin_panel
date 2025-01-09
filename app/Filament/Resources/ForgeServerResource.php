@@ -19,6 +19,8 @@ class ForgeServerResource extends Resource
 {
     protected static ?string $model = ForgeServer::class;
 
+    protected static ?string $navigationGroup = 'System Administration';
+
     protected static ?string $slug = 'forge-servers';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

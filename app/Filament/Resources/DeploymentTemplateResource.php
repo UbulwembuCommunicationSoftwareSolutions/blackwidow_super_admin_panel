@@ -22,6 +22,8 @@ class DeploymentTemplateResource extends Resource
 {
     protected static ?string $model = DeploymentTemplate::class;
 
+    protected static ?string $navigationGroup = 'System Administration';
+
     protected static ?string $slug = 'deployment-templates';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

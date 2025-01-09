@@ -19,7 +19,8 @@ class EnvVariablesResource extends Resource
 {
     protected static ?string $model = EnvVariables::class;
 
-    protected static ?string $navigationGroup = 'System Settings';
+
+    protected static ?string $navigationGroup = 'System Administration';
 
     protected static ?string $slug = 'env-variables';
 

@@ -21,7 +21,6 @@ class RoleResource extends Resource implements HasShieldPermissions
 {
     use HasShieldFormComponents;
 
-
     protected static ?string $navigationGroup = 'System Administration';
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -168,9 +167,7 @@ class RoleResource extends Resource implements HasShieldPermissions
 
     public static function getNavigationGroup(): ?string
     {
-        return Utils::isResourceNavigationGroupEnabled()
-            ? __('filament-shield::filament-shield.nav.group')
-            : '';
+        return 'System Administration';
     }
 
     public static function getNavigationLabel(): string

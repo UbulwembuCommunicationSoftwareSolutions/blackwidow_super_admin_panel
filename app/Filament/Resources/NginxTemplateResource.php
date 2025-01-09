@@ -23,6 +23,8 @@ class NginxTemplateResource extends Resource
 
     protected static ?string $slug = 'nginx-templates';
 
+    protected static ?string $navigationGroup = 'System Administration';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form

@@ -19,8 +19,7 @@ use Filament\Tables\Table;
 class DeploymentScriptResource extends Resource
 {
     protected static ?string $model = DeploymentScript::class;
-    protected static ?string $navigationGroup = 'System Settings';
-
+    protected static ?string $navigationGroup = 'System Administration';
     protected static ?string $slug = 'deployment-scripts';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
