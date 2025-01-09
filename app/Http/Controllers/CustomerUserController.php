@@ -121,7 +121,7 @@ class CustomerUserController extends Controller
         \Log::info('Password update for Customer: ' . $request->app_url);
         $customer = $customerSub->customer;
         if($customer){
-            \Log::info('Customer Found: ' . $customer->name);
+            \Log::info('Customer Found: ' . $customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)
