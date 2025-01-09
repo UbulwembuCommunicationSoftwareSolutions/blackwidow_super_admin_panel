@@ -44,7 +44,7 @@ class Customer extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'user_customer');
+        return $this->belongsToMany(User::class, 'user_customers');
     }
 
     public function customerSubscriptions() : hasMany

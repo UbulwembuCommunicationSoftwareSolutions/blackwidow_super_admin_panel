@@ -57,6 +57,6 @@ class User extends Authenticatable implements FilamentUser
 
     public function customers()
     {
-        return $this->belongsToMany(Customer::class, 'user_customer');
+        return $this->belongsToMany(Customer::class, 'user_customers');
     }
 }
