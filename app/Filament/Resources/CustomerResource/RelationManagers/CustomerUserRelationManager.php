@@ -46,6 +46,7 @@ class CustomerUserRelationManager extends RelationManager
                     TextInput::make('email_address')
                         ->required(),
                     TextInput::make('password')
+                        ->password()
                         ->required(),
             ]),
             Forms\Components\Section::make('Access Rights')
