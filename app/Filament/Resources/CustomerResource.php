@@ -113,12 +113,19 @@ class CustomerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->with('customerSubscriptions')
-            ->withCount('customerSubscriptions')
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
+        $user = \Auth::user();
+        if ($user->hasRole('customer_manager')) {
+            return parent::getEloquentQuery()->whereHas('users', function ($query) use ($user) {
+                $query->where('users.id', $user->id);
+            });
+        }else{
+            return parent::getEloquentQuery()
+                ->with('customerSubscriptions')
+                ->withCount('customerSubscriptions')
+                ->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+        }
     }
 
     public static function getGloballySearchableAttributes(): array

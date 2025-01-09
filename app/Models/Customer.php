@@ -42,6 +42,11 @@ class Customer extends Model
         'level_five_description',
     ];
 
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_customer');
+    }
+
     public function customerSubscriptions() : hasMany
     {
         return $this->hasMany(CustomerSubscription::class);

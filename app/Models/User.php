@@ -54,4 +54,9 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
         ];
     }
+
+    public function customers()
+    {
+        return $this->belongsToMany(Customer::class, 'user_customer');
+    }
 }
