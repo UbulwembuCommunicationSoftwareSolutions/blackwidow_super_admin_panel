@@ -129,7 +129,7 @@ class CustomerUserController extends Controller
         \Log::info('User found: '.$customerUser->id);
         $customerUser->password = $password;
         $customerUser->save();
-        \Log::info('Password updated for user: ' . $user);
+        \Log::info('Password updated for user: ' . $email);
         return response()->json(['message' => 'Password updated successfully']);
     }
 }
