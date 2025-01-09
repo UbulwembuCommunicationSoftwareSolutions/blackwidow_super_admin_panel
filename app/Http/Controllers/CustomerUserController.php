@@ -117,9 +117,9 @@ class CustomerUserController extends Controller
     public function updatePassword(Request $request){
         $user = $request->get('email');
         $password = $request->get('password');
-        $customer = Customer::where('url', $request->app_url)->first();
+        $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         \Log::info('Password update for Customer: ' . $request->app_url);
-
+        $customer = $customerSub->customer;
         $customerUser = CustomerUser::where('email_address', $user)
             ->where('customer_id', $customer->id)
             ->first();
