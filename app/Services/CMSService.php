@@ -34,7 +34,7 @@ class CMSService
             ->where('customer_id',$customerUser->customer_id)
             ->first();
         $url = $subscription->url.'/admin-api/send-welcome-email';
-        echo 'Doing request to '.$url.' with token '.$subscription->customer->token.PHP_EOL;
+        \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
         $data = [
             'email' => $customerUser->email_address
         ];
