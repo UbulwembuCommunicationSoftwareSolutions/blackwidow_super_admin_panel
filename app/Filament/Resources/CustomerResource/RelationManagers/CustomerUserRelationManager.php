@@ -116,9 +116,8 @@ class CustomerUserRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                \Filament\Tables\Actions\Action::make('Reverse')
-                    ->label('Reverse')
-                    ->hidden(fn() => auth()->user()->can('reverse_payment') ? false : true)
+                \Filament\Tables\Actions\Action::make('Send Welcome Email')
+                    ->label('Send Welcome Email')
                     ->action(function ($record) {
                         $user = CustomerUser::find($record->id);
                         SendWelcomeEmailJob::dispatch($user);
