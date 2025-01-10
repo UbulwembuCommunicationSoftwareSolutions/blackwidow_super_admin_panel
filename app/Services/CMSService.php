@@ -39,6 +39,7 @@ class CMSService
             'email' => $customerUser->email_address
         ];
         $response = Http::withToken($subscription->customer->token)->post($url,$data);
+        \Log::info($response->body());
     }
 
 }
