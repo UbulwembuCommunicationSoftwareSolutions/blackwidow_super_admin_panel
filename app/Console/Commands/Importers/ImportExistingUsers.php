@@ -38,6 +38,7 @@ class ImportExistingUsers extends Command
                         'email_address' => $row['email'],
                         'customer_id' => $console->customer_id,
                     ],[
+                        'cellphone' => $row['cellphone'],
                         'first_name' => $row['name'],
                         'last_name' => $row['surname'],
                         'password' => $row['password']
