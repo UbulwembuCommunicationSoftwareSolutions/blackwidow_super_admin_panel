@@ -25,7 +25,8 @@ class ImportExistingUsers extends Command
      */
     public function handle()
     {
-        $consoles = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+        $customer = $this->ask('Enter the customer id');
+        $consoles = \App\Models\CustomerSubscription::where('customer_id',$customer)->where('subscription_type_id', 1)->get();
         foreach($consoles as $console){
             $database = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_DATABASE')->first();
             $user = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_USERNAME')->first();
