@@ -309,6 +309,11 @@ class CreateCustomerSubscription extends CreateRecord
                 'progress' => 0
             );
             $seconds += 30;
+            $jobs[] = array(
+                'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan storage:link')->delay(now()->addSeconds($seconds)),
+                'progress' => 0
+            );
+            $seconds += 30;
 
         }
 
