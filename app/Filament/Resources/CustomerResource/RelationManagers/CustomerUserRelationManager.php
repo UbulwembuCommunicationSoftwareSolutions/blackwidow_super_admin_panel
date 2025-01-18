@@ -79,13 +79,17 @@ class CustomerUserRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('email_address')
-                    ->label('Email'),
+                    ->label('Email')
+                    ->searchable(),
                 TextColumn::make('first_name')
-                    ->label('First Name'),
+                    ->label('First Name')
+                    ->searchable(),
                 TextColumn::make('last_name')
-                    ->label('Last Name'),
+                    ->label('Last Name')
+                    ->searchable(),
                 TextColumn::make('cellphone')
-                    ->label('Cellphone'),
+                    ->label('Cellphone')
+                    ->searchable(),
                 TextColumn::make('console_access')
                     ->label('Console Access'),
                 Tables\Columns\CheckboxColumn::make('console_access')
