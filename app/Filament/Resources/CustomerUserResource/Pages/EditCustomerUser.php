@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CustomerUserResource\Pages;
 use App\Filament\Resources\CustomerUserResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditCustomerUser extends EditRecord
 {
@@ -15,5 +16,10 @@ class EditCustomerUser extends EditRecord
         return [
             DeleteAction::make(),
         ];
+    }
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        dd($data);
     }
 }

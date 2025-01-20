@@ -42,4 +42,15 @@ class CMSService
         \Log::info($response->body());
     }
 
+    public function sendAppLink(CustomerUser $customerUser,CustomerSubscription $customerSubscription){
+
+        $url = $customerSubscription->url;
+        \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
+        $data = [
+            'email' => $customerUser->email_address
+        ];
+        $response = Http::withToken($subscription->customer->token)->post($url,$data);
+        \Log::info($response->body());
+    }
+
 }
