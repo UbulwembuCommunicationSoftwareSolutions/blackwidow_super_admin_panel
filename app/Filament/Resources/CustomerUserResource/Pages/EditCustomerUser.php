@@ -20,6 +20,5 @@ class EditCustomerUser extends EditRecord
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        dd($data);
     }
 }

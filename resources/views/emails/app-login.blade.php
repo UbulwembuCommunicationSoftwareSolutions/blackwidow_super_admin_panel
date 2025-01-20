@@ -82,7 +82,8 @@
 
             <p>Your login details are:</p>
             <ul>
-                <li><strong>Username:</strong> {{ $cellphone }}</li>
+                <li><strong>Email:</strong> {{ $cellphone }}</li>
+                <li><strong>Cellphone:</strong> {{ $cellphone }}</li>
                 <li><strong>Password:</strong> (Use the password for your CMS account)</li>
             </ul>
 
