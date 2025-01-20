@@ -109,8 +109,9 @@ class CustomerUser extends Model
         static::updated(function ($model) {
             // Your logic here
             if ($model->wasChanged('console_access')) {
-                // Example: If a specific field was updated, dispatch a job
-                SendWelcomeEmailJob::dispatch($model);
+                if($model->console_access){
+                    SendWelcomeEmailJob::dispatch($model);
+                }
             }
             if ($model->wasChanged('firearm_access')) {
                 if($model->firearm_access){
@@ -124,6 +125,7 @@ class CustomerUser extends Model
 
             }
             if ($model->wasChanged('responder_access')) {
+                dd($model->responder_access);
                 if($model->responder_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 3)
