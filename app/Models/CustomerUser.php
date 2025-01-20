@@ -125,7 +125,6 @@ class CustomerUser extends Model
 
             }
             if ($model->wasChanged('responder_access')) {
-                dd($model->responder_access);
                 if($model->responder_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 3)
