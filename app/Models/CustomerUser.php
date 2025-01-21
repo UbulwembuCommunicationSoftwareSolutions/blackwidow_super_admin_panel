@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
+use App\Services\CMSService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
@@ -111,6 +112,8 @@ class CustomerUser extends Model
             if ($model->wasChanged('console_access')) {
                 if($model->console_access){
                     SendWelcomeEmailJob::dispatch($model);
+                }else{
+                    CMSService::suspendService($model);
                 }
             }
             if ($model->wasChanged('firearm_access')) {

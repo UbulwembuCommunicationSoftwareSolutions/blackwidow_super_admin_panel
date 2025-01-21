@@ -29,6 +29,19 @@ class CMSService
     }
 
 
+    public static function suspendService($customerUser){
+        $subscription = CustomerSubscription::where('customer_id',$customerUser->customer_id)
+            ->where('subscription_type_id',1)
+            ->first();
+        $url = $subscription->url.'/admin-api/suspend-service';
+        echo 'Doing request to '.$url.' with token '.$subscription->customer->token.PHP_EOL;
+        $data = [
+            'email' => $customerUser->email_address
+        ];
+        $response = Http::withToken($subscription->customer->token)->post($url,$data);
+        \Log::info($response->body());
+    }
+
     public function sendWelcomeEmail(CustomerUser $customerUser){
         $subscription = CustomerSubscription::where('subscription_type_id',1)
             ->where('customer_id',$customerUser->customer_id)
