@@ -55,6 +55,16 @@ class CustomerUserController extends Controller
             );
         }
 
+
+        if(!$this->checkAccess($customerUser,$customerSubscription)){
+            return response()->json(
+                [
+                    'message' => 'Access Denied',
+                    'customer_user' => $customerUser,
+                ], 401
+            );
+        }
+
         // Create a new Sanctum token
         $token = $customerUser->createToken('customer-user-token')->plainTextToken;
 
@@ -64,6 +74,73 @@ class CustomerUserController extends Controller
             'token' => $token,
         ]);
 
+    }
+
+    public function checkAccess(CustomerUser $user,CustomerSubscription $subscription){
+        if((int)$subscription->subscription_type_id == 1){
+            if($user->console_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 2){
+            if($user->firearm_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 3){
+            if($user->responder_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 4){
+            if($user->reporter_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 5){
+            if($user->security_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 6){
+            if($user->driver_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 7){
+            if($user->survey_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 9){
+            if($user->time_and_attendance_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        if((int)$subscription->subscription_type_id == 10){
+            if($user->stock_access){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        return false;
     }
 
     public function store(Request $request)
