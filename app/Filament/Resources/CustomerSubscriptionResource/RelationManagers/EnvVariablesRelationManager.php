@@ -110,8 +110,7 @@ class EnvVariablesRelationManager extends RelationManager
 
     public function sendToServer($record)
     {
-        dd($record);
-        $customerSubscription = CustomerSubscription::find($record->id);
+        $customerSubscription = CustomerSubscription::find($record);
         SendEnvToForge::dispatch($customerSubscription);
     }
 }
