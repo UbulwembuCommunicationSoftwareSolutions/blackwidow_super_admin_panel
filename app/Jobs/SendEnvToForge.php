@@ -30,6 +30,6 @@ class SendEnvToForge implements ShouldQueue
     {
         $forgeApi = new \App\Helpers\ForgeApi();
         $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
-        $forgeApi->sendEnv($this->customerSubscriptionId);
+        $forgeApi->sendEnv($customerSubscription);
     }
 }
