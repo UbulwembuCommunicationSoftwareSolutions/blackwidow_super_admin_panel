@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
 use App\Filament\Exports\EnvVariableExporter;
 use App\Jobs\SendEnvToForge;
+use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
 use App\Models\RequiredEnvVariables;
 use Filament\Actions\Action;
@@ -109,6 +110,7 @@ class EnvVariablesRelationManager extends RelationManager
 
     public function sendToServer($record)
     {
-        SendEnvToForge::dispatch($this->ownerRecord->id);
+        $customerSubscription = CustomerSubscription::find($record->id);
+        SendEnvToForge::dispatch($customerSubscription);
     }
 }
