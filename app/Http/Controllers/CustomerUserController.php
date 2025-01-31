@@ -216,7 +216,7 @@ class CustomerUserController extends Controller
             ->first();
         \Log::info('User found: '.$customerUser->id);
         \Log::info('Old password hash: ' . $customerUser->password);
-        $customerUser->password = Hash::make($request->password);
+        $customerUser->password = $request->password;
         $customerUser->save();
         \Log::info('New password hash: ' . $customerUser->password);
         \Log::info('Password updated for user: ' . $email);
