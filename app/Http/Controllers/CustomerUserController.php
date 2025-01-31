@@ -39,6 +39,7 @@ class CustomerUserController extends Controller
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
         if(!$customerSubscription){
+            \Log::info("Customer Subscription not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
         $customerUser = null;
@@ -48,9 +49,14 @@ class CustomerUserController extends Controller
         if($cellphone){
             $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
         }
-        if (!$customerUser || !\Hash::check($request->password, $customerUser->password)) {
+        if (!$customerUser){
+            \Log::info("Customer User not found");
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+        if(!\Hash::check($request->password, $customerUser->password)) {
             return response()->json(
                 [
+                    'debug' => $request->password. ' is not equal to '.$customerUser->password,
                     'message' => 'Invalid credentials',
                     'customer_user' => $customerUser,
                 ], 401
