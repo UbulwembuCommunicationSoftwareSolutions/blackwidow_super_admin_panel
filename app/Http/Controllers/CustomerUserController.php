@@ -9,6 +9,7 @@ use App\Models\CustomerUser;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\Fluent\Concerns\Has;
 
 class CustomerUserController extends Controller
 {
@@ -205,7 +206,7 @@ class CustomerUserController extends Controller
             ->where('customer_id', $customer->id)
             ->first();
         \Log::info('User found: '.$customerUser->id);
-        $customerUser->password = $request->password;
+        $customerUser->password = Hash::make($request->password);
         $customerUser->save();
         \Log::info('Password updated for user: ' . $email);
         return response()->json(['message' => 'Password updated successfully to '.$request->password]);
