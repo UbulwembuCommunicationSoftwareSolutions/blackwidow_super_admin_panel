@@ -200,13 +200,14 @@ class CustomerUserController extends Controller
         if($customer){
             \Log::info('Customer Found: ' . $customer->company_name);
         }
+        \Log::info("Received ".$request->password);
         $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)
             ->first();
         \Log::info('User found: '.$customerUser->id);
-        $customerUser->password = Hash::make($request->password);;
+        $customerUser->password = $request->password;
         $customerUser->save();
         \Log::info('Password updated for user: ' . $email);
-        return response()->json(['message' => 'Password updated successfully']);
+        return response()->json(['message' => 'Password updated successfully to '.$request->password]);
     }
 }
