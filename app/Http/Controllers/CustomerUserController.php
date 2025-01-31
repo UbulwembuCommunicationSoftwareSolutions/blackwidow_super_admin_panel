@@ -53,6 +53,9 @@ class CustomerUserController extends Controller
             \Log::info("Customer User not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
+        \Log::info('Stored hash: ' . $customerUser->password);
+        \Log::info('Entered password: ' . $request->password);
+        \Log::info('Hash Check: ' . (Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
         if(!\Hash::check($request->password, $customerUser->password)) {
             return response()->json(
                 [
