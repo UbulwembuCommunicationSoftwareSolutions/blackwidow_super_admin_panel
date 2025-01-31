@@ -212,8 +212,10 @@ class CustomerUserController extends Controller
             ->where('customer_id', $customer->id)
             ->first();
         \Log::info('User found: '.$customerUser->id);
+        \Log::info('Old password hash: ' . $customerUser->password);
         $customerUser->password = Hash::make($request->password);
         $customerUser->save();
+        \Log::info('New password hash: ' . $customerUser->password);
         \Log::info('Password updated for user: ' . $email);
         return response()->json(['message' => 'Password updated successfully to '.$request->password]);
     }
