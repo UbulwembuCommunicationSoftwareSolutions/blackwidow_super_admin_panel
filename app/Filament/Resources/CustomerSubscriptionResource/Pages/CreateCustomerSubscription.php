@@ -278,7 +278,7 @@ class CreateCustomerSubscription extends CreateRecord
         $seconds += 30;
 
 
-        if (in_array($this->record->subscription_type_id, [1, 2, 9, 10])) {
+        if (in_array($this->record->subscription_type_id, [1, 2, 9, 10,11])) {
             $jobs[] = array(
                 'id' => SendCommandToForgeJob::dispatch($this->record->id,'php artisan key:generate --force')->delay(now()->addSeconds($seconds)),
                 'progress' => 0
