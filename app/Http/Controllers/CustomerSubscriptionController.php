@@ -25,11 +25,13 @@ class CustomerSubscriptionController extends Controller
     {
         $user = \Auth::user();
         if (!$user) {
+            \Log::info('User is not logged in');
             return response()->json([
                 'status' => 'error',
                 'message' => 'User is not logged in'
             ], 401);
         }else{
+            \Log::info('User is logged in');
             return response()->json([
                 'status' => 'success',
                 'message' => 'User is logged in',
