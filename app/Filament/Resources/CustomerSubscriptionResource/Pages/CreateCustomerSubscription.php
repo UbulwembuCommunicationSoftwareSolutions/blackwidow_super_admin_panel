@@ -117,6 +117,7 @@ class CreateCustomerSubscription extends CreateRecord
                                 8 => 'DONOTUSE',
                                 9 => 'time',
                                 10 => 'stock',
+                                11 => 'information',
                                 default => 'unknown',
                             };
                             $set('theVertical', $verticalMap[$get('vertical')] ?? 'unknown');
