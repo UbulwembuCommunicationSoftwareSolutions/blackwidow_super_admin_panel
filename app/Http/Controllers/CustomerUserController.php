@@ -85,15 +85,7 @@ class CustomerUserController extends Controller
             'message' => 'Login successful',
             'user' => $customerUser,
             'token' => $token,
-        ])->cookie(
-            'customer_auth_token', // Cookie name
-            $token, // Token value
-            60 * 24 * 30, // Expiry: 30 days
-            '/', // Path (available across all routes)
-            '*.blackwidow.org.za', // Domain (use wildcard for subdomains)
-            true, // Secure (HTTPS only)
-            true // HttpOnly (prevents JavaScript access)
-        );
+        ]);
 
     }
 

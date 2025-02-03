@@ -21,6 +21,23 @@ class CustomerSubscriptionController extends Controller
         return CustomerSubscriptionResource::collection(CustomerSubscription::all());
     }
 
+    public function checkLoggedIn(Request $request)
+    {
+        $user = \Auth::user();
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User is not logged in'
+            ], 401);
+        }else{
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User is logged in',
+                'token' => $request->bearerToken()
+            ]);
+        }
+    }
+
     public function getLogos(Request $request)
     {
         if($request->has('customer_url')){
