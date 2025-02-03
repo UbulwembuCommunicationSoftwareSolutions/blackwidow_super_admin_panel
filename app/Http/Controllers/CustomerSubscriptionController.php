@@ -33,6 +33,7 @@ class CustomerSubscriptionController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'User is logged in',
+                'user' => $user,
                 'token' => $request->bearerToken()
             ]);
         }
