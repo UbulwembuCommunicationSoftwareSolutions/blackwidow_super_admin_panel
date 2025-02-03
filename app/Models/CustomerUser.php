@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Services\CMSService;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-class CustomerUser extends Model
+class CustomerUser extends Authenticatable
 {
-    use HasApiTokens;
+    use HasApiTokens, Notifiable;
 
     public $fillable = [
         'customer_id',
