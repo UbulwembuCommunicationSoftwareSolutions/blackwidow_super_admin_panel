@@ -30,7 +30,7 @@ class DeployAllSites extends Command
         $delay = now(); // Start with the current time
 
         foreach ($customerSubscriptions as $customerSubscription) {
-            \App\Jobs\SiteDeployment\DeploySite::dispatch($customerSubscription)->delay($delay);
+            \App\Jobs\SiteDeployment\DeploySite::dispatch($customerSubscription->id)->delay($delay);
             $delay = $delay->addMinute(); // Increment delay by 1 minute for each job
         }
     }
