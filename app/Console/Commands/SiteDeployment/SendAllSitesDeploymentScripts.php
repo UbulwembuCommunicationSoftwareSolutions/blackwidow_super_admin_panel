@@ -32,7 +32,7 @@ class SendAllSitesDeploymentScripts extends Command
         $delay = now(); // Start with the current time
         foreach ($customerSubscriptions as $customerSubscription) {
             SendDeploymentScriptJob::dispatch($customerSubscription)->delay($delay);
-            $delay = $delay->addMinute(); // Increment delay by 1 minute for each job
+            $delay = $delay->addSeconds(10); // Increment delay by 1 minute for each job
         }
     }
 }
