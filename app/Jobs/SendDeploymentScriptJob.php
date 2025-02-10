@@ -39,5 +39,6 @@ class SendDeploymentScriptJob implements ShouldQueue
             'script' => $siteDeployment
         ]);
         $script->save();
+        $forgeApi->sendDeploymentScript($customerSubscription,$script->script);
     }
 }
