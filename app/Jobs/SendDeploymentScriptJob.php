@@ -31,18 +31,13 @@ class SendDeploymentScriptJob implements ShouldQueue
         $forgeApi = new ForgeApi();
         $script = DeploymentScript::where('customer_subscription_id',$customerSubscription->id)->first();
         $script->delete();
-        if(!$script){
-            $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
-            $siteDeployment = str_replace('#WEBSITE_URL#',$customerSubscription->domain,$deploymentTemplate->script);
-            $script = DeploymentScript::updateOrCreate([
-                'customer_subscription_id' => $customerSubscription->id
-            ],[
-                'script' => $siteDeployment
-            ]);
-            $script->save();
-        }
-        if($script){
-            $forgeApi->sendDeploymentScript($customerSubscription,$script->script);
-        }
+        $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
+        $siteDeployment = str_replace('#WEBSITE_URL#',$customerSubscription->domain,$deploymentTemplate->script);
+        $script = DeploymentScript::updateOrCreate([
+            'customer_subscription_id' => $customerSubscription->id
+        ],[
+            'script' => $siteDeployment
+        ]);
+        $script->save();
     }
 }
