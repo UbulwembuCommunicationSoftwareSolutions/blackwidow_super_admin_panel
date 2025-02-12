@@ -224,4 +224,41 @@ class CustomerUserController extends Controller
         \Log::info('Password updated for user: ' . $email);
         return response()->json(['message' => 'Password updated successfully to '.$request->password]);
     }
+
+    public function deactivateUser(Request $request){
+        $email = $request->email;
+        $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
+        $customer = $customerSub->customer;
+        if($customer){
+            \Log::info('Customer Found: ' . $customer->company_name);
+        }
+        $customerUser = CustomerUser::where('email_address', $email)
+            ->where('customer_id', $customer->id)
+            ->first();
+        $customerUser->console_access = false;
+        $customerUser->firearm_access = false;
+        $customerUser->responder_access = false;
+        $customerUser->reporter_access = false;
+        $customerUser->save();
+        return response()->json(['message' => 'User Deactivated Successfully']);
+    }
+
+    public function activateUser(Request $request){
+        $email = $request->email;
+        $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
+        $customer = $customerSub->customer;
+        if($customer){
+            \Log::info('Customer Found: ' . $customer->company_name);
+        }
+        $customerUser = CustomerUser::where('email_address', $email)
+            ->where('customer_id', $customer->id)
+            ->first();
+        $customerUser->console_access = true;
+        $customerUser->firearm_access = true;
+        $customerUser->responder_access = true;
+        $customerUser->reporter_access = true;
+        $customerUser->save();
+        return response()->json(['message' => 'User Deactivated Successfully']);
+    }
+
 }
