@@ -258,7 +258,7 @@ class CustomerUserController extends Controller
         $customerUser->responder_access = true;
         $customerUser->reporter_access = true;
         $customerUser->save();
-        return response()->json(['message' => 'User Deactivated Successfully']);
+        return response()->json(['message' => 'User Activated Successfully']);
     }
 
 }
