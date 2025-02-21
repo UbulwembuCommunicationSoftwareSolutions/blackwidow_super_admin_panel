@@ -56,17 +56,23 @@ class CustomerResource extends Resource
                     ]),
                 Section::make('Company Details')
                     ->schema([
-                        Toggle::make('level_one_in_use'),
+                        Toggle::make('level_one_in_use')
+                            ->live()
+                            ->reactive(),
                         TextInput::make('level_one_description')
                             ->hidden(fn($get) => $get('level_one_in_use') === false)
                             ->default('Level One')
                             ->required(),
-                        Toggle::make('level_two_in_use'),
+                        Toggle::make('level_two_in_use')
+                            ->live()
+                            ->reactive(),
                         TextInput::make('level_two_description')
                             ->hidden(fn($get) => $get('level_two_in_use') === false)
                             ->default('Level Two')
                             ->required(),
-                        Toggle::make('level_three_in_use'),
+                        Toggle::make('level_three_in_use')
+                            ->live()
+                            ->reactive(),
                         TextInput::make('level_three_description')
                             ->hidden(fn($get) => $get('level_three_in_use') === false)
                             ->default('Level Three')
