@@ -165,7 +165,39 @@ class CustomerUserRelationManager extends RelationManager
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                    Tables\Actions\BulkAction::make('Send Login Email')
+                        ->label('Send Login Email')
+                        ->form([
+                            Select::make('subscription_type_id')
+                                ->label('Subscription Type')
+                                ->required()
+                                ->options(fn () => SubscriptionType::pluck('name', 'id')->toArray()),
+                        ])
+                        ->action(function ($records, $data) {
+                            foreach ($records as $record) {
+                                $user = CustomerUser::find($record->id);
+                                $subscription = CustomerSubscription::where('customer_id', $record->customer_id)
+                                    ->where('subscription_type_id', $data['subscription_type_id'])
+                                    ->first();
+
+                                if ($user && $subscription) {
+                                    if ($user->checkAccess($data['subscription_type_id'])) {
+                                        SendSubscriptionEmailJob::dispatch($user, $subscription);
+                                    } else {
+                                        Notification::make()
+                                            ->title("User {$user->name} does not have access to this subscription")
+                                            ->danger()
+                                            ->send();
+                                    }
+                                } else {
+                                    Notification::make()
+                                        ->title("Subscription not found for user {$user->name}")
+                                        ->danger()
+                                        ->send();
+                                }
+                            }
+                    })
+                ])
             ]);
     }
 }
