@@ -14,15 +14,17 @@ class AppURLMail extends Mailable
     public $customer;
     public $app_name;
     public $cellphone;
+    public $email;
     public $app_install_link;
     /**
      * Create a new message instance.
      *
      * @param array $data
      */
-    public function __construct($user, $customer, $app_name, $cellphone, $app_install_link)
+    public function __construct($user, $customer, $app_name, $cellphone, $app_install_link,$email)
     {
         $this->user = $user;
+        $this->email = $email;
         $this->customer = $customer;
         $this->app_name = $app_name;
         $this->cellphone = $cellphone;

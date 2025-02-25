@@ -35,8 +35,9 @@ class SendSubscriptionEmailJob implements ShouldQueue
         $app_name = $this->customerSubscription->app_name;
         $cellphone = $this->customerUser->cellphone;
         $app_install_link = $this->customerSubscription->url;
+        $email = $this->customerUser->email_address;
         \Mail::to($this->customerUser->email_address)->send(
-            new AppURLMail($user, $customer, $app_name, $cellphone, $app_install_link)
+            new AppURLMail($user, $customer, $app_name, $cellphone, $app_install_link,$email)
         );
     }
 }
