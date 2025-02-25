@@ -121,7 +121,7 @@ class CustomerUser extends Authenticatable
             if ($model->wasChanged('firearm_access')) {
                 if($model->firearm_access){
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                        ->where('subscription_type_id',1)
+                        ->where('subscription_type_id',2)
                         ->first();
                     if($subscription){
                         SendSubscriptionEmailJob::dispatch($model,$subscription);

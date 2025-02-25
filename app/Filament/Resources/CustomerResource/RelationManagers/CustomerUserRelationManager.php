@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
 use App\Filament\Resources\CustomerResource;
+use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
+use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Models\Payment;
 use App\Models\SubscriptionType;
@@ -126,6 +128,24 @@ class CustomerUserRelationManager extends RelationManager
                         $user = CustomerUser::find($record->id);
                         SendWelcomeEmailJob::dispatch($user);
                     }),
+                \Filament\Tables\Actions\Action::make('Send Login Email')
+                    ->label('Send Login Email')
+                    ->form(function ($record){
+                        Select::make('subscription_type_id')
+                            ->label('Subscription Type')
+                            ->relationship('subscriptionType', 'name') // Assuming 'subscriptionType' is the relationship method name
+                            ->required()
+                            ->options(SubscriptionType::pluck('name', 'id'));
+                    })
+                    ->action(function ($record,$data) {
+                        $user = CustomerUser::find($record->id);
+                        $subscription = CustomerSubscription::where('customer_id',$record->customer_id)
+                            ->where('subscription_type_id',$data['subscription_type_id'])
+                            ->first();
+                        SendSubscriptionEmailJob::dispatch($user,$subscription);
+                        SendWelcomeEmailJob::dispatch($user);
+                    }),
+
 
             ])
             ->bulkActions([
