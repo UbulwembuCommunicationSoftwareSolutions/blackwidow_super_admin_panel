@@ -133,7 +133,6 @@ class CustomerUserRelationManager extends RelationManager
                     ->form(fn ($record) => [
                         Select::make('subscription_type_id')
                             ->label('Subscription Type')
-                            ->relationship('subscriptionType', 'name') // Assuming 'subscriptionType' is the relationship method name
                             ->required()
                             ->options(fn () => SubscriptionType::pluck('name', 'id')->toArray()),
                     ])
