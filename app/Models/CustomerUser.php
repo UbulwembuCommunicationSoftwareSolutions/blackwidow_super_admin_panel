@@ -33,6 +33,29 @@ class CustomerUser extends Authenticatable
         'cellphone'
     ];
 
+    public function checkAccess($customerUser, $subscription_type_id) : bool
+    {
+        // Define the access types and their corresponding subscription type IDs
+        $accessTypes = [
+            'firearm_access' => 2,
+            'responder_access' => 3,
+            'reporter_access' => 4,
+            'security_access' => 5,
+            'driver_access' => 6,
+            'survey_access' => 7,
+            'time_and_attendance_access' => 9,
+            'stock_access' => 10,
+        ];
+
+        foreach ($accessTypes as $access => $typeId) {
+            if ($subscription_type_id == $typeId && $customerUser->$access) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected static function boot()
     {
         parent::boot();

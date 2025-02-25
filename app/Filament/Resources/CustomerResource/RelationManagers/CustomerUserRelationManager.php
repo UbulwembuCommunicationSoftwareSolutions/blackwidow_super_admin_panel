@@ -15,6 +15,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -143,12 +144,22 @@ class CustomerUserRelationManager extends RelationManager
                             ->first();
 
                         if ($user && $subscription) {
-                            SendSubscriptionEmailJob::dispatch($user, $subscription);
+                            if($user->checkAccess($data['subscription_type_id'])){
+                                SendSubscriptionEmailJob::dispatch($user, $subscription);
+                            }else{
+                                Notification::make()
+                                    ->title('User does not have access to this subscription')
+                                    ->danger()
+                                    ->send();
+                            }
+                        }else{
+                            Notification::make()
+                                ->title('Subscription not found')
+                                ->danger()
+                                ->send();
                         }
 
-                        if ($user) {
-                            SendWelcomeEmailJob::dispatch($user);
-                        }
+
                     })
             ])
             ->bulkActions([
