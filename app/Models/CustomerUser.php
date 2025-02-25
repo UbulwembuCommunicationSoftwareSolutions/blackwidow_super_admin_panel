@@ -33,7 +33,7 @@ class CustomerUser extends Authenticatable
         'cellphone'
     ];
 
-    public function checkAccess($customerUser, $subscription_type_id) : bool
+    public function checkAccess($subscription_type_id) : bool
     {
         // Define the access types and their corresponding subscription type IDs
         $accessTypes = [
@@ -48,7 +48,7 @@ class CustomerUser extends Authenticatable
         ];
 
         foreach ($accessTypes as $access => $typeId) {
-            if ($subscription_type_id == $typeId && $customerUser->$access) {
+            if ($subscription_type_id == $typeId && $this->$access) {
                 return true;
             }
         }
