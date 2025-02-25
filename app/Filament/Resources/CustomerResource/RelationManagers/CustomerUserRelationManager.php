@@ -130,23 +130,27 @@ class CustomerUserRelationManager extends RelationManager
                     }),
                 \Filament\Tables\Actions\Action::make('Send Login Email')
                     ->label('Send Login Email')
-                    ->form(function ($record){
+                    ->form(fn ($record) => [
                         Select::make('subscription_type_id')
                             ->label('Subscription Type')
                             ->relationship('subscriptionType', 'name') // Assuming 'subscriptionType' is the relationship method name
                             ->required()
-                            ->options(SubscriptionType::pluck('name', 'id'));
-                    })
-                    ->action(function ($record,$data) {
+                            ->options(fn () => SubscriptionType::pluck('name', 'id')->toArray()),
+                    ])
+                    ->action(function ($record, $data) {
                         $user = CustomerUser::find($record->id);
-                        $subscription = CustomerSubscription::where('customer_id',$record->customer_id)
-                            ->where('subscription_type_id',$data['subscription_type_id'])
+                        $subscription = CustomerSubscription::where('customer_id', $record->customer_id)
+                            ->where('subscription_type_id', $data['subscription_type_id'])
                             ->first();
-                        SendSubscriptionEmailJob::dispatch($user,$subscription);
-                        SendWelcomeEmailJob::dispatch($user);
-                    }),
 
+                        if ($user && $subscription) {
+                            SendSubscriptionEmailJob::dispatch($user, $subscription);
+                        }
 
+                        if ($user) {
+                            SendWelcomeEmailJob::dispatch($user);
+                        }
+                    })
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
