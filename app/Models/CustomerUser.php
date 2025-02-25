@@ -37,6 +37,7 @@ class CustomerUser extends Authenticatable
     {
         // Define the access types and their corresponding subscription type IDs
         $accessTypes = [
+            'console_access' => 1,
             'firearm_access' => 2,
             'responder_access' => 3,
             'reporter_access' => 4,
