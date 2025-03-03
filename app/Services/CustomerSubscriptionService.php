@@ -11,8 +11,15 @@ class CustomerSubscriptionService
 
     public static function getLogoDescriptions($subscriptionTypeID){
         //COMENT
+        $logos = [
+            'Login Logo',
+            'Menu Logo',
+            'Login Background',
+            'Not Used',
+            'Not Used'
+        ];
         if((int)$subscriptionTypeID == 1){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -21,7 +28,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 2){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -30,7 +37,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 3){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -39,7 +46,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 4){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -48,7 +55,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 5){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -57,7 +64,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 6){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -66,7 +73,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 7){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -75,7 +82,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 9){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -84,7 +91,7 @@ class CustomerSubscriptionService
             ];
         }
         if((int)$subscriptionTypeID == 10){
-            $logos[] = [
+            $logos = [
                 'Login Logo',
                 'Menu Logo',
                 'Login Background',
@@ -92,7 +99,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        return false;
+        return $logos;
     }
 
 }
