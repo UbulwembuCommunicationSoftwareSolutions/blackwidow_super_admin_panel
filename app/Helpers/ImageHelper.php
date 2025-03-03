@@ -13,7 +13,6 @@ class ImageHelper
         // Define the required PWA icon sizes
         $sizes = [72, 96, 128, 144, 152, 192, 384, 512];
 
-        $imagePath = 'https://superadmin.blackwidow.org.za'.Storage::url($imagePath);
         // Define the storage path for PWA icons
         $basePath = "public/pwa-icons/{$subscription->id}";
         Storage::makeDirectory($basePath);
