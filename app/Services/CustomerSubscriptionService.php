@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Helpers\ImageHelper;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use Illuminate\Http\FileHelpers;
 use Illuminate\Support\Facades\Http;
 
 class CustomerSubscriptionService
@@ -38,9 +40,9 @@ class CustomerSubscriptionService
         }
         if((int)$subscriptionTypeID == 3){
             $logos = [
+                'App Logo',
+                'Home Logo',
                 'Login Logo',
-                'Menu Logo',
-                'Login Background',
                 'Not Used',
                 'Not Used'
             ];
@@ -100,6 +102,11 @@ class CustomerSubscriptionService
             ];
         }
         return $logos;
+    }
+
+    public static function generatePWALogos($subscriptionId){
+        $subscription = CustomerSubscription::find($subscriptionId);
+        ImageHelper::generatePwaIcons($subscription->id,$subscription->logo_1);
     }
 
 }

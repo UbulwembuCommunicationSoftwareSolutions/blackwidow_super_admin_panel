@@ -8,13 +8,13 @@ use Spatie\ImageOptimizer\OptimizerChainFactory;
 
 class ImageHelper
 {
-    public static function generatePwaIcons($customerId, $imagePath)
+    public static function generatePwaIcons($subscription, $imagePath)
     {
         // Define the required PWA icon sizes
         $sizes = [72, 96, 128, 144, 152, 192, 384, 512];
 
         // Define the storage path for PWA icons
-        $basePath = "public/pwa-icons/{$customerId}";
+        $basePath = "public/pwa-icons/{$subscription->id}";
         Storage::makeDirectory($basePath);
 
         foreach ($sizes as $size) {
