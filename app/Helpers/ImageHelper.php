@@ -26,18 +26,13 @@ class ImageHelper
 
 
         $basePath = Storage::disk('public')->path('pwa-icons/'.$subscription->id);
-        $basePath = "pwa-icons/{$subscription->id}";
-        Storage::disk('public')->makeDirectory($basePath); // Ensure directory exists
         Storage::makeDirectory($basePath);
-
+        if (!is_writable(dirname($basePath))) {
+            throw new \Exception("Directory not writable: " . dirname($basePath));
+        }
 
         foreach ($sizes as $size) {
             $outputPath = "{$basePath}/icon-{$size}x{$size}.png";
-            $storagePath = Storage::path($outputPath);
-            if (!is_writable(dirname($storagePath))) {
-                throw new \Exception("Directory not writable: " . dirname($storagePath));
-            }
-
             \Log::error("Saving image to: " . Storage::path($outputPath));
             // Resize and save the image
             Image::load($imagePath)
