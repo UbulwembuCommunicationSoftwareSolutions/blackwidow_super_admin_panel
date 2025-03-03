@@ -33,7 +33,7 @@ class ImageHelper
 
         foreach ($sizes as $size) {
             $outputPath = "{$basePath}/icon-{$size}x{$size}.png";
-            \Log::error("Saving image to: " . Storage::path($outputPath));
+            \Log::error("Saving image to: " .$outputPath);
             // Resize and save the image
             Image::load($imagePath)
                 ->width($size)
