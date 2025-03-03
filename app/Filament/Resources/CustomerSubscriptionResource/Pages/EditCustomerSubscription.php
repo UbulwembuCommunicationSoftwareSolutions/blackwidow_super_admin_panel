@@ -24,9 +24,9 @@ class EditCustomerSubscription extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
             Action::make('generateAppLogos')
                 ->action(fn($record)=> CustomerSubscriptionService::generatePWALogos($record->id)),
+            DeleteAction::make(),
             Action::make('deploySite')
                 ->label('Deploy Site')
                 ->action(fn ($record) => DeploySite::dispatch($record->id)),
