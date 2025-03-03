@@ -164,6 +164,7 @@ class CreateCustomerSubscription extends CreateRecord
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
+                        ->live()
                         ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[0]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
@@ -172,6 +173,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_2')
+                        ->live()
                         ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[1]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
@@ -180,6 +182,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_3')
+                        ->live()
                         ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[2]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
@@ -188,6 +191,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_4')
+                        ->live()
                         ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[3]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
@@ -196,6 +200,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_5')
+                        ->live()
                         ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[4]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
