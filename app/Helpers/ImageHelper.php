@@ -16,9 +16,8 @@ class ImageHelper
         $imagePath = Storage::disk('public')->path($imagePath);
         // Define the storage path for PWA icons
 
-        $basePathBase = Storage::disk('public');
+        $basePath = Storage::disk('public')->path('pwa-icons/'.$subscription->id);
 
-        $basePath = $basePathBase."/pwa-icons/{$subscription->id}";
         Storage::makeDirectory($basePath);
 
         foreach ($sizes as $size) {
