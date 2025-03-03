@@ -26,8 +26,10 @@ class ImageHelper
 
 
         $basePath = Storage::disk('public')->path('pwa-icons/'.$subscription->id);
-
+        $basePath = "pwa-icons/{$subscription->id}";
+        Storage::disk('public')->makeDirectory($basePath); // Ensure directory exists
         Storage::makeDirectory($basePath);
+
 
         foreach ($sizes as $size) {
             $outputPath = "{$basePath}/icon-{$size}x{$size}.png";
@@ -41,7 +43,7 @@ class ImageHelper
             Image::load($imagePath)
                 ->width($size)
                 ->height($size)
-                ->save(Storage::disk('public')->path($outputPath));
+                ->save($outputPath);
 
             // Optimize the image
             $optimizerChain = OptimizerChainFactory::create();
