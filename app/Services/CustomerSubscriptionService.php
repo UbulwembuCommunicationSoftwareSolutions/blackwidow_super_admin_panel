@@ -10,6 +10,7 @@ class CustomerSubscriptionService
 {
 
     public static function getLogoDescriptions($subscriptionTypeID){
+        //COMENT
         if((int)$subscriptionTypeID == 1){
             $logos[] = [
                 'Login Logo',
