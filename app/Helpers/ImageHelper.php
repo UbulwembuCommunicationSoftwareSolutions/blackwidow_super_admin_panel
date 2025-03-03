@@ -26,6 +26,7 @@ class ImageHelper
 
 
         $basePath = Storage::disk('public')->path('pwa-icons/'.$subscription->id);
+        \Log::info("BasePath is :".$basePath);
         Storage::makeDirectory($basePath);
         if (!is_writable(dirname($basePath))) {
             throw new \Exception("Directory not writable: " . dirname($basePath));
