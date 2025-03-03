@@ -138,7 +138,7 @@ class CustomerSubscriptionController extends Controller
         \Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
         if ($customerSubscription) {
-            return redirect('https://superadmin.blackwidow.org.za'.Storage::url($customerSubscription->logo_1));
+            return redirect('https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1));
         }else{
             return response()->json([
                 'status' => 'ERROR',
