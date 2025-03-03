@@ -16,6 +16,7 @@ use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
+use App\Services\CustomerSubscriptionService;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -163,7 +164,7 @@ class CreateCustomerSubscription extends CreateRecord
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
-                        ->label('Logo 1')
+                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[0]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -171,7 +172,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_2')
-                        ->label('Logo 2')
+                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[1]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -179,7 +180,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_3')
-                        ->label('Logo 3')
+                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[2]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -187,7 +188,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_4')
-                        ->label('Logo 4')
+                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[3]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -195,7 +196,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_5')
-                        ->label('Logo 5')
+                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id')[4]))
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
