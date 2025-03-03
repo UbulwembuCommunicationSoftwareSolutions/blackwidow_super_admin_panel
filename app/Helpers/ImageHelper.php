@@ -20,9 +20,10 @@ class ImageHelper
         $imagePath = Storage::disk('public')->path($imagePath);
         // Define the storage path for PWA icons
 
-        if (!Storage::exists($imagePath)) {
+        if (!file_exists($imagePath)) {
             throw new \Exception("Image file not found: " . $imagePath);
         }
+
 
         $basePath = Storage::disk('public')->path('pwa-icons/'.$subscription->id);
 
