@@ -106,7 +106,7 @@ class CustomerSubscriptionService
 
     public static function generatePWALogos($subscriptionId){
         $subscription = CustomerSubscription::find($subscriptionId);
-        ImageHelper::generatePwaIcons($subscription->id,$subscription->logo_1);
+        ImageHelper::generatePwaIcons($subscription,$subscription->logo_1);
     }
 
 }
