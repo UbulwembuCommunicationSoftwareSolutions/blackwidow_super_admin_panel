@@ -43,7 +43,7 @@ class ImageHelper
             // Optimize the image
             $optimizerChain = OptimizerChainFactory::create();
             $optimizerChain->optimize(($outputPath));
-            if (!Storage::exists($outputPath)) {
+            if (!file_exists($outputPath)) {
                 throw new \Exception("Image was not saved.");
             }
         }
