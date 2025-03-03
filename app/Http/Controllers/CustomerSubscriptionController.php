@@ -41,6 +41,65 @@ class CustomerSubscriptionController extends Controller
         }
     }
 
+    public function getManifest(Request $request){
+        $referer = $request->headers->get('referer');
+        // Optionally, you can parse the referer to extract the host or domain
+        $parsedUrl = parse_url($referer);
+        $originHost = $parsedUrl['host'] ?? 'unknown';
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        $manifest = [
+            "name" => "Customer App",
+            "short_name" => "Customer App",
+            "start_url" => "/",
+            "display" => "standalone",
+            "background_color" => "#000000",
+            "theme_color" => "#000000",
+            "icons" => [
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "72x72",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "96x96",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "128x128",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "144x144",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "152x152",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "192x192",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "384x384",
+                    "type" => "image/png"
+                ],
+                [
+                    "src" => Storage::url($customerSubscription->logo_1),
+                    "sizes" => "512x512",
+                    "type" => "image/png"
+                ]
+            ]
+        ];
+        return response()->json($manifest);
+    }
+
     public function getLogos(Request $request)
     {
         if($request->has('customer_url')){
