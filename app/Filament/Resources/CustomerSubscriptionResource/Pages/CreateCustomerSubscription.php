@@ -60,7 +60,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->required(),
                     Select::make('subscription_type_id')
                         ->live()
-
+                        ->reactive()
                         ->label('Subscription Type')
                         ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
                         ->required()
@@ -93,7 +93,6 @@ class CreateCustomerSubscription extends CreateRecord
                         }),
                     Select::make('vertical')
                         ->live()
-
                         ->options([
                             'blackwidow.org.za' => 'blackwidow.org.za',
                             'aims.work'=>'aims.work',
@@ -165,6 +164,7 @@ class CreateCustomerSubscription extends CreateRecord
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
                         ->live()
+                        ->reactive()
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
@@ -183,6 +183,7 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_2')
                         ->live()
+                        ->reactive()
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
@@ -201,6 +202,8 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_3')
                         ->live()
+                        ->reactive()
+
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
@@ -219,6 +222,8 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_4')
                         ->live()
+                        ->reactive()
+
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
@@ -237,6 +242,8 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_5')
                         ->live()
+                        ->reactive()
+
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
