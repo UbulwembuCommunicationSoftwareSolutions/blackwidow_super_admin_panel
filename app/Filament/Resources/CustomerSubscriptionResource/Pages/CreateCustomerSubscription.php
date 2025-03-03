@@ -61,6 +61,7 @@ class CreateCustomerSubscription extends CreateRecord
                     Select::make('subscription_type_id')
                         ->live()
                         ->reactive()
+                        ->default(1)
                         ->label('Subscription Type')
                         ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
                         ->required()
@@ -243,7 +244,6 @@ class CreateCustomerSubscription extends CreateRecord
                     FileUpload::make('logo_5')
                         ->live()
                         ->reactive()
-
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
