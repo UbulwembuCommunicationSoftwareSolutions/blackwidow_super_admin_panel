@@ -165,7 +165,16 @@ class CreateCustomerSubscription extends CreateRecord
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
                         ->live()
-                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'))[0] ?? 'Logo 1')
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[0];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -174,7 +183,16 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_2')
                         ->live()
-                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'))[1]?? 'Logo 1')
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[0];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -183,7 +201,16 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_3')
                         ->live()
-                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'))[2]?? 'Logo 1')
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[0];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -192,7 +219,16 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_4')
                         ->live()
-                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'))[3]?? 'Logo 1')
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[0];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -201,7 +237,16 @@ class CreateCustomerSubscription extends CreateRecord
 
                     FileUpload::make('logo_5')
                         ->live()
-                        ->label(fn($get) => CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'))[4]?? 'Logo 1')
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[0];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
