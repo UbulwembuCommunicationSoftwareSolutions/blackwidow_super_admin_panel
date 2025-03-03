@@ -9,9 +9,8 @@ use Illuminate\Support\Facades\Http;
 class CustomerSubscriptionService
 {
 
-    public static function getLogoDescriptions($subscriptionID){
-        $subscription = CustomerSubscription::find($subscriptionID);
-        if((int)$subscription->subscription_type_id == 1){
+    public static function getLogoDescriptions($subscriptionTypeID){
+        if((int)$subscriptionTypeID == 1){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -20,7 +19,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 2){
+        if((int)$subscriptionTypeID == 2){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -29,7 +28,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 3){
+        if((int)$subscriptionTypeID == 3){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -38,7 +37,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 4){
+        if((int)$subscriptionTypeID == 4){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -47,7 +46,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 5){
+        if((int)$subscriptionTypeID == 5){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -56,7 +55,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 6){
+        if((int)$subscriptionTypeID == 6){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -65,7 +64,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 7){
+        if((int)$subscriptionTypeID == 7){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -74,7 +73,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 9){
+        if((int)$subscriptionTypeID == 9){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
@@ -83,7 +82,7 @@ class CustomerSubscriptionService
                 'Not Used'
             ];
         }
-        if((int)$subscription->subscription_type_id == 10){
+        if((int)$subscriptionTypeID == 10){
             $logos[] = [
                 'Login Logo',
                 'Menu Logo',
