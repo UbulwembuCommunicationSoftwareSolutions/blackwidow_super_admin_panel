@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Http;
 class CustomerSubscriptionService
 {
 
-    public static function getLogoDescriptions($subscription){
+    public static function getLogoDescriptions($subscriptionID){
+        $subscription = CustomerSubscription::find($subscriptionID);
         if((int)$subscription->subscription_type_id == 1){
             $logos[] = [
                 'Login Logo',
