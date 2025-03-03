@@ -188,7 +188,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
-                                $result = $types[0];
+                                $result = $types[1];
                             }
                             else{
                                 $result = 'Logo 1';
@@ -208,7 +208,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
-                                $result = $types[0];
+                                $result = $types[2];
                             }
                             else{
                                 $result = 'Logo 1';
@@ -228,7 +228,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
-                                $result = $types[0];
+                                $result = $types[3];
                             }
                             else{
                                 $result = 'Logo 1';
@@ -247,7 +247,7 @@ class CreateCustomerSubscription extends CreateRecord
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
-                                $result = $types[0];
+                                $result = $types[4];
                             }
                             else{
                                 $result = 'Logo 1';
