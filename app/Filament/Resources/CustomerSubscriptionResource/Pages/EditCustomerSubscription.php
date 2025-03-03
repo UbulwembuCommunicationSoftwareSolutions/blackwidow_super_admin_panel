@@ -6,6 +6,7 @@ use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
+use App\Services\CustomerSubscriptionService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\FileUpload;
@@ -86,7 +87,18 @@ class EditCustomerSubscription extends EditRecord
                 ]),
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
-                        ->label('Logo 1')
+                        ->live()
+                        ->reactive()
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[0];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -94,7 +106,18 @@ class EditCustomerSubscription extends EditRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_2')
-                        ->label('Logo 2')
+                        ->live()
+                        ->reactive()
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[1];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -102,7 +125,19 @@ class EditCustomerSubscription extends EditRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_3')
-                        ->label('Logo 3')
+                        ->live()
+                        ->reactive()
+
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[2];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -110,7 +145,19 @@ class EditCustomerSubscription extends EditRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_4')
-                        ->label('Logo 4')
+                        ->live()
+                        ->reactive()
+
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[3];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -118,7 +165,18 @@ class EditCustomerSubscription extends EditRecord
                         ->rules(['nullable', 'file', 'max:10240']),
 
                     FileUpload::make('logo_5')
-                        ->label('Logo 5')
+                        ->live()
+                        ->reactive()
+                        ->label(function($get){
+                            $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                            if($types){
+                                $result = $types[4];
+                            }
+                            else{
+                                $result = 'Logo 1';
+                            }
+                            return $result;
+                        })
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
