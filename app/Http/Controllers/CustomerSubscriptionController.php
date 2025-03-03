@@ -58,42 +58,42 @@ class CustomerSubscriptionController extends Controller
             "theme_color" => "#000000",
             "icons" => [ // Icons array should be inside the manifest
                 [
-                    "src" => Storage::url($basePath . "icon-72x72.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-72x72.png"),
                     "sizes" => "72x72",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-96x96.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-96x96.png"),
                     "sizes" => "96x96",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-128x128.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-128x128.png"),
                     "sizes" => "128x128",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-144x144.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-144x144.png"),
                     "sizes" => "144x144",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-152x152.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-152x152.png"),
                     "sizes" => "152x152",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-192x192.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-192x192.png"),
                     "sizes" => "192x192",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-384x384.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-384x384.png"),
                     "sizes" => "384x384",
                     "type" => "image/png"
                 ],
                 [
-                    "src" => Storage::url($basePath . "icon-512x512.png"),
+                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-512x512.png"),
                     "sizes" => "512x512",
                     "type" => "image/png"
                 ]
@@ -138,7 +138,7 @@ class CustomerSubscriptionController extends Controller
         \Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
         if ($customerSubscription) {
-            return redirect(Storage::url($customerSubscription->logo_1));
+            return redirect('https://superadmin.blackwidow.org.za'.Storage::url($customerSubscription->logo_1));
         }else{
             return response()->json([
                 'status' => 'ERROR',
