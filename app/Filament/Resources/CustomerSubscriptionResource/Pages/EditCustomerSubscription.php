@@ -26,7 +26,6 @@ class EditCustomerSubscription extends EditRecord
         return [
             DeleteAction::make(),
             Action::make('generateAppLogos')
-                ->icon('heroicon-o-annotation')
                 ->action(fn($record)=> CustomerSubscriptionService::generatePWALogos($record->id)),
             Action::make('deploySite')
                 ->label('Deploy Site')
