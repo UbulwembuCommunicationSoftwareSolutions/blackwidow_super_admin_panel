@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Storage;
 use Spatie\Image\Exceptions\CouldNotLoadImage;
 use Spatie\Image\Image;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
+use Imagick;
 
 class ImageHelper
 {
