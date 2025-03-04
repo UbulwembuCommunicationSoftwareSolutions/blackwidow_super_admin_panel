@@ -57,46 +57,16 @@ class CustomerSubscriptionController extends Controller
             "background_color" => "#000000",
             "theme_color" => "#000000",
             "icons" => [ // Icons array should be inside the manifest
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-72x72.png"),
-                    "sizes" => "72x72",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-96x96.png"),
-                    "sizes" => "96x96",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-128x128.png"),
-                    "sizes" => "128x128",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-144x144.png"),
-                    "sizes" => "144x144",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-152x152.png"),
-                    "sizes" => "152x152",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-192x192.png"),
-                    "sizes" => "192x192",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-384x384.png"),
-                    "sizes" => "384x384",
-                    "type" => "image/png"
-                ],
-                [
-                    "src" => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . "icon-512x512.png"),
-                    "sizes" => "512x512",
-                    "type" => "image/png"
-                ]
+                    ['size' => '72x72', 'filename' => 'android-chrome-72x72.png'],
+                    ['size' => '96x96', 'filename' => 'android-chrome-96x96.png'],
+                    ['size' => '128x128', 'filename' => 'android-chrome-128x128.png'],
+                    ['size' => '144x144', 'filename' => 'android-chrome-144x144.png'],
+                    ['size' => '152x152', 'filename' => 'android-chrome-152x152.png'],
+                    ['size' => '192x192', 'filename' => 'android-chrome-192x192.png'],
+                    ['size' => '384x384', 'filename' => 'android-chrome-384x384.png'],
+                    ['size' => '512x512', 'filename' => 'android-chrome-512x512.png'],
+                    ['size' => '192x192', 'filename' => 'android-chrome-maskable-192x192.png', 'purpose' => 'maskable'],
+                    ['size' => '512x512', 'filename' => 'android-chrome-maskable-512x512.png', 'purpose' => 'maskable']
             ]
         ];
 
