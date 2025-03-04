@@ -52,12 +52,10 @@ class CustomerSubscriptionController extends Controller
         $manifest = [
             "name" => $customerSubscription->app_name,
             "short_name" => $customerSubscription->app_name,
-            "start_url" =>  "https://superadmin.blackwidow.org.za/",
+            "start_url" =>  $customerSubscription->url,
             "display" => "standalone",
             "background_color" => "#000000",
             "theme_color" => "#000000",
-
-
             "icons" => [ // Icons array should be inside the manifest
                     ['sizes' => '192x192', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-192x192.png')],
                     ['sizes' => '512x512', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-512x512.png')],
