@@ -57,14 +57,14 @@ class CustomerSubscriptionController extends Controller
             "background_color" => "#000000",
             "theme_color" => "#000000",
             "icons" => [ // Icons array should be inside the manifest
-                    ['size' => '192x192', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-192x192.png')],
-                    ['size' => '512x512', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-512x512.png')],
-                    ['size' => '192x192', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-maskable-192x192.png'), 'purpose' => 'maskable'],
-                    ['size' => '512x512', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-maskable-512x512.png'), 'purpose' => 'maskable'],
-                    ['size' => '180x180', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'apple-touch-icon.png')], // Standard Apple Touch Icon size
-                    ['size' => '16x16', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon-16x16.png')],
-                    ['size' => '32x32', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon-32x32.png')],
-                    ['size' => '48x48', 'filename' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon.ico')],
+                    ['size' => '192x192', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-192x192.png')],
+                    ['size' => '512x512', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-512x512.png')],
+                    ['size' => '192x192', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-maskable-192x192.png'), 'purpose' => 'maskable'],
+                    ['size' => '512x512', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-maskable-512x512.png'), 'purpose' => 'maskable'],
+                    ['size' => '180x180', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'apple-touch-icon.png')], // Standard Apple Touch Icon size
+                    ['size' => '16x16', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon-16x16.png')],
+                    ['size' => '32x32', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon-32x32.png')],
+                    ['size' => '48x48', 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon.ico')],
             ]
         ];
 
