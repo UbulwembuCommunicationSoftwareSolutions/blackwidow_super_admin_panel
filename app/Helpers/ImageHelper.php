@@ -3,10 +3,13 @@
 namespace App\Helpers;
 
 use Illuminate\Support\Facades\Storage;
+use Spatie\Image\Enums\Fit;
 use Spatie\Image\Exceptions\CouldNotLoadImage;
 use Spatie\Image\Image;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
+use Spatie\Image\Manipulations;
 use Imagick;
+
 
 class ImageHelper
 {
@@ -45,10 +48,12 @@ class ImageHelper
             \Log::info("Saving image to: " . $outputPath);
 
             // Resize and save the image using Spatie Image
-            Image::load($imagePath)
+            $image = Image::load($imagePath)
                 ->width($icon['size'])
                 ->height($icon['size'])
                 ->save($outputPath);
+            $image->fit(Fit::Contain , $icon['size'], $icon['size']);
+            $image->optimize();
 
             // Optimize the image
             $optimizerChain = OptimizerChainFactory::create();
