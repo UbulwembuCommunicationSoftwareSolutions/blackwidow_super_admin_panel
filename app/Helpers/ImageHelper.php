@@ -47,6 +47,16 @@ class ImageHelper
         if ($returnVar !== 0) {
             throw new \Exception("IconGenie failed to generate icons: " . implode("\n", $output));
         }
+        $command = "cd {$quasarProjectPath} && icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " --include pwa";
+        $quasarIconsPath = "{$quasarProjectPath}/public/icons";
+        exec($command, $output, $returnVar);
+        // Check if the command executed successfully
+        if ($returnVar !== 0) {
+            throw new \Exception("IconGenie failed to generate icons: " . implode("\n", $output));
+        }
+
+        // Move generated icons to Laravel storage
+        exec("mv {$quasarIconsPath}/* " . escapeshellarg($basePath));
 
         return true;
     }
