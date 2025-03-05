@@ -44,11 +44,11 @@ class ImageHelper
         exec($command, $output, $returnVar);
         // Check if the command executed successfully
 
+        dd($output);
         sleep(10);
 
         // Move generated icons to Laravel storage
-        exec("mv {$quasarIconsPath}/icons/* " . escapeshellarg($basePath));
-        exec("mv {$quasarIconsPath}/favicon.ico " . escapeshellarg($basePath));
+        exec("mv {$quasarIconsPath}/* " . escapeshellarg($basePath));
 
         return true;
     }
