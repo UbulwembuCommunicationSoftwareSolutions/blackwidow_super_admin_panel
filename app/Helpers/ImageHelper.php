@@ -18,17 +18,6 @@ class ImageHelper
      */
     public static function generatePwaIcons($subscription, $imagePath)
     {
-        // Define required PWA icons with sizes and filenames
-        $icons = [
-            ['size' => 192, 'filename' => 'android-chrome-192x192.png'],
-            ['size' => 512, 'filename' => 'android-chrome-512x512.png'],
-            ['size' => 192, 'filename' => 'android-chrome-maskable-192x192.png'],
-            ['size' => 512, 'filename' => 'android-chrome-maskable-512x512.png'],
-            ['size' => 180, 'filename' => 'apple-touch-icon.png'],
-            ['size' => 16,  'filename' => 'favicon-16x16.png'],
-            ['size' => 32,  'filename' => 'favicon-32x32.png'],
-        ];
-
         // Resolve the image path
         $imagePath = Storage::disk('public')->path($imagePath);
 
@@ -39,29 +28,22 @@ class ImageHelper
         // Define the storage path
         $relativeBasePath = "pwa-icons/{$subscription->id}";
         $basePath = Storage::disk('public')->path($relativeBasePath);
-        exec('rm -rf ' . $basePath.'/*');
-        Storage::makeDirectory($basePath);
-        foreach ($icons as $icon) {
-            $relativeOutputPath = "{$relativeBasePath}/{$icon['filename']}";
-            $outputPath = Storage::disk('public')->path($relativeOutputPath);
 
-            \Log::info("Saving image to: " . $outputPath);
+        // Remove old icons if they exist
+        exec("rm -rf {$basePath}/*");
 
-            // Resize and save the image using Spatie Image
-            Image::load($imagePath)
-                ->resize($icon['size'], $icon['size'], Manipulations::FIT_STRETCH) // Ensures exact square
-                ->save($outputPath);
-            // Optimize the image
-            $optimizerChain = OptimizerChainFactory::create();
-            $optimizerChain->optimize($outputPath);
+        // Ensure directory exists
+        Storage::disk('public')->makeDirectory($relativeBasePath);
 
-            if (!file_exists($outputPath)) {
-                throw new \Exception("Image was not saved at: " . $outputPath);
-            }
+        // Run IconGenie command
+        $command = "icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " -o " . escapeshellarg($basePath);
+        \Log::info('executing: '.$command);
+        exec($command, $output, $returnVar);
+
+        // Check if the command executed successfully
+        if ($returnVar !== 0) {
+            throw new \Exception("IconGenie failed to generate icons: " . implode("\n", $output));
         }
-
-        // Generate Favicon.ico
-        self::generateFaviconIco($imagePath, "{$basePath}");
 
         return true;
     }
