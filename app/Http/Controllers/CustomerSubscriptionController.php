@@ -55,7 +55,7 @@ class CustomerSubscriptionController extends Controller
         }
 
         // Define the icons directory
-        $relativeBasePath = "pwa-icons/{$customerSubscription->id}/icons/";
+        $relativeBasePath = "pwa-icons/{$customerSubscription->id}/";
         $fullPath = Storage::disk('public')->path($relativeBasePath);
 
         // Retrieve all files inside the icons directory
