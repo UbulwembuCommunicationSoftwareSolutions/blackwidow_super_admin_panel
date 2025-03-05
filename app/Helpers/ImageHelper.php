@@ -38,7 +38,7 @@ class ImageHelper
         // Define the temporary Quasar project directory
         $quasarProjectPath = '~/quasar-temp/icon-genie-project';
 
-        $command = "cd {$quasarProjectPath} && icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " --include pwa";
+        $command = "cd {$quasarProjectPath} && icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " --include pwa --output-path " . escapeshellarg($basePath);
         $quasarIconsPath = "{$quasarProjectPath}/public";
         \Log::info("Running command: " . $command);
         exec($command, $output, $returnVar);
