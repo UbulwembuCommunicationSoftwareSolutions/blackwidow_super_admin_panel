@@ -82,11 +82,14 @@ class ImageHelper
             $img = new Imagick($imagePath);
             $img->resizeImage($size, $size, Imagick::FILTER_LANCZOS, 1, false);
             $outputPath = $outputPath . "icon-{$size}x{$size}.png";
+            \Log::info("Saving image to: " . $outputPath);
             $img->writeImage($outputPath);
             $img->clear();
             $ico->addImage($img);
         }
+        \Log::info("Saving image to: favicon.ico");
         $ico->writeImage($outputPath . "favicon.ico");
+
         $ico->clear();
 
         $imagick->writeImages($outputPath, true);
