@@ -44,7 +44,6 @@ class ImageHelper
         exec($command, $output, $returnVar);
         // Check if the command executed successfully
 
-        dd($output);
         sleep(10);
 
         // Move generated icons to Laravel storage
