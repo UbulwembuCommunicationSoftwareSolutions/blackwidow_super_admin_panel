@@ -61,7 +61,7 @@ class ImageHelper
         }
 
         // Generate Favicon.ico
-        self::generateFaviconIco($imagePath, "{$basePath}/favicon.ico");
+        self::generateFaviconIco($imagePath, "{$basePath}");
 
         return true;
     }
@@ -71,16 +71,23 @@ class ImageHelper
      */
     private static function generateFaviconIco($imagePath, $outputPath)
     {
-        $icoSizes = [16, 32, 48, 64];
+        $icoSizes = [48, 72, 96, 144, 192, 512]; // Standard PWA icon sizes
 
         $imagick = new Imagick();
         $imagick->setFormat('ico');
+        $ico = new Imagick();
+        $ico->setFormat("ico"); // Set format to ICO
 
         foreach ($icoSizes as $size) {
             $img = new Imagick($imagePath);
-            $img->resizeImage($size, $size, Imagick::FILTER_LANCZOS, 1);
-            $imagick->addImage($img);
+            $img->resizeImage($size, $size, Imagick::FILTER_LANCZOS, 1, false);
+            $outputPath = $outputPath . "icon-{$size}x{$size}.png";
+            $img->writeImage($outputPath);
+            $img->clear();
+            $ico->addImage($img);
         }
+        $ico->writeImage($outputPath . "favicon.ico");
+        $ico->clear();
 
         $imagick->writeImages($outputPath, true);
     }
