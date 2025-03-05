@@ -48,13 +48,9 @@ class ImageHelper
             \Log::info("Saving image to: " . $outputPath);
 
             // Resize and save the image using Spatie Image
-            $image = Image::load($imagePath)
-                ->width($icon['size'])
-                ->height($icon['size'])
+            Image::load($imagePath)
+                ->resize($icon['size'], $icon['size'], Manipulations::FIT_STRETCH) // Ensures exact square
                 ->save($outputPath);
-            $image->fit(Fit::Contain , $icon['size'], $icon['size']);
-            $image->optimize();
-
             // Optimize the image
             $optimizerChain = OptimizerChainFactory::create();
             $optimizerChain->optimize($outputPath);
