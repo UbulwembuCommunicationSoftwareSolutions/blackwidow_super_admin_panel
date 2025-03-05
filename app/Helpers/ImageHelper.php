@@ -44,13 +44,6 @@ class ImageHelper
         exec($command, $output, $returnVar);
         // Check if the command executed successfully
 
-        sleep(10);
-
-        // Move generated icons to Laravel storage
-        $command_two = "mv {$quasarIconsPath}/* " . escapeshellarg($basePath);
-        \Log::info("Running command: " . $command_two);
-        exec($command_two);
-
         return true;
     }
 
