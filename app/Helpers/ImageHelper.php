@@ -47,7 +47,8 @@ class ImageHelper
         sleep(10);
 
         // Move generated icons to Laravel storage
-        exec("mv {$quasarIconsPath}/* " . escapeshellarg($basePath));
+        exec("mv {$quasarIconsPath}/icons/* " . escapeshellarg($basePath));
+        exec("mv {$quasarIconsPath}/favicon.ico " . escapeshellarg($basePath));
 
         return true;
     }

@@ -40,37 +40,68 @@ class CustomerSubscriptionController extends Controller
             ]);
         }
     }
-
-    public function getManifest(Request $request){
+    public function getManifest(Request $request)
+    {
+        // Get the referer URL
         $referer = $request->headers->get('referer');
-        // Optionally, you can parse the referer to extract the host or domain
         $parsedUrl = parse_url($referer);
         $originHost = $parsedUrl['host'] ?? 'unknown';
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
-        $basePath = "pwa-icons/{$customerSubscription->id}/";
 
+        // Find the customer's subscription based on the domain
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+
+        if (!$customerSubscription) {
+            return response()->json(['error' => 'Subscription not found'], 404);
+        }
+
+        // Define the icons directory
+        $relativeBasePath = "pwa-icons/{$customerSubscription->id}/icons/";
+        $fullPath = Storage::disk('public')->path($relativeBasePath);
+
+        // Retrieve all files inside the icons directory
+        $iconFiles = Storage::disk('public')->files($relativeBasePath);
+        $icons = [];
+
+        // Loop through each file and extract icon information
+        foreach ($iconFiles as $file) {
+            $filename = basename($file);
+
+            // Extract size from filename (e.g., icon-192x192.png → 192x192)
+            if (preg_match('/(\d+x\d+)/', $filename, $matches)) {
+                $size = $matches[1]; // Extracted size
+            } else {
+                continue; // Skip files without size info
+            }
+
+            // Determine file type (favicon.ico has a different type)
+            $fileType = (str_ends_with($filename, '.ico')) ? 'image/x-icon' : 'image/png';
+
+            // Determine purpose (maskable icons)
+            $purpose = str_contains($filename, 'maskable') ? 'maskable' : 'any';
+
+            // Construct the icon entry
+            $icons[] = [
+                "src" => asset(Storage::url($file)),
+                "sizes" => $size,
+                "type" => $fileType,
+                "purpose" => $purpose
+            ];
+        }
+
+        // Construct the manifest array
         $manifest = [
             "name" => $customerSubscription->app_name,
             "short_name" => $customerSubscription->app_name,
-            "start_url" =>  $customerSubscription->url,
+            "start_url" => $customerSubscription->url,
             "display" => "standalone",
             "background_color" => "#000000",
             "theme_color" => "#000000",
-            "icons" => [ // Icons array should be inside the manifest
-                    ['sizes' => '192x192', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-192x192.png')],
-                    ['sizes' => '512x512', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-512x512.png')],
-                    ['sizes' => '192x192', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-maskable-192x192.png'), 'purpose' => 'maskable'],
-                    ['sizes' => '512x512', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath . 'android-chrome-maskable-512x512.png'), 'purpose' => 'maskable'],
-                    ['sizes' => '180x180', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'apple-touch-icon.png')], // Standard Apple Touch Icon sizes
-                    ['sizes' => '16x16', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon-16x16.png')],
-                    ['sizes' => '32x32', "type" => "image/png", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon-32x32.png')],
-                    ['sizes' => '48x48', "type" => "image/x-icon", 'src' => 'https://superadmin.blackwidow.org.za'.Storage::url($basePath .'favicon.ico')],
-            ]
+            "icons" => $icons
         ];
 
-// Return JSON response
-        return response()->json($manifest);
+        return response()->json($manifest, 200, ['Content-Type' => 'application/manifest+json']);
     }
+
 
     public function getLogos(Request $request)
     {
