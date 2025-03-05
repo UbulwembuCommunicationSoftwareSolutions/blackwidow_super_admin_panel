@@ -51,9 +51,8 @@ class ImageHelper
         $quasarIconsPath = "{$quasarProjectPath}/public";
         exec($command, $output, $returnVar);
         // Check if the command executed successfully
-        if ($returnVar !== 0) {
-            throw new \Exception("IconGenie failed to generate icons: " . implode("\n", $output));
-        }
+
+        sleep(10);
 
         // Move generated icons to Laravel storage
         exec("mv {$quasarIconsPath}/* " . escapeshellarg($basePath));
