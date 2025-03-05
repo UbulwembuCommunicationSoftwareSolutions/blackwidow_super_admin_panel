@@ -48,7 +48,7 @@ class ImageHelper
             throw new \Exception("IconGenie failed to generate icons: " . implode("\n", $output));
         }
         $command = "cd {$quasarProjectPath} && icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " --include pwa";
-        $quasarIconsPath = "{$quasarProjectPath}/public/icons";
+        $quasarIconsPath = "{$quasarProjectPath}/public";
         exec($command, $output, $returnVar);
         // Check if the command executed successfully
         if ($returnVar !== 0) {
