@@ -25,19 +25,22 @@ class ImageHelper
             throw new \Exception("Image file not found: " . $imagePath);
         }
 
-        // Define the storage path
+        // Define storage paths
         $relativeBasePath = "pwa-icons/{$subscription->id}";
         $basePath = Storage::disk('public')->path($relativeBasePath);
 
-        // Remove old icons if they exist
+        // Remove old icons
         exec("rm -rf {$basePath}/*");
 
-        // Ensure directory exists
+        // Ensure the directory exists
         Storage::disk('public')->makeDirectory($relativeBasePath);
 
-        // Run IconGenie command
-        $command = "icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " -o " . escapeshellarg($basePath);
-        \Log::info('executing: '.$command);
+        // Define the temporary Quasar project directory
+        $quasarProjectPath = '~/quasar-temp/icon-genie-project';
+
+        // Run IconGenie inside the Quasar project
+        $command = "cd {$quasarProjectPath} && icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " -o " . escapeshellarg($basePath);
+        \Log::info("Running command: " . $command);
         exec($command, $output, $returnVar);
 
         // Check if the command executed successfully
