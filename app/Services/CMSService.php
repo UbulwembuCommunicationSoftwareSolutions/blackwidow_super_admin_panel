@@ -56,7 +56,7 @@ class CMSService
         \Log::info($response->body());
     }
 
-    public function syncUsers($id){
+    public static function syncUsers($id){
         $customer = Customer::find($id);
         $subscription = CustomerSubscription::where('subscription_type_id',1)
             ->where('customer_id',$customer->id)
