@@ -31,8 +31,7 @@ class SendSiteDeploymentScript extends Command
     public function handle():void
     {
         $customerSubscription = CustomerSubscription::findOrFail($this->argument('customer-subscription-id'));
-        $deploymentTemplate = DeploymentTemplate::where('customer_id', $customerSubscription->customer_id)->first();
-        $deploymentScript = DeploymentScript::where('deployment_template_id', $deploymentTemplate->id)->first();
+        $deploymentScript = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
         $deploymentScript->delete();
         if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
             $forgeApi = new ForgeApi();
