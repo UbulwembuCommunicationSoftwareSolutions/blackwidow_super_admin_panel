@@ -58,6 +58,8 @@ class CustomerUserRelationManager extends RelationManager
             ]),
             Forms\Components\Section::make('Access Rights')
                 ->schema([
+                    Toggle::make('is_system_admin')
+                        ->label('Is Super Admin'),
                     Forms\Components\Toggle::make('console_access')
                         ->required(),
                     Forms\Components\Toggle::make('firearm_access')
@@ -94,8 +96,6 @@ class CustomerUserRelationManager extends RelationManager
                 TextColumn::make('cellphone')
                     ->label('Cellphone')
                     ->searchable(),
-                Toggle::make('is_system_admin')
-                    ->label('Is Super Admin'),
                 TextColumn::make('console_access')
                     ->label('Console Access'),
                 Tables\Columns\CheckboxColumn::make('console_access')
