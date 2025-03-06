@@ -140,6 +140,8 @@ class CustomerUser extends Authenticatable
         // Handle 'updated' event
         static::updated(function ($model) {
             // Your logic here
+            CMSService::syncUsers($model->customer_id);
+
             if ($model->wasChanged('console_access')) {
                 if($model->console_access){
                     SendWelcomeEmailJob::dispatch($model);
