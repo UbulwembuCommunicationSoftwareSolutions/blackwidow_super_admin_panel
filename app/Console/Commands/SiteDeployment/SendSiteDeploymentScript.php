@@ -32,7 +32,9 @@ class SendSiteDeploymentScript extends Command
     {
         $customerSubscription = CustomerSubscription::findOrFail($this->argument('customer-subscription-id'));
         $deploymentScript = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
-        $deploymentScript->delete();
+        if($deploymentScript){
+            $deploymentScript->delete();
+        }
         if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
             $forgeApi = new ForgeApi();
             $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
