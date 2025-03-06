@@ -6,6 +6,7 @@ use App\Filament\Resources\CustomerUserResource\Pages;
 use App\Models\CustomerUser;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\BulkActionGroup;
@@ -45,6 +46,9 @@ class CustomerUserResource extends Resource
 
                 TextInput::make('last_name')
                     ->required(),
+
+                Toggle::make('is_system_admin')
+                    ->label('Is Super Admin'),
 
                 Placeholder::make('created_at')
                     ->label('Created Date')

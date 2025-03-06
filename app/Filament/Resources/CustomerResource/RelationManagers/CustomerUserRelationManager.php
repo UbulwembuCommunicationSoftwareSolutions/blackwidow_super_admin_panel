@@ -14,6 +14,7 @@ use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -93,6 +94,8 @@ class CustomerUserRelationManager extends RelationManager
                 TextColumn::make('cellphone')
                     ->label('Cellphone')
                     ->searchable(),
+                Toggle::make('is_system_admin')
+                    ->label('Is Super Admin'),
                 TextColumn::make('console_access')
                     ->label('Console Access'),
                 Tables\Columns\CheckboxColumn::make('console_access')

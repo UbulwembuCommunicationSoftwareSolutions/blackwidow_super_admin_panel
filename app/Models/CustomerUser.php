@@ -30,7 +30,12 @@ class CustomerUser extends Authenticatable
         'time_and_attendance_access',
         'stock_access',
         'created_at',
-        'cellphone'
+        'cellphone',
+        'is_system_admin'
+    ];
+
+    public $casts = [
+        'is_system_admin' => 'boolean'
     ];
 
     public function checkAccess($subscription_type_id) : bool
