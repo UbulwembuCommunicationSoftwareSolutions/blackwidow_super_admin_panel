@@ -47,7 +47,6 @@ class SendSiteDeploymentScript extends Command
                 'script' => $deploymentString
             ]);
             $deploymentScript->save();
-            dd($customerSubscription);
             if($customerSubscription->server_id && $customerSubscription->forge_site_id){
                 SendDeploymentScriptToForge::dispatch($customerSubscription->id,$deploymentString);
             }
