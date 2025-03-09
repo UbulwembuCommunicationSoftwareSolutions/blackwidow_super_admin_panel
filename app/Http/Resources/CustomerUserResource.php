@@ -16,7 +16,7 @@ class CustomerUserResource extends JsonResource
             'email_address' => $this->email_address,
             'password' => $this->password,
             'cellphone' => $this->cellphone,
-            'is_system_admin' => $this->is_system_user,
+            'is_system_admin' => $this->is_system_admin,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'created_at' => $this->created_at,
