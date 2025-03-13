@@ -158,10 +158,9 @@ class CustomerUserController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('create', CustomerUser::class);
+        \Log::info(json_encode($request->all()));
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         $customer = Customer::find($customerSub->customer_id);
-        \Log::info(json_encode($request->all()));
         dd("here");
         $data = $request->validate([
             'email_address' => ['required'],
