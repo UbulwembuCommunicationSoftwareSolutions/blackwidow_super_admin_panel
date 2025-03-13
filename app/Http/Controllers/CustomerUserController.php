@@ -178,7 +178,7 @@ class CustomerUserController extends Controller
             'last_name' => $surname,
             'cellphone' => $cellphone,
             'password' => $password,
-            'console_access' => false,
+            'console_access' => true,
             'firearm_access' => false,
             'responder_access' => false,
             'reporter_access' => true,
