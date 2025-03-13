@@ -161,17 +161,26 @@ class CustomerUserController extends Controller
         \Log::info(json_encode($request->all()));
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         $customer = Customer::find($customerSub->customer_id);
-        $data = $request->validate([
-            'email_address' => ['required'],
-            'cellphone' => ['required'],
-            'password' => ['required'],
-            'first_name' => ['required'],
-            'last_name' => ['required'],
+        $data = $request->all();
+        $name = $data['user']['name'];
+        $surname = $data['user']['surname'];
+        $email = $data['user']['email'];
+        $cellphone = $data['user']['cellphone'];
+        $password = $data['user']['password'];
+        $user = CustomerUser::firstOrCreate([
+            'customer_id' => $customer->id,
+            'email_address' => $email,
+        ],
+        [
+            'first_name' => $name,
+            'last_name' => $surname,
+            'cellphone' => $cellphone,
+            'password' => $password,
+            'console_access' => false,
+            'firearm_access' => false,
+            'responder_access' => false,
+            'reporter_access' => true,
         ]);
-        $data['customer_id'] = $customer->id;
-        $data['console_access'] = false;
-        $data['reporter_access'] = true;
-        $user = CustomerUser::create($data);
         $user->customer_id = $customer->id;
         $user->save();
         return new CustomerUserResource($user);
