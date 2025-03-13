@@ -160,6 +160,8 @@ class CustomerUserController extends Controller
     {
         $this->authorize('create', CustomerUser::class);
 
+        \Log::info(json_encode($request->all()));
+        dd("here");
         $data = $request->validate([
             'customer_id' => ['required', 'exists:customers'],
             'email_address' => ['required'],
