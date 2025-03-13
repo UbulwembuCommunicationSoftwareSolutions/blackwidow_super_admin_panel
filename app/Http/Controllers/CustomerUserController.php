@@ -38,6 +38,7 @@ class CustomerUserController extends Controller
         $password = $request->get('password');
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
+        \Log::info('Customer Subscription: ' . $customerSubscription->url);
         if(!$customerSubscription){
             \Log::info("Customer Subscription not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
@@ -90,6 +91,7 @@ class CustomerUserController extends Controller
     }
 
     public function checkAccess(CustomerUser $user,CustomerSubscription $subscription){
+        \Log::info("Checking if user ".$user->cellphone." has access to subscription ".$subscription->url);
         if((int)$subscription->subscription_type_id == 1){
             if($user->console_access){
                 return true;
