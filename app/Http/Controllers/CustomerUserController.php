@@ -166,7 +166,7 @@ class CustomerUserController extends Controller
         $surname = $data['user']['surname'];
         $email = $data['user']['email'];
         $cellphone = $data['user']['cellphone'];
-        $password = $data['user']['password'];
+        $password = $data['password'];
         $user = CustomerUser::firstOrCreate([
             'customer_id' => $customer->id,
             'email_address' => $email,
