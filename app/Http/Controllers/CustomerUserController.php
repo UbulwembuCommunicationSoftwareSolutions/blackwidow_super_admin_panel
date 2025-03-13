@@ -174,7 +174,7 @@ class CustomerUserController extends Controller
         $user = CustomerUser::create($data);
         $user->customer_id = $customer->id;
         $user->save();
-        return new CustomerUserResource();
+        return new CustomerUserResource($user);
     }
 
     public function show(CustomerUser $customerUser)
