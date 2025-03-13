@@ -159,16 +159,17 @@ class CustomerUserController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', CustomerUser::class);
-
+        $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
+        $customer = Customer::find($customerSub->customer_id);
         \Log::info(json_encode($request->all()));
         dd("here");
         $data = $request->validate([
-            'customer_id' => ['required', 'exists:customers'],
             'email_address' => ['required'],
             'password' => ['required'],
             'first_name' => ['required'],
             'last_name' => ['required'],
         ]);
+        $data['customer_id'] = $customer->id;
 
         return new CustomerUserResource(CustomerUser::create($data));
     }
