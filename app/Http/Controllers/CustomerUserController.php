@@ -171,7 +171,10 @@ class CustomerUserController extends Controller
         $data['customer_id'] = $customer->id;
         $data['console_access'] = false;
         $data['reporter_access'] = true;
-        return new CustomerUserResource(CustomerUser::create($data));
+        $user = CustomerUser::create($data);
+        $user->customer_id = $customer->id;
+        $user->save();
+        return new CustomerUserResource();
     }
 
     public function show(CustomerUser $customerUser)
