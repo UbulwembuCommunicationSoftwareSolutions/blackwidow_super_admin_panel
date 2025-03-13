@@ -68,14 +68,14 @@ class CustomerUserController extends Controller
         }
 
 
-        if(!$this->checkAccess($customerUser,$customerSubscription)){
-            return response()->json(
-                [
-                    'message' => 'Access Denied',
-                    'customer_user' => $customerUser,
-                ], 401
-            );
-        }
+//        if(!$this->checkAccess($customerUser,$customerSubscription)){
+//            return response()->json(
+//                [
+//                    'message' => 'Access Denied',
+//                    'customer_user' => $customerUser,
+//                ], 401
+//            );
+//        }
 
         // Create a new Sanctum token
         $token = $customerUser->createToken('customer-user-token')->plainTextToken;
