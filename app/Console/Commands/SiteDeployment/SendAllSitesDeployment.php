@@ -7,7 +7,7 @@ use App\Jobs\SendDeploymentScriptToForge;
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
-class SendAllSitesDeploymentScripts extends Command
+class SendAllSitesDeployment extends Command
 {
     /**
      * The name and signature of the console command.

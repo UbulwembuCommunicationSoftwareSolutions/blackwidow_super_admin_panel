@@ -15,7 +15,7 @@ use App\Models\CustomerSubscription;
 use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
 
-class CreateCaches extends Command
+class CreateCache extends Command
 {
     /**
      * The name and signature of the console command.

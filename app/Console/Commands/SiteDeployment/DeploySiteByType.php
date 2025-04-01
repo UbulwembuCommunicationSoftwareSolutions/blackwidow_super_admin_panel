@@ -5,7 +5,7 @@ namespace App\Console\Commands\SiteDeployment;
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
-class DeployAllSites extends Command
+class DeploySiteByType extends Command
 {
     /**
      * The name and signature of the console command.

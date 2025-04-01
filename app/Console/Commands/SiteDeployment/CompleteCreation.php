@@ -15,7 +15,7 @@ use App\Models\CustomerSubscription;
 use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
 
-class CompleteSite extends Command
+class CompleteCreation extends Command
 {
     /**
      * The name and signature of the console command.
