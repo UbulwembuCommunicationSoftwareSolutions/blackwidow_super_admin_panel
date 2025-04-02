@@ -25,8 +25,7 @@ class ChangeDeploymentScriptForConsoles extends Command
      */
     public function handle()
     {
-        $customer = $this->ask('Enter the customer id');
-        $consoles = \App\Models\CustomerSubscription::where('customer_id',$customer)->where('subscription_type_id', 1)->get();
+        $consoles = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
         foreach($consoles as $console){
             try{
                 $deploymentScript = $console->deploymentScript()->first();
