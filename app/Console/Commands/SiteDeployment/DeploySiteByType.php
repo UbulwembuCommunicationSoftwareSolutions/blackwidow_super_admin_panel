@@ -31,7 +31,7 @@ class DeploySiteByType extends Command
 
         foreach ($customerSubscriptions as $customerSubscription) {
             \App\Jobs\SiteDeployment\DeploySite::dispatch($customerSubscription->id)->delay($delay);
-            $delay = $delay->addMinute(); // Increment delay by 1 minute for each job
+            $delay = $delay->addSeconds(10); // Increment delay by 1 minute for each job
         }
     }
 }
