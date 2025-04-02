@@ -31,7 +31,7 @@ class ChangeDeploymentScriptForConsoles extends Command
                 $deploymentScript = $console->deploymentScript()->first();
                 if($deploymentScript){
                     $deploymentScript->script = preg_replace(
-                        '/rm -rf node_modules package-lock\.json yarn\.lock\n\. ~/.nvm\/nvm\.sh\nnvm use 20\n# Install NPM dependencies and build assets\nnpm install && npm run build\n?/',
+                        '/rm -rf node_modules package-lock\.json yarn\.lock\s*\R\. ~/.nvm\/nvm\.sh\s*\Rnvm use 20\s*\R# Install NPM dependencies and build assets\s*\Rnpm install && npm run build\s*\R?/m',
                         '',
                         $deploymentScript->script
                     );
