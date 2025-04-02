@@ -41,8 +41,8 @@ class ForgeApi
         $this->forge->createDaemon($customerSubscription->server_id, $data);
     }
 
-    public function sendDeploymentScript($customerSubscription,$script){
-        $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id,$script);
+    public function sendDeploymentScript(CustomerSubscription $customerSubscription){
+        $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id,$customerSubscription->deploymentScript()->first()->script);
     }
 
     public function sendGitRepository($customerSubscription){

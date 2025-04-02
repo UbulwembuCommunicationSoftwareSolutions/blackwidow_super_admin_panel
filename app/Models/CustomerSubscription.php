@@ -39,6 +39,11 @@ class CustomerSubscription extends Model
         return $this->belongsTo(SubscriptionType::class);
     }
 
+    public function deploymentScript(){
+        return $this->hasMany(DeploymentScript::class);
+    }
+
+
     public static function createMissingEnv(){
         $subscriptions = CustomerSubscription::get();
         foreach($subscriptions as $subscription){
@@ -70,10 +75,6 @@ class CustomerSubscription extends Model
         return $this->hasMany(EnvVariables::class);
     }
 
-    public function deploymentScript()
-    {
-        return $this->hasOne(DeploymentScript::class);
-    }
 
     public function getNullVariableCountAttribute(){
         return $this->envVariables()->whereNull('value')->count();
