@@ -42,6 +42,46 @@ class CustomerSubscriptionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                TextInput::make('url')
+                    ->required(),
+                TextInput::make('domain')
+                    ->required(),
+                TextInput::make('app_name')
+                    ->required(),
+                Select::make('customer_id')
+                    ->relationship('customer', 'company_name')
+                    ->required(),
+                Select::make('subscription_type_id')
+                    ->relationship('subscriptionType', 'name')
+                    ->required(),
+                TextInput::make('deployed_version')
+                    ->maxLength(8)
+                    ->nullable(),
+                FileUpload::make('logo_1')
+                    ->image()
+                    ->directory('logos'),
+                FileUpload::make('logo_2')
+                    ->image()
+                    ->directory('logos'),
+                FileUpload::make('logo_3')
+                    ->image()
+                    ->directory('logos'),
+                FileUpload::make('logo_4')
+                    ->image()
+                    ->directory('logos'),
+                FileUpload::make('logo_5')
+                    ->image()
+                    ->directory('logos'),
+                TextInput::make('database_name'),
+                TextInput::make('forge_site_id'),
+                ToggleColumn::make('panic_button_enabled')
+                    ->label('Panic Button'),
+            ]);
+    }
 
     public static function table(Table $table): Table
     {
@@ -66,6 +106,10 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('subscriptionType.name')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('deployed_version')
+                    ->label('Deployed Version')
+                    ->searchable()
+                    ->sortable(),
                 ToggleColumn::make('panic_button_enabled')
                     ->label('Panic Button')
                     ->disabled(fn ($record) => !$record || self::isThisAppTypeSubscription($record->subscription_type_id)),

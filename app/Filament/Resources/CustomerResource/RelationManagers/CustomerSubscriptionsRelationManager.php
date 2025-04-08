@@ -35,6 +35,11 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     ->label('URL')
                     ->searchable(),
 
+                TextColumn::make('deployed_version')
+                    ->label('Deployed Version')
+                    ->searchable()
+                    ->sortable(),
+
                 ToggleColumn::make('panic_button_enabled')
                     ->label('Panic Button')
                     ->disabled(fn ($record) => !$record || !$this->isAppTypeSubscription($record->subscription_type_id)),
