@@ -30,8 +30,6 @@ class GenerateRequiredEnvsForSites extends Command
         foreach ($subscriptions as $customerSubscription) {
             $forgeApi = new \App\Helpers\ForgeApi();
             $forgeApi->addMissingEnv($customerSubscription);
-            $forgeApi->sendEnv($customerSubscription);
-            $forgeApi->deploySite($customerSubscription->server_id,$customerSubscription->forge_site_id);
         }
     }
 }
