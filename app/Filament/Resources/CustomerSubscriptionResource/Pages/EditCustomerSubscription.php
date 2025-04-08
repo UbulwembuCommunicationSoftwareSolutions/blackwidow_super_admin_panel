@@ -14,8 +14,10 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Tables\Columns\ToggleColumn;
 
 class EditCustomerSubscription extends EditRecord
 {
@@ -66,6 +68,7 @@ class EditCustomerSubscription extends EditRecord
                         ->label('Subscription Type')
                         ->relationship('subscriptionType', 'name') // Specify the relationship and the display column
                         ->required(),
+
                     TextInput::make('url')
                         ->required()
                         ->url(),
@@ -76,6 +79,10 @@ class EditCustomerSubscription extends EditRecord
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                     TextInput::make('app_name')
                         ->required(),
+                    Toggle::make('panic_button_enabled')
+                        ->label('Panic Button')
+                        ->disabled(fn ($record) => !$record || !$this->isAppTypeSubscription($record->subscription_type_id)),
+
                     TextInput::make('database_name')
                         ->required()
                 ]),
@@ -186,5 +193,10 @@ class EditCustomerSubscription extends EditRecord
                         ->rules(['nullable', 'file', 'max:10240']),
                 ]),
             ]);
+    }
+    private function isAppTypeSubscription($subscriptionTypeId): bool
+    {
+        // App type subscription IDs: 3 (responder), 4 (reporter), 5 (security), 6 (driver), 7 (survey)
+        return in_array($subscriptionTypeId, [3, 4, 5, 6, 7]);
     }
 }

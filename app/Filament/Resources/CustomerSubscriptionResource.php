@@ -24,6 +24,7 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -65,6 +66,10 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('subscriptionType.name')
                     ->sortable()
                     ->searchable(),
+                ToggleColumn::make('panic_button_enabled')
+                    ->label('Panic Button')
+                    ->disabled(fn ($record) => !$record || self::isThisAppTypeSubscription($record->subscription_type_id)),
+
                 TextColumn::make('forge_site_id'),
                 TextColumn::make('env_variables_count')
                     ->label('Variable Count')
@@ -93,6 +98,12 @@ class CustomerSubscriptionResource extends Resource
                         ->color('primary'),
                 ]),
             ]);
+    }
+
+    public static function  isThisAppTypeSubscription($subscriptionTypeId): bool
+    {
+        // App type subscription IDs: 3 (responder), 4 (reporter), 5 (security), 6 (driver), 7 (survey)
+        return in_array($subscriptionTypeId, [3, 4, 5, 6, 7]);
     }
 
     public static function getEloquentQuery(): Builder
