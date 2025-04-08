@@ -37,8 +37,8 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
                 ToggleColumn::make('panic_button_enabled')
                     ->label('Panic Button')
-                    ->visible(fn ($record) => $this->isAppTypeSubscription($record->subscription_type_id))
-                    ->disabled(fn ($record) => !$this->isAppTypeSubscription($record->subscription_type_id)),
+                    ->visible(fn ($record) => $record && $this->isAppTypeSubscription($record->subscription_type_id))
+                    ->disabled(fn ($record) => !$record || !$this->isAppTypeSubscription($record->subscription_type_id)),
             ])
             ->filters([
                 SelectFilter::make('subscription_type_id')
@@ -75,7 +75,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
     private function isAppTypeSubscription($subscriptionTypeId): bool
     {
-        // App type subscription IDs: 3 (responder), 4 (reporter), 6 (driver)
-        return in_array($subscriptionTypeId, [3, 4, 6]);
+        // App type subscription IDs: 3 (responder), 4 (reporter), 5 (security), 6 (driver), 7 (survey)
+        return in_array($subscriptionTypeId, [3, 4, 5, 6, 7]);
     }
 }
