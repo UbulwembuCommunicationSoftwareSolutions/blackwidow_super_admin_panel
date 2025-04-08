@@ -49,9 +49,16 @@ class CustomerUserRelationManager extends RelationManager
                     TextInput::make('last_name')
                         ->required(),
                     PhoneInput::make('cellphone')
-                        ->required(),
+                        ->required()
+                        ->unique(modifyRuleUsing: function ($rule) {
+                            return $rule->where('customer_id', $this->ownerRecord->id);
+                        }),
                     TextInput::make('email_address')
-                        ->required(),
+                        ->required()
+                        ->email()
+                        ->unique(modifyRuleUsing: function ($rule) {
+                            return $rule->where('customer_id', $this->ownerRecord->id);
+                        }),
                     TextInput::make('password')
                         ->password()
                         ->required(),

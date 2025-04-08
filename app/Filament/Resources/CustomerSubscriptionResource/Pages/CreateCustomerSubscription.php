@@ -128,25 +128,49 @@ class CreateCustomerSubscription extends CreateRecord
                             $set('postfix', '.'.$theType.'.'.$get('vertical'));
                         }),
                     TextInput::make('url')
-                        ->live(debounce: 1000) // Debounce updates for 500ms
+                        ->live(debounce: 1000)
                         ->suffix(fn($get) => $get('postfix'))
                         ->extraAttributes(['class' => 'with-suffix'])
                         ->required()
-                        ->afterStateUpdated(function($get,$set){
+                        ->unique(ignoreRecord: true)
+                        ->rules([
+                            'required',
+                            'unique:customer_subscriptions,url',
+                            'regex:/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/',
+                            'min:3',
+                            'max:63'
+                        ])
+                        ->validationAttribute('URL')
+                        ->afterStateUpdated(function($get, $set) {
+                            $url = strtolower(trim($get('url')));
+                            $set('url', $url);
                             $set('urlConfirmed', false);
-                            $set('database_name',$get('url').'_'.$get('theType').'_'.$get('theVertical'));
+                            $set('database_name', $url . '_' . $get('theType') . '_' . $get('theVertical'));
+
+                            // Check if URL is unique
+                            $domain = $url . $get('postfix');
+                            $exists = \App\Models\CustomerSubscription::where('url', 'https://' . $domain)->exists();
+                            if ($exists) {
+                                Notification::make()
+                                    ->title('This URL is already taken')
+                                    ->danger()
+                                    ->send();
+                                $set('urlConfirmed', false);
+                            } else {
+                                $this->domainResolvesToIp($domain, $set, $get);
+                            }
                         })
                         ->hintAction(
                             Action::make('verifyUrl')
-                                ->icon(function($get){
-                                   if($get('urlConfirmed')){
-                                       return 'heroicon-o-check-circle';
-                                   }else{
-                                       return 'heroicon-o-exclamation-circle';
-                                   }
+                                ->icon(function($get) {
+                                    if($get('urlConfirmed')) {
+                                        return 'heroicon-o-check-circle';
+                                    } else {
+                                        return 'heroicon-o-exclamation-circle';
+                                    }
                                 })
-                                ->action(function ($get,$set) {
-                                   $this->domainResolvesToIp($get('url').$get('postfix'),$set,$get);
+                                ->action(function ($get, $set) {
+                                    $this->domainResolvesToIp($get('url').$get('postfix'), $set, $get);
                                 })
                         ),
                     Select::make('server_id')
