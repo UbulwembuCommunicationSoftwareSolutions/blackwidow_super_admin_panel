@@ -50,6 +50,9 @@ class SubscriptionTypeResource extends Resource
                     ->required(),
                 TextInput::make('project_type')
                     ->required(),
+                TextInput::make('master_version')
+                    ->maxLength(8)
+                    ->nullable(),
             ]);
     }
 
@@ -68,6 +71,9 @@ class SubscriptionTypeResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('project_type')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('master_version')
                     ->searchable()
                     ->sortable(),
             ])

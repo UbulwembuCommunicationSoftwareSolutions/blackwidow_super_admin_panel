@@ -15,6 +15,7 @@ class SubscriptionType extends Model
         'github_repo',
         'project_type',
         'public_dir',
-        'branch'
+        'branch',
+        'master_version'
     ];
 }
