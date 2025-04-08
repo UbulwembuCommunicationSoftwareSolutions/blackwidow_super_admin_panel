@@ -97,6 +97,7 @@ class EditCustomerSubscription extends EditRecord
                 Section::make('Logos')->schema([
                     FileUpload::make('logo_1')
                         ->live()
+                        ->downloadable()
                         ->reactive()
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
@@ -108,6 +109,7 @@ class EditCustomerSubscription extends EditRecord
                             }
                             return $result;
                         })
+
                         ->disk('public')
                         ->visibility('public') // Or 'private' based on your requirements
                         ->disk('public') // The disk defined in your `config/filesystems.php`
@@ -117,6 +119,8 @@ class EditCustomerSubscription extends EditRecord
                     FileUpload::make('logo_2')
                         ->live()
                         ->reactive()
+                        ->downloadable()
+
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
@@ -136,6 +140,7 @@ class EditCustomerSubscription extends EditRecord
                     FileUpload::make('logo_3')
                         ->live()
                         ->reactive()
+                        ->downloadable()
 
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
@@ -156,6 +161,7 @@ class EditCustomerSubscription extends EditRecord
                     FileUpload::make('logo_4')
                         ->live()
                         ->reactive()
+                        ->downloadable()
 
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
@@ -176,6 +182,8 @@ class EditCustomerSubscription extends EditRecord
                     FileUpload::make('logo_5')
                         ->live()
                         ->reactive()
+                        ->downloadable()
+
                         ->label(function($get){
                             $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
                             if($types){
