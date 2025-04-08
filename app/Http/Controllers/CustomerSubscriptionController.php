@@ -138,7 +138,9 @@ class CustomerSubscriptionController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'App functions retrieved successfully',
-                'app_functions' => $customerSubscription->load('subscriptionType')
+                'app_functions' => $customerSubscription,
+                'deployedVersion' => $customerSubscription->deployed_version,
+                'masterVersion' => $customerSubscription->subscriptionType->master_version,
             ]);
         } else {
             return response()->json([
