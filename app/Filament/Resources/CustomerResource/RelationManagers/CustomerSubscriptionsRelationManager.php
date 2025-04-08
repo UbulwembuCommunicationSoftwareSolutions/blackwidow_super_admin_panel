@@ -12,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,11 +34,16 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                 TextColumn::make('url')
                     ->label('URL')
                     ->searchable(),
+
+                ToggleColumn::make('panic_button_enabled')
+                    ->label('Panic Button')
+                    ->visible(fn ($record) => $this->isAppTypeSubscription($record->subscription_type_id))
+                    ->disabled(fn ($record) => !$this->isAppTypeSubscription($record->subscription_type_id)),
             ])
             ->filters([
                 SelectFilter::make('subscription_type_id')
                     ->label('Subscription Type')
-                    ->relationship('subscriptionType', 'name') // Assuming 'subscriptionType' is the relationship method name
+                    ->relationship('subscriptionType', 'name')
                     ->options(SubscriptionType::pluck('name', 'id')),
             ])
             ->headerActions([
@@ -45,7 +51,6 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     ->label('Create Subscription')
                     ->icon('heroicon-o-plus')
                     ->action(function () {
-                        // Redirect to the custom create page
                         return redirect()->route('filament.admin.resources.customer-subscriptions.create', [
                             'customer' => $this->ownerRecord->id,
                         ]);
@@ -66,5 +71,11 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    private function isAppTypeSubscription($subscriptionTypeId): bool
+    {
+        // App type subscription IDs: 3 (responder), 4 (reporter), 6 (driver)
+        return in_array($subscriptionTypeId, [3, 4, 6]);
     }
 }

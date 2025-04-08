@@ -30,6 +30,7 @@ class CustomerSubscription extends Model
         'deployment_script_sent_at',
         'ssl_deployed_at',
         'deployed_at',
+        'panic_button_enabled',
     ];
 
     public $appends = ['null_variable_count'];
