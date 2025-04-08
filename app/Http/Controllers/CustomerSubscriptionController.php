@@ -127,6 +127,26 @@ class CustomerSubscriptionController extends Controller
         }
     }
 
+    public function getAppFunctions(Request $request){
+        $referer = $request->headers->get('referer');
+        $parsedUrl = parse_url($referer);
+        $originHost = $parsedUrl['host'] ?? 'unknown';
+        \Log::info('Referer: '.$originHost);
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        if ($customerSubscription) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'App functions retrieved successfully',
+                'app_functions' => $customerSubscription
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No app functions found for this customer'
+            ], 404);
+        }
+    }
+
     public function getSpecificLogo(Request $request)
     {
         $referer = $request->headers->get('referer');
