@@ -9,7 +9,6 @@ Route::get('/', function () {
 
 Route::get('/customer_logos', [CustomerSubscriptionController::class, 'getLogos']);
 Route::get('/customer_logo/specific', [CustomerSubscriptionController::class, 'getSpecificLogo']);
-Route::get('/customer/app-functions', [CustomerSubscriptionController::class, 'getAppFunctions']);
 Route::get('/customer/{id}', [CustomerSubscriptionController::class, 'show']);
 Route::get('/customer/{id}', [CustomerSubscriptionController::class, 'show']);
 Route::get('/customer-levels', [\App\Http\Controllers\SystemsApi\SystemsController::class, 'getSystemDescriptions']);
