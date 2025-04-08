@@ -60,6 +60,7 @@ class CustomerSubscriptionController extends Controller
 
         // Retrieve all files inside the icons directory
         $iconFiles = Storage::disk('public')->files($relativeBasePath);
+        \Log::info("Icon Path: ".($relativeBasePath));
         \Log::info(json_encode($iconFiles));
         $icons = [];
 
