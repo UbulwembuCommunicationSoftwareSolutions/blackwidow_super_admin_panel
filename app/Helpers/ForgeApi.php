@@ -187,98 +187,98 @@ class ForgeApi
 
 
     public function addMissingEnv(CustomerSubscription $customerSubscription){
-        $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
-        $missing = RequiredEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
-            ->whereNotIn('key', $addedEnv)
-            ->get();
+        if($customerSubscription->customer){
+            $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
+            $missing = RequiredEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
+                ->whereNotIn('key', $addedEnv)
+                ->get();
 
-        foreach ($missing as $env) {
-            EnvVariables::updateOrCreate([
-                'key' => $env->key,
-                'customer_subscription_id' => $customerSubscription->id
-            ],[
-                'value' => $env->value
-            ]);
+            foreach ($missing as $env) {
+                EnvVariables::updateOrCreate([
+                    'key' => $env->key,
+                    'customer_subscription_id' => $customerSubscription->id
+                ],[
+                    'value' => $env->value
+                ]);
+            }
+            $database = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','DB_DATABASE')
+                ->first();
+            if($database){
+                $database->value = $customerSubscription->database_name;
+                $database->save();
+            }
+
+            $cmsUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','VUE_APP_API_BASE_URL')
+                ->first();
+
+            if($cmsUrl){
+                $caseManagement = CustomerSubscription::where('customer_id',$customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
+                $cmsUrl->value = $caseManagement->url;
+                $cmsUrl->save();
+            }
+
+            $cmsUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','CMS_URL')
+                ->first();
+
+            if($cmsUrl){
+                $caseManagement = CustomerSubscription::where('customer_id',$customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
+                $cmsUrl->value = $caseManagement->url;
+                $cmsUrl->save();
+            }
+
+            $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','APP_NAME')
+                ->first();
+            if($appName){
+                $appName->value = $customerSubscription->app_name;
+                $appName->save();
+            }
+
+            $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','VUE_APP_NAME')
+                ->first();
+            if($appName){
+                $appName->value = $customerSubscription->app_name;
+                $appName->save();
+            }
+
+
+
+            $appUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','APP_URL')
+                ->first();
+            if($appUrl){
+                $appUrl->value = $customerSubscription->url;
+                $appUrl->save();
+            }
+
+            $elasticSearch = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','ELASTICSEARCH_INDEX')
+                ->first();
+            if($elasticSearch){
+                $elasticSearch->value = $customerSubscription->database_name;
+                $elasticSearch->save();
+            }
+
+            $secureToken = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','SECURE_TOKEN')
+                ->first();
+            if($secureToken){
+                $secureToken->value = $customerSubscription->customer->token;
+                $secureToken->save();
+            }
+
+            $minioBucket = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
+                ->where('key','MINIO_BUCKET')
+                ->first();
+            if($minioBucket){
+                $minioBucket->value = $customerSubscription->database_name;
+                $minioBucket->save();
+            }
         }
-        $database = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','DB_DATABASE')
-            ->first();
-        if($database){
-            $database->value = $customerSubscription->database_name;
-            $database->save();
-        }
-
-        $cmsUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','VUE_APP_API_BASE_URL')
-            ->first();
-
-        if($cmsUrl){
-            $caseManagement = CustomerSubscription::where('customer_id',$customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
-            $cmsUrl->value = $caseManagement->url;
-            $cmsUrl->save();
-        }
-
-        $cmsUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','CMS_URL')
-            ->first();
-
-        if($cmsUrl){
-            $caseManagement = CustomerSubscription::where('customer_id',$customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
-            $cmsUrl->value = $caseManagement->url;
-            $cmsUrl->save();
-        }
-
-        $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','APP_NAME')
-            ->first();
-        if($appName){
-            $appName->value = $customerSubscription->app_name;
-            $appName->save();
-        }
-
-        $appName = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','VUE_APP_NAME')
-            ->first();
-        if($appName){
-            $appName->value = $customerSubscription->app_name;
-            $appName->save();
-        }
-
-
-
-        $appUrl = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','APP_URL')
-            ->first();
-        if($appUrl){
-            $appUrl->value = $customerSubscription->url;
-            $appUrl->save();
-        }
-
-        $elasticSearch = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','ELASTICSEARCH_INDEX')
-            ->first();
-        if($elasticSearch){
-            $elasticSearch->value = $customerSubscription->database_name;
-            $elasticSearch->save();
-        }
-
-        $secureToken = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','SECURE_TOKEN')
-            ->first();
-        if($secureToken){
-            $secureToken->value = $customerSubscription->customer->token;
-            $secureToken->save();
-        }
-
-        $minioBucket = EnvVariables::where('customer_subscription_id',$customerSubscription->id)
-            ->where('key','MINIO_BUCKET')
-            ->first();
-        if($minioBucket){
-            $minioBucket->value = $customerSubscription->database_name;
-            $minioBucket->save();
-        }
-
-
     }
 
 
