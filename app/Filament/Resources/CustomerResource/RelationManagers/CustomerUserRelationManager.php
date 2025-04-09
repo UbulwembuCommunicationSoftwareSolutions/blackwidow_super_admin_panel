@@ -147,16 +147,29 @@ class CustomerUserRelationManager extends RelationManager
                             ->label('New Password')
                             ->password()
                             ->required()
-                            ->minLength(8),
+                            ->minLength(6),
+                        \Filament\Forms\Components\TextInput::make('confirm_password')
+                            ->label('Confirm Password')
+                            ->password()
+                            ->required()
+                            ->minLength(6),
                     ])
                     ->action(function (CustomerUser $record, array $data) {
-                        $record->password = $data['new_password'];
-                        $record->save();
+                        if($data['new_password'] !== $data['confirm_password']){
+                            Notification::make()
+                                ->title('Passwords do not match')
+                                ->danger()
+                                ->send();
+                            return;
+                        }else{
+                            $record->password = $data['new_password'];
+                            $record->save();
 
-                        Notification::make()
-                            ->title('Password updated successfully')
-                            ->success()
-                            ->send();
+                            Notification::make()
+                                ->title('Password updated successfully')
+                                ->success()
+                                ->send();
+                        }
                     }),
                 \Filament\Tables\Actions\Action::make('Send Welcome Email')
                     ->label('Send Welcome Email')
