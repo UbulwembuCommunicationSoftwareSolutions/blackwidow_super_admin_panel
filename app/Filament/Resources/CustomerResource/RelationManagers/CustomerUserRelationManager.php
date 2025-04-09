@@ -51,8 +51,7 @@ class CustomerUserRelationManager extends RelationManager
                         ->required(),
                     PhoneInput::make('cellphone')
                         ->required()
-                        ->rules(function () {
-                            $record = $this->record; // or $this->ownerRecord if in nested form
+                        ->rules(function ($record) {
                             return [
                                 Rule::unique('customer_users', 'cellphone')
                                     ->where(fn ($query) => $query->where('customer_id', $record->customer_id ?? null))
@@ -62,8 +61,7 @@ class CustomerUserRelationManager extends RelationManager
                     TextInput::make('email_address')
                         ->required()
                         ->email()
-                        ->rules(function () {
-                            $record = $this->record; // or $this->ownerRecord if in nested form
+                        ->rules(function ($record) {
                             return [
                                 Rule::unique('customer_users', 'email_address')
                                     ->where(fn ($query) => $query->where('customer_id', $record->customer_id ?? null))
