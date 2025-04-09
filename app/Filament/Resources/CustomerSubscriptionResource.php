@@ -110,10 +110,13 @@ class CustomerSubscriptionResource extends Resource
                     ->label('Deployed Version')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('subscriptionType.master_version')
+                    ->label('Newest Version')
+                    ->searchable()
+                    ->sortable(),
                 ToggleColumn::make('panic_button_enabled')
                     ->label('Panic Button')
                     ->disabled(fn ($record) => !$record || self::isThisAppTypeSubscription($record->subscription_type_id)),
-
                 TextColumn::make('forge_site_id'),
                 TextColumn::make('env_variables_count')
                     ->label('Variable Count')
