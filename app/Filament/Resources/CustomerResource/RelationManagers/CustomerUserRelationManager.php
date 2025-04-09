@@ -195,6 +195,9 @@ class CustomerUserRelationManager extends RelationManager
                     ->form([
                         Forms\Components\Section::make('Access Rights')
                             ->schema([
+                                Forms\Components\Toggle::make('is_system_admin')
+                                    ->label('Super Admin')
+                                    ->required(),
                                 Forms\Components\Toggle::make('console_access')
                                     ->label('Console Access')
                                     ->required(),
