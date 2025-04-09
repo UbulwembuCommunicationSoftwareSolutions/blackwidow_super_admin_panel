@@ -24,6 +24,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Validation\Rule;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
 class CustomerUserRelationManager extends RelationManager
@@ -50,14 +51,24 @@ class CustomerUserRelationManager extends RelationManager
                         ->required(),
                     PhoneInput::make('cellphone')
                         ->required()
-                        ->unique(modifyRuleUsing: function ($rule) {
-                            return $rule->where('customer_id', $this->ownerRecord->id);
+                        ->rules(function () {
+                            $record = $this->record; // or $this->ownerRecord if in nested form
+                            return [
+                                Rule::unique('customer_users', 'cellphone')
+                                    ->where(fn ($query) => $query->where('customer_id', $record->customer_id ?? null))
+                                    ->ignore($record?->id),
+                            ];
                         }),
                     TextInput::make('email_address')
                         ->required()
                         ->email()
-                        ->unique(modifyRuleUsing: function ($rule) {
-                            return $rule->where('customer_id', $this->ownerRecord->id);
+                        ->rules(function () {
+                            $record = $this->record; // or $this->ownerRecord if in nested form
+                            return [
+                                Rule::unique('customer_users', 'email_address')
+                                    ->where(fn ($query) => $query->where('customer_id', $record->customer_id ?? null))
+                                    ->ignore($record?->id),
+                            ];
                         }),
                     TextInput::make('password')
                         ->password()
