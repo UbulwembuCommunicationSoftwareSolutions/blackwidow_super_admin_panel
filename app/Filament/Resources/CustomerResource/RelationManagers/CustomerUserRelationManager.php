@@ -68,9 +68,13 @@ class CustomerUserRelationManager extends RelationManager
                                     ->ignore($record?->id),
                             ];
                         }),
+                    Toggle::make('ignore_password_update')
+                        ->label('Update password')
+                        ->default(false)
+                        ->hiddenOn('create'),
                     TextInput::make('password')
                         ->password()
-                        ->required(),
+                        ->required(fn (?CustomerUser $record) => $record === null)
             ]),
             Forms\Components\Section::make('Access Rights')
                 ->schema([
@@ -93,7 +97,12 @@ class CustomerUserRelationManager extends RelationManager
                     Forms\Components\Toggle::make('stock_access')
                         ->required(),
                 ])->columns(2)
-            ]);
+            ])->mutateFormDataUsing(function (array $data, ?CustomerUser $record) {
+                if ($record && ($data['ignore_password_update'] ?? true)) {
+                    unset($data['password']);
+                }
+                return $data;
+            });
     }
 
     public function table(Table $table): Table
