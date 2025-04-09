@@ -106,6 +106,11 @@ class CustomerSubscriptionResource extends Resource
                 TextColumn::make('subscriptionType.name')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('deployed_at')
+                    ->label('Deployed Date')
+                    ->dateTime('Y-m-d H:i:s')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('deployed_version')
                     ->label('Deployed Version')
                     ->searchable()
