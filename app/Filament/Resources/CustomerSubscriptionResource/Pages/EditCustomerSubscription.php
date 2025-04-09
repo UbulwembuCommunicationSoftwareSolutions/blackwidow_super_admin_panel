@@ -87,7 +87,7 @@ class EditCustomerSubscription extends EditRecord
                     TextInput::make('database_name')
                         ->required()
                 ]),
-                Section::make('deployment Info')->schema([
+                Section::make('Deployment Info')->schema([
                     Placeholder::make('deployed_at')
                         ->content(fn($record) => $record->deployed_at ?? Carbon::parse($record->deployed_at)->format('m/d/Y h:i:s A')),
                     Placeholder::make('deployed_version')
