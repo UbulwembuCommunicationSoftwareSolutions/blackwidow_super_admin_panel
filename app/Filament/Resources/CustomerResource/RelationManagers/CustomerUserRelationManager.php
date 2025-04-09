@@ -115,19 +115,33 @@ class CustomerUserRelationManager extends RelationManager
                     ->label('Console Access')
                     ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('firearm_access')
-                    ->label('Firearm Access'),
+                    ->label('Firearm Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('responder_access')
-                    ->label('Responder Access'),
+                    ->label('Responder Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('reporter_access')
-                    ->label('Reporter Access'),
+                    ->label('Reporter Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('security_access')
-                    ->label('Security Access'),
+                    ->label('Security Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('survey_access')
-                    ->label('Survey Access'),
+                    ->label('Survey Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('time_and_attendance_access')
-                    ->label('Time and Attendance Access'),
+                    ->label('Time and Attendance Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
                 Tables\Columns\CheckboxColumn::make('stock_access')
-                    ->label('Stock Access'),
+                    ->label('Stock Access')
+                    ->isToggledHiddenByDefault()
+                    ->toggleable(),
 
             ])
             ->filters([
