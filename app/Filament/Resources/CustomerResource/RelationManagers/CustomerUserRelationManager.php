@@ -109,40 +109,6 @@ class CustomerUserRelationManager extends RelationManager
                 TextColumn::make('cellphone')
                     ->label('Cellphone')
                     ->searchable(),
-                TextColumn::make('console_access')
-                    ->label('Console Access'),
-                Tables\Columns\CheckboxColumn::make('console_access')
-                    ->label('Console Access')
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('firearm_access')
-                    ->label('Firearm Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('responder_access')
-                    ->label('Responder Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('reporter_access')
-                    ->label('Reporter Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('security_access')
-                    ->label('Security Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('survey_access')
-                    ->label('Survey Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('time_and_attendance_access')
-                    ->label('Time and Attendance Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-                Tables\Columns\CheckboxColumn::make('stock_access')
-                    ->label('Stock Access')
-                    ->isToggledHiddenByDefault()
-                    ->toggleable(),
-
             ])
             ->filters([
 
@@ -222,6 +188,46 @@ class CustomerUserRelationManager extends RelationManager
                         }
 
 
+                    }),
+                Tables\Actions\Action::make('manageAccessRights')
+                    ->label('Manage Access Rights')
+                    ->icon('heroicon-m-key')
+                    ->form([
+                        Forms\Components\Section::make('Access Rights')
+                            ->schema([
+                                Forms\Components\Toggle::make('console_access')
+                                    ->label('Console Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('firearm_access')
+                                    ->label('Firearm Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('responder_access')
+                                    ->label('Responder Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('reporter_access')
+                                    ->label('Reporter Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('security_access')
+                                    ->label('Security Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('survey_access')
+                                    ->label('Survey Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('time_and_attendance_access')
+                                    ->label('Time and Attendance Access')
+                                    ->required(),
+                                Forms\Components\Toggle::make('stock_access')
+                                    ->label('Stock Access')
+                                    ->required(),
+                            ])->columns(2)
+                    ])
+                    ->action(function (CustomerUser $record, array $data) {
+                        $record->update($data);
+
+                        Notification::make()
+                            ->title('Access rights updated successfully')
+                            ->success()
+                            ->send();
                     })
             ])
             ->bulkActions([
