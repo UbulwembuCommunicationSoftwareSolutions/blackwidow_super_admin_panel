@@ -230,6 +230,7 @@ class CustomerUserRelationManager extends RelationManager
                         'survey_access' => $record->survey_access,
                         'time_and_attendance_access' => $record->time_and_attendance_access,
                         'stock_access' => $record->stock_access,
+                        'is_system_admin' => $record->is_system_admin,
                     ])
                     ->action(function (CustomerUser $record, array $data) {
                         $record->update($data);
