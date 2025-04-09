@@ -221,6 +221,16 @@ class CustomerUserRelationManager extends RelationManager
                                     ->required(),
                             ])->columns(2)
                     ])
+                    ->fillForm(fn (CustomerUser $record): array => [
+                        'console_access' => $record->console_access,
+                        'firearm_access' => $record->firearm_access,
+                        'responder_access' => $record->responder_access,
+                        'reporter_access' => $record->reporter_access,
+                        'security_access' => $record->security_access,
+                        'survey_access' => $record->survey_access,
+                        'time_and_attendance_access' => $record->time_and_attendance_access,
+                        'stock_access' => $record->stock_access,
+                    ])
                     ->action(function (CustomerUser $record, array $data) {
                         $record->update($data);
 
