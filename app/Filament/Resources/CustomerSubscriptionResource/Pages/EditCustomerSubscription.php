@@ -18,6 +18,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Tables\Columns\ToggleColumn;
+use Illuminate\Support\Carbon;
 
 class EditCustomerSubscription extends EditRecord
 {
@@ -85,6 +86,14 @@ class EditCustomerSubscription extends EditRecord
 
                     TextInput::make('database_name')
                         ->required()
+                ]),
+                Section::make('deployment Info')->schema([
+                    Placeholder::make('deployed_at')
+                        ->content(fn($record) => $record->deployed_at ?? Carbon::parse($record->deployed_at)->format('m/d/Y h:i:s A')),
+                    Placeholder::make('deployed_version')
+                        ->content(fn($record) => $record->deployed_version),
+                    Placeholder::make('master_version')
+                        ->content(fn($record) => $record->subscriptionType->master_version)
                 ]),
                 Section::make('ENV File')->schema([
                     Placeholder::make('forge_site_id')
