@@ -68,13 +68,6 @@ class CustomerUserRelationManager extends RelationManager
                                     ->ignore($record?->id),
                             ];
                         }),
-                    Toggle::make('ignore_password_update')
-                        ->label('Update password')
-                        ->default(false)
-                        ->hiddenOn('create'),
-                    TextInput::make('password')
-                        ->password()
-                        ->required(fn (?CustomerUser $record) => $record === null)
             ]),
             Forms\Components\Section::make('Access Rights')
                 ->schema([
@@ -97,12 +90,7 @@ class CustomerUserRelationManager extends RelationManager
                     Forms\Components\Toggle::make('stock_access')
                         ->required(),
                 ])->columns(2)
-            ])->mutateFormDataUsing(function (array $data, ?CustomerUser $record) {
-                if ($record && ($data['ignore_password_update'] ?? true)) {
-                    unset($data['password']);
-                }
-                return $data;
-            });
+            ]);
     }
 
     public function table(Table $table): Table
@@ -151,6 +139,25 @@ class CustomerUserRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('updatePassword')
+                    ->label('Update Password')
+                    ->icon('heroicon-m-key')
+                    ->form([
+                        \Filament\Forms\Components\TextInput::make('new_password')
+                            ->label('New Password')
+                            ->password()
+                            ->required()
+                            ->minLength(8),
+                    ])
+                    ->action(function (CustomerUser $record, array $data) {
+                        $record->password = $data['new_password'];
+                        $record->save();
+
+                        Notification::make()
+                            ->title('Password updated successfully')
+                            ->success()
+                            ->send();
+                    }),
                 \Filament\Tables\Actions\Action::make('Send Welcome Email')
                     ->label('Send Welcome Email')
                     ->action(function ($record) {
