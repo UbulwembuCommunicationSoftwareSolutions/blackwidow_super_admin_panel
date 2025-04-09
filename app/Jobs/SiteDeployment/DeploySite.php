@@ -30,6 +30,9 @@ class DeploySite implements ShouldQueue
     {
         $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
         $forgeApi = new \App\Helpers\ForgeApi();
+        $customerSubscription->deployed_at = now();
+        $customerSubscription->deployed_version = $customerSubscription->subscriptionType->master_version;
+        $customerSubscription->save();
         $forgeApi->deploySite($customerSubscription->server_id,$customerSubscription->forge_site_id);
     }
 }
