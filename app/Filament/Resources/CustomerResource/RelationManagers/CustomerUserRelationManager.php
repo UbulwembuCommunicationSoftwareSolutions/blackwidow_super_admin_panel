@@ -68,7 +68,14 @@ class CustomerUserRelationManager extends RelationManager
                                     ->ignore($record?->id),
                             ];
                         }),
-            ]),
+                    TextInput::make('password')
+                        ->password()
+                        ->required()
+                        ->minLength(6)
+                        ->dehydrateStateUsing(fn ($state) => bcrypt($state))
+                        ->dehydrated(fn ($state) => filled($state))
+                        ->required(fn (string $operation): bool => $operation === 'create'),
+                ]),
             Forms\Components\Section::make('Access Rights')
                 ->schema([
                     Toggle::make('is_system_admin')
