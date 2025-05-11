@@ -21,9 +21,22 @@ return [
 
     'allowed_origins' => ['*'],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '*localhost*',
+        '*heartbeatnetworks.com*',
+        '*blackwidow.org.za',
+        '*bvigilant.co.za',
+        '*siyaleader.*'
+    ],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        'Content-Type',
+        'X-Requested-With',
+        'Authorization',
+        'Accept',
+        'Origin',
+        'X-CSRF-TOKEN'
+    ],
 
     'exposed_headers' => [],
 
