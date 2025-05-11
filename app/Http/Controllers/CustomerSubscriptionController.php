@@ -161,7 +161,9 @@ class CustomerSubscriptionController extends Controller
         \Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
         if ($customerSubscription) {
-            return redirect('https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1));
+            $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
+            \Log::info('Logo Path: '.$logoPath);
+            return redirect($logoPath);
         }else{
             \Log::info('No subscription found for this URL: '.$originHost);
             \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
