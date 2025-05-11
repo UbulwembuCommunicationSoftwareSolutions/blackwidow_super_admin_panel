@@ -176,11 +176,10 @@ class CustomerSubscriptionController extends Controller
 
     public function getSingleLogo(Request $request)
     {
-        $referer = $request->headers->get('referer');
-
-        // Optionally, you can parse the referer to extract the host or domain
-        $parsedUrl = parse_url($referer);
-        $originHost = $parsedUrl['host'] ?? 'unknown';
+        $customerUrl = $request->get('customer_api_url');
+        $sanitizedCustomerUrl = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $customerUrl);
+        $parsedUrl = parse_url($sanitizedCustomerUrl, PHP_URL_HOST);
+        $originHost = $parsedUrl;
         \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
         \Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
