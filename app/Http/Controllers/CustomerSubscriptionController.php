@@ -127,7 +127,32 @@ class CustomerSubscriptionController extends Controller
             return response()->json($logos = []);
         }
     }
-
+    public function getResponderAppFunctions(Request $request)
+    {
+        $customerUrl = $request->get('customer_api_url');
+        $sanitizedCustomerUrl = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $customerUrl);
+        $parsedUrl = parse_url($sanitizedCustomerUrl, PHP_URL_HOST);
+        $originHost = $parsedUrl;
+        \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+        \Log::info('Referer: '.$originHost);
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+            ->where('subscription_type_id',3)
+            ->first();
+        if ($customerSubscription) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'App functions retrieved successfully',
+                'app_functions' => $customerSubscription,
+                'deployedVersion' => $customerSubscription->deployed_version,
+                'masterVersion' => $customerSubscription->subscriptionType->master_version,
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No app functions found for this customer'
+            ], 404);
+        }
+    }
     public function getAppFunctions(Request $request){
         $referer = $request->headers->get('referer');
         $parsedUrl = parse_url($referer);
