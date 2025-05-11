@@ -157,7 +157,7 @@ class CustomerSubscriptionController extends Controller
         // Optionally, you can parse the referer to extract the host or domain
         $parsedUrl = parse_url($referer);
         $originHost = $parsedUrl['host'] ?? 'unknown';
-
+        \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
         \Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
         if ($customerSubscription) {
