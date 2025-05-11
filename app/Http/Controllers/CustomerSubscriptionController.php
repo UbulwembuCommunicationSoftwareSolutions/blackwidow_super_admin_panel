@@ -163,6 +163,8 @@ class CustomerSubscriptionController extends Controller
         if ($customerSubscription) {
             return redirect('https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1));
         }else{
+            \Log::info('No subscription found for this URL: '.$originHost);
+            \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
             return response()->json([
                 'status' => 'ERROR',
                 'message' => 'No logo found for this customer'
