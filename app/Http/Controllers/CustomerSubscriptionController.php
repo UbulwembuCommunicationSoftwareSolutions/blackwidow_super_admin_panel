@@ -182,7 +182,9 @@ class CustomerSubscriptionController extends Controller
         $originHost = $parsedUrl;
         \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
         \Log::info('Referer: '.$originHost);
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+            ->where('subscription_type_id',3)
+            ->first();
         if ($customerSubscription) {
             $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
             return response()->json(['logo' => $logoPath]);
