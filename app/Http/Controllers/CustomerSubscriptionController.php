@@ -174,6 +174,30 @@ class CustomerSubscriptionController extends Controller
         }
     }
 
+    public function getSingleLogo(Request $request)
+    {
+        $referer = $request->headers->get('referer');
+
+        // Optionally, you can parse the referer to extract the host or domain
+        $parsedUrl = parse_url($referer);
+        $originHost = $parsedUrl['host'] ?? 'unknown';
+        \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+        \Log::info('Referer: '.$originHost);
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        if ($customerSubscription) {
+            $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
+            return response()->json(['logo' => $logoPath]);
+        }else{
+            \Log::info('No subscription found for this URL: '.$originHost);
+            \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+            return response()->json([
+                'status' => 'ERROR',
+                'message' => 'No logo found for this customer'
+            ], 404);
+        }
+    }
+
+
     public function store(CustomerSubscriptionRequest $request)
     {
         $this->authorize('create', CustomerSubscription::class);
