@@ -130,6 +130,7 @@ class CustomerSubscriptionController extends Controller
     public function getResponderAppFunctions(Request $request)
     {
         $customerUrl = $request->get('customer_api_url');
+        \Log::info('URL: '.$customerUrl);
         $sanitizedCustomerUrl = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $customerUrl);
         $parsedUrl = parse_url($sanitizedCustomerUrl, PHP_URL_HOST);
         $originHost = $parsedUrl;
@@ -202,6 +203,7 @@ class CustomerSubscriptionController extends Controller
     public function getSingleLogo(Request $request)
     {
         $customerUrl = $request->get('customer_api_url');
+        \Log::info('URL: '.$customerUrl);
         $sanitizedCustomerUrl = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $customerUrl);
         $parsedUrl = parse_url($sanitizedCustomerUrl, PHP_URL_HOST);
         $originHost = $parsedUrl;
