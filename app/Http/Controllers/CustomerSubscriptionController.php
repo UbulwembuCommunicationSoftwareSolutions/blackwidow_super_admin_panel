@@ -131,15 +131,14 @@ class CustomerSubscriptionController extends Controller
     {
         $customerUrl = $request->get('customer_api_url');
         \Log::info('URL: '.$customerUrl);
-        $sanitizedCustomerUrl = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $customerUrl);
-        $parsedUrl = parse_url($sanitizedCustomerUrl, PHP_URL_HOST);
+        $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
         $originHost = $parsedUrl;
         \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
-        \Log::info('Referer: '.$originHost);
-        $customerId = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
-            ->first()->pluck('customer_id');
+        \Log::info('Origin Host: '.$originHost);
+        $customerApiSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+            ->first();
         $customerSubscription = CustomerSubscription::where('subscription_type_id',3)
-            ->where('customer_id', $customerId)
+            ->where('customer_id', $customerApiSubscription->customer_id)
             ->first();
         if ($customerSubscription) {
             return response()->json([
@@ -206,15 +205,14 @@ class CustomerSubscriptionController extends Controller
     {
         $customerUrl = $request->get('customer_api_url');
         \Log::info('URL: '.$customerUrl);
-        $sanitizedCustomerUrl = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $customerUrl);
-        $parsedUrl = parse_url($sanitizedCustomerUrl, PHP_URL_HOST);
+        $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
         $originHost = $parsedUrl;
         \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
-        \Log::info('Referer: '.$originHost);
-        $customerId = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
-            ->first()->pluck('customer_id');
+        \Log::info('Origin Host: '.$originHost);
+        $customerApiSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+            ->first();
         $customerSubscription = CustomerSubscription::where('subscription_type_id',3)
-            ->where('customer_id', $customerId)
+            ->where('customer_id', $customerApiSubscription->customer_id)
             ->first();
         if ($customerSubscription) {
             $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
