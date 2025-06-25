@@ -19,3 +19,5 @@ Route::post('deactivate-user', 'App\Http\Controllers\CustomerUserController@deac
 Route::post('activate-user', 'App\Http\Controllers\CustomerUserController@activateUser');
 Route::post('urls', 'App\Http\Controllers\CustomerController@getUrls');
 Route::middleware('auth:sanctum')->post('/token-user',[\App\Http\Controllers\CustomerSubscriptionController::class,'checkLoggedIn']);
+
+Route::post('/google-places-proxy', [\App\Http\Controllers\GooglePlacesProxyController::class, 'proxy']);
