@@ -13,4 +13,5 @@ Route::get('/customer_logo/single', [CustomerSubscriptionController::class, 'get
 Route::get('/customer/{id}', [CustomerSubscriptionController::class, 'show']);
 Route::get('/customer/{id}', [CustomerSubscriptionController::class, 'show']);
 Route::get('/customer-levels', [\App\Http\Controllers\SystemsApi\SystemsController::class, 'getSystemDescriptions']);
+Route::post('/google-places-proxy', [\App\Http\Controllers\GooglePlacesProxyController::class, 'proxy']);
 
