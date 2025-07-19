@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Testing\Fluent\Concerns\Has;
+use Log;
 
 class CustomerUserController extends Controller
 {
@@ -56,6 +57,7 @@ class CustomerUserController extends Controller
         }
         if($customerUser){
             if(!$this->checkAccess($customerUser,$customerSubscription)){
+                Log::info("Access Denied for user: ".$customerUser->email_address);
                 return response()->json(
                     [
                         'message' => 'Access Denied',
