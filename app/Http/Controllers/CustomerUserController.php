@@ -26,6 +26,7 @@ class CustomerUserController extends Controller
 
     public function login(Request $request){
         $input = $request->all();
+        Log::info("Login request: " . json_encode($input));
         if($request->has('email')){
             $email = $request->get('email');
         }else{
