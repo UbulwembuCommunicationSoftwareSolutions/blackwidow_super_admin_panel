@@ -40,11 +40,11 @@ class CustomerUserController extends Controller
         $password = $request->get('password');
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
-        \Log::info('Customer Subscription: ' . $customerSubscription);
         if(!$customerSubscription){
             \Log::info("Customer Subscription not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
+        \Log::info('Customer Subscription Found: ' . $customerSubscription->url);
         $customerUser = null;
         if($email){
             $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
