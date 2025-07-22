@@ -203,6 +203,9 @@ class CustomerSubscriptionController extends Controller
 
     public function getSingleLogo(Request $request)
     {
+        if($request->has('subscription_id')){
+            \Log::info("RECEIVED SUBSCRIPTION ID: ".$request->subscription_id);
+        }
         $customerUrl = $request->get('customer_api_url');
         \Log::info('URL: '.$customerUrl);
         $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
