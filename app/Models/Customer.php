@@ -30,7 +30,6 @@ class Customer extends Model
     protected $fillable = [
         'company_name',
         'token',
-        'uuid',
         'max_users',
         'docket_description',
         'task_description',

@@ -16,6 +16,7 @@ class CustomerSubscription extends Model
         'logo_2',
         'logo_3',
         'env',
+        'uuid',
         'forge_site_id',
         'logo_4',
         'logo_5',
