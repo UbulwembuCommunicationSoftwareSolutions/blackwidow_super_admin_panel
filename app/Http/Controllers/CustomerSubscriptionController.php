@@ -205,18 +205,21 @@ class CustomerSubscriptionController extends Controller
     {
         if($request->has('subscription_id')){
             \Log::info("RECEIVED SUBSCRIPTION ID: ".$request->subscription_id);
+            $customerSubscription = CustomerSubscription::where('customer_subscriptions.uuid', $request->subscription_id)->first();
         }
-        $customerUrl = $request->get('customer_api_url');
-        \Log::info('URL: '.$customerUrl);
-        $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
-        $originHost = $parsedUrl;
-        \Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
-        \Log::info('Origin Host: '.$originHost);
-        $customerApiSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
-            ->first();
-        $customerSubscription = CustomerSubscription::where('subscription_type_id',3)
-            ->where('customer_id', $customerApiSubscription->customer_id)
-            ->first();
+        if(!$customerSubscription) {
+            $customerUrl = $request->get('customer_api_url');
+            \Log::info('URL: ' . $customerUrl);
+            $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
+            $originHost = $parsedUrl;
+            \Log::info("Query: " . CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+            \Log::info('Origin Host: ' . $originHost);
+            $customerApiSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+                ->first();
+            $customerSubscription = CustomerSubscription::where('subscription_type_id', 3)
+                ->where('customer_id', $customerApiSubscription->customer_id)
+                ->first();
+        }
         if ($customerSubscription) {
             $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
             return response()->json(['logo' => $logoPath]);
