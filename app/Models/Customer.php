@@ -22,6 +22,7 @@ class Customer extends Model
                 return;
             } else {
                 $model->token = \Str::uuid();
+                $model->uuid = \Str::uuid();
                 $model->save();
             }
         });
@@ -29,6 +30,7 @@ class Customer extends Model
     protected $fillable = [
         'company_name',
         'token',
+        'uuid',
         'max_users',
         'docket_description',
         'task_description',
