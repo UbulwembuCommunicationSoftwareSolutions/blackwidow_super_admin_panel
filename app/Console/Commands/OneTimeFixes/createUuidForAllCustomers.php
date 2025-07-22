@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Console\Commands\OneTimeFixes;
+
+use App\Models\Customer;
+use Illuminate\Console\Command;
+
+class createUuidForAllCustomers extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'app:createUuidForAllCustomers';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        $customers = Customer::get();
+        foreach ($customers as $customer) {
+            $customer->uuid = \Str::uuid();
+            $customer->save();
+        }
+    }
+}
