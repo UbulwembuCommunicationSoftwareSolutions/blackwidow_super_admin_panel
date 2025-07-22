@@ -99,6 +99,9 @@ class EditCustomerSubscription extends EditRecord
                     Placeholder::make('forge_site_id')
                         ->label('Forge Site ID')
                         ->content(fn($record) => $record->forge_site_id),
+                    Placeholder::make('uuid')
+                        ->label( 'Site ID')
+                        ->content(fn($record) => $record->uuid),
                     Placeholder::make('forge_server_id')
                         ->label('Forge Server ID')
                         ->content(fn($record) => $record->server_id),
