@@ -171,10 +171,51 @@ class CustomerUserController extends Controller
         return false;
     }
 
+    public function setAccess(CustomerUser $user, CustomerSubscription $subscription){
+        \Log::info("Setting access for user ".$user->cellphone." to subscription ".$subscription->url);
+
+        switch((int)$subscription->subscription_type_id) {
+            case 1:
+                $user->console_access = true;
+                break;
+            case 2:
+                $user->firearm_access = true;
+                break;
+            case 3:
+                $user->responder_access = true;
+                break;
+            case 4:
+                $user->reporter_access = true;
+                break;
+            case 5:
+                $user->security_access = true;
+                break;
+            case 6:
+                $user->driver_access = true;
+                break;
+            case 7:
+                $user->survey_access = true;
+                break;
+            case 9:
+                $user->time_and_attendance_access = true;
+                break;
+            case 10:
+                $user->stock_access = true;
+                break;
+            default:
+                \Log::warning("Unknown subscription type ID: " . $subscription->subscription_type_id);
+                return false;
+        }
+
+        $user->save();
+        \Log::info("Access granted for user " . $user->email_address . " to subscription type " . $subscription->subscription_type_id);
+        return true;
+    }
+
     public function store(Request $request)
     {
         \Log::info(json_encode($request->all()));
-        $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
+        $customerSub = CustomerSubscription::where('uuid', $request->subscription_id)->first();
         $customer = Customer::find($customerSub->customer_id);
         $data = $request->all();
         $name = $data['user']['name'];
@@ -196,6 +237,7 @@ class CustomerUserController extends Controller
             'responder_access' => false,
             'reporter_access' => true,
         ]);
+        $this->setAccess($user, $customerSub);
         $user->customer_id = $customer->id;
         $user->save();
         return new CustomerUserResource($user);
