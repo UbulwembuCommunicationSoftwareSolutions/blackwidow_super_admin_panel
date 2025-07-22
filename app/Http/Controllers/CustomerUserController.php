@@ -218,8 +218,10 @@ class CustomerUserController extends Controller
         $customerSub = CustomerSubscription::where('uuid', $request->subscription_id)->first();
         $customer = Customer::find($customerSub->customer_id);
         $data = $request->all();
-        $name = $data['user']['name'];
-        $surname = $data['user']['surname'];
+        //Example request
+        // {"app_url":"https:\/\/cmsdemo.blackwidow.org.za","subscription_id":"832b1309-d08d-4cec-84c7-926ff82fed91","user":{"first_name":"Jacques","last_name":null,"cellphone":"+27794901033","email":"jacques@ncloud.africa","password":"$2y$12$fhesVZuM0FX\/X5adGqxGZOUHIaOFOnb0q2ZIC8KvYETI2eP.OQpk.","updated_at":"2025-07-22T11:59:12.000000Z","created_at":"2025-07-22T11:59:12.000000Z","id":544,"full_name":"Jacques","can_impersonate":false},"password":"laroch007"}
+        $name = $data['user']['first_name'];
+        $surname = $data['user']['last_name'];
         $email = $data['user']['email'];
         $cellphone = $data['user']['cellphone'];
         $password = $data['password'];
