@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,6 +25,44 @@ class Customer extends Model
                 $model->token = \Str::uuid();
                 $model->uuid = \Str::uuid();
                 $model->save();
+            }
+        });
+
+        static::updating(function ($model) {
+            $updated = false;
+            if($model->isDirty('level_one_in_use')){
+                $updated = true;
+            }
+            if($model->isDirty('level_two_in_use')){
+                $updated = true;
+            }
+            if($model->isDirty('level_three_in_use')){
+                $updated = true;
+            }
+            if($model->isDirty('level_one_description')){
+                $updated = true;
+            }
+            if($model->isDirty('level_two_description')){
+                $updated = true;
+            }
+            if($model->isDirty('level_three_description')){
+                $updated = true;
+            }
+            if($model->isDirty('level_four_description')){
+                $updated = true;
+            }
+            if($model->isDirty('level_five_description')){
+                $updated = true;
+            }
+            if($model->isDirty('task_description')){
+                $updated = true;
+            }
+            if($model->isDirty('docket_description')){
+                $updated = true;
+            }
+            if($updated){
+                $model->save();
+                SendSystemConfigJob::dispatch($model->id);
             }
         });
     }
