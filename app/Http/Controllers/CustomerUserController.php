@@ -242,6 +242,7 @@ class CustomerUserController extends Controller
         $this->setAccess($user, $customerSub);
         $user->customer_id = $customer->id;
         $user->save();
+        StartUserSyncJob::dispatch($customer->id);
         return new CustomerUserResource($user);
     }
 
