@@ -201,6 +201,39 @@ class CustomerSubscriptionController extends Controller
         }
     }
 
+
+    public function getSubscriptionLogo(Request $request){
+        if($request->has('subscription_id')){
+            \Log::info("RECEIVED SUBSCRIPTION ID: ".$request->subscription_id);
+            $customerSubscription = CustomerSubscription::where('customer_subscriptions.uuid', $request->subscription_id)->first();
+        }
+        if($request->has('logo_id')){
+            $logoId = $request->logo_id;
+        }
+        switch ($logoId) {
+            case 1:
+                $logoField = 'logo_1';
+                break;
+            case 2:
+                $logoField = 'logo_2';
+                break;
+            case 3:
+                $logoField = 'logo_3';
+                break;
+            case 4:
+                $logoField = 'logo_4';
+                break;
+            case 5:
+                $logoField = 'logo_5';
+                break;
+            default:
+                $logoField = 'logo_1';
+                break;
+        }
+        $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->$logoField);
+        return response()->json(['logo' => $logoPath]);
+
+    }
     public function getSingleLogo(Request $request)
     {
         if($request->has('subscription_id')){
