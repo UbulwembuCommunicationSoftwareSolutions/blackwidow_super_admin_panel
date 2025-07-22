@@ -61,7 +61,6 @@ class Customer extends Model
                 $updated = true;
             }
             if($updated){
-                $model->save();
                 SendSystemConfigJob::dispatch($model->id);
             }
         });
