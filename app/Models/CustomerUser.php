@@ -239,7 +239,8 @@ class CustomerUser extends Authenticatable
 
         static::deleted(function ($model) {
             // Your logic here
-            CMSService::syncUsers($model->customer_id);
+            $user = User::withTrashed()->find($model->id);
+            CMSService::syncUsers($user->customer_id);
         });
     }
     public function customer(): BelongsTo
