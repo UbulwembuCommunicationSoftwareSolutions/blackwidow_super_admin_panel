@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\CustomerUserResource;
+use App\Jobs\StartUserSyncJob;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
