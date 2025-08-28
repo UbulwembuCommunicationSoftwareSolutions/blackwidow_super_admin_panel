@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Services\CMSService;
+use Cassandra\Custom;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 class CustomerUser extends Authenticatable
 {
     use HasApiTokens, Notifiable;
+    use SoftDeletes;
 
     public $fillable = [
         'customer_id',
@@ -239,7 +242,7 @@ class CustomerUser extends Authenticatable
 
         static::deleted(function ($model) {
             // Your logic here
-            $user = User::where('id',$model->id)->withTrashed()->first();
+            $user = CustomerUser::withTrashed()->where('id',$model->id)->first();
             CMSService::syncUsers($user->customer_id);
         });
     }
