@@ -58,14 +58,17 @@ class CMSService
 
     public static function syncUsers($id){
         $customer = Customer::find($id);
-        $subscription = CustomerSubscription::where('subscription_type_id',1)
-            ->where('customer_id',$customer->id)
-            ->first();
-        $url = $subscription->url.'/admin-api/sync-users';
-        \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
-        $response = Http::withToken($subscription->customer->token)->post($url);
-        \Log::info($response->body());
-
+        if($customer){
+            $subscription = CustomerSubscription::where('subscription_type_id',1)
+                ->where('customer_id',$customer->id)
+                ->first();
+            if($subscription){
+                $url = $subscription->url.'/admin-api/sync-users';
+                \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
+                $response = Http::withToken($subscription->customer->token)->post($url);
+                \Log::info($response->body());
+            }
+        }
     }
 
     public function sendAppLink(CustomerUser $customerUser,CustomerSubscription $customerSubscription){
