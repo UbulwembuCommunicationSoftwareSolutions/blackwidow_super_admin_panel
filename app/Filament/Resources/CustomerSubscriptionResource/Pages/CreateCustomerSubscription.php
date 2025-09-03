@@ -302,12 +302,81 @@ class CreateCustomerSubscription extends CreateRecord
                'server_id' => $data['server_id'],
                'url' => 'https://'.$domain,
                'app_name' => $data['app_name'],
-               'database_name' => $data['database_name'],
+               'database_name' => $this->cleanDatabaseName($data['database_name']),
            ]);
            return $customerSubscription;
        }
 
    }
+
+    public function cleanDatabaseName($databaseName){
+        $databaseName = str_replace(' ', '_', $databaseName);
+        $databaseName = str_replace('-', '_', $databaseName);
+        $databaseName = str_replace('.', '_', $databaseName);
+        $databaseName = str_replace('/', '_', $databaseName);
+        $databaseName = str_replace('\\', '_', $databaseName);
+        $databaseName = str_replace('|', '_', $databaseName);
+        $databaseName = str_replace(';', '_', $databaseName);
+        $databaseName = str_replace(':', '_', $databaseName);
+        $databaseName = str_replace('"', '_', $databaseName);
+        $databaseName = str_replace('\'', '_', $databaseName);
+        $databaseName = str_replace('`', '_', $databaseName);
+        $databaseName = str_replace('~', '_', $databaseName);
+        $databaseName = str_replace('!', '_', $databaseName);
+        $databaseName = str_replace('@', '_', $databaseName);
+        $databaseName = str_replace('#', '_', $databaseName);
+        $databaseName = str_replace('$', '_', $databaseName);
+        $databaseName = str_replace('%', '_', $databaseName);
+        $databaseName = str_replace('^', '_', $databaseName);
+        $databaseName = str_replace('&', '_', $databaseName);
+        $databaseName = str_replace('*', '_', $databaseName);
+        $databaseName = str_replace('(', '_', $databaseName);
+        $databaseName = str_replace(')', '_', $databaseName);
+        $databaseName = str_replace('-', '_', $databaseName);
+        $databaseName = str_replace('=', '_', $databaseName);
+        $databaseName = str_replace('+', '_', $databaseName);
+        $databaseName = str_replace('[', '_', $databaseName);
+        $databaseName = str_replace(']', '_', $databaseName);
+        $databaseName = str_replace('{', '_', $databaseName);
+        $databaseName = str_replace('}', '_', $databaseName);
+        $databaseName = str_replace('<', '_', $databaseName);
+        $databaseName = str_replace('>', '_', $databaseName);
+        $databaseName = str_replace(',', '_', $databaseName);
+        $databaseName = str_replace('.', '_', $databaseName);
+        $databaseName = str_replace('?', '_', $databaseName);
+        $databaseName = str_replace('/', '_', $databaseName);
+        $databaseName = str_replace('\\', '_', $databaseName);
+        $databaseName = str_replace('|', '_', $databaseName);
+        $databaseName = str_replace(';', '_', $databaseName);
+        $databaseName = str_replace(':', '_', $databaseName);
+        $databaseName = str_replace('"', '_', $databaseName);
+        $databaseName = str_replace('\'', '_', $databaseName);
+        $databaseName = str_replace('`', '_', $databaseName);
+        $databaseName = str_replace('~', '_', $databaseName);
+        $databaseName = str_replace('!', '_', $databaseName);
+        $databaseName = str_replace('@', '_', $databaseName);
+        $databaseName = str_replace('#', '_', $databaseName);
+        $databaseName = str_replace('$', '_', $databaseName);
+        $databaseName = str_replace('%', '_', $databaseName);
+        $databaseName = str_replace('^', '_', $databaseName);
+        $databaseName = str_replace('&', '_', $databaseName);
+        $databaseName = str_replace('*', '_', $databaseName);
+        $databaseName = str_replace('(', '_', $databaseName);
+        $databaseName = str_replace(')', '_', $databaseName);
+        $databaseName = str_replace('-', '_', $databaseName);
+        $databaseName = str_replace('=', '_', $databaseName);
+        $databaseName = str_replace('+', '_', $databaseName);
+        $databaseName = str_replace('[', '_', $databaseName);
+        $databaseName = str_replace(']', '_', $databaseName);
+        $databaseName = str_replace('{', '_', $databaseName);
+        $databaseName = str_replace('}', '_', $databaseName);
+        $databaseName = str_replace('<', '_', $databaseName);
+        $databaseName = str_replace('>', '_', $databaseName);
+        $databaseName = str_replace(',', '_', $databaseName);
+        $databaseName = str_replace('.', '_', $databaseName);
+        $databaseName = str_replace('?', '_', $databaseName);
+        return $databaseName;
+    }
 
     public  function afterCreate():void
     {
