@@ -304,7 +304,10 @@ class CustomerUserController extends Controller
             ->first();
         \Log::info('User found: '.$customerUser->id);
         \Log::info('Old password hash: ' . $customerUser->password);
-        $customerUser->password = $request->password;
+        $password = $request->password;
+        if($password){
+            $customerUser->password = $password;
+        }
         if($email){
             $customerUser->email_address = $email;
         }
