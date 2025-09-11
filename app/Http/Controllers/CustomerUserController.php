@@ -281,9 +281,17 @@ class CustomerUserController extends Controller
     }
 
     public function updatePassword(Request $request){
-        $email = $request->email;
         $id = $request->super_admin_user_id;
-        $cellphone = $request->cellphone;
+        if($request->has('cellphone')){
+            $cellphone = $request->cellphone;
+        }else{
+            $cellphone = null;
+        }
+        if($request->has('email')){
+            $email = $request->email;
+        }else{
+            $email = null;
+        }
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         \Log::info('Password update for Customer: ' . $request->app_url);
         $customer = $customerSub->customer;
@@ -297,8 +305,12 @@ class CustomerUserController extends Controller
         \Log::info('User found: '.$customerUser->id);
         \Log::info('Old password hash: ' . $customerUser->password);
         $customerUser->password = $request->password;
-        $customerUser->email_address = $email;
-        $customerUser->cellphone = $cellphone;
+        if($email){
+            $customerUser->email_address = $email;
+        }
+        if($cellphone){
+            $customerUser->cellphone = $cellphone;
+        }
         $customerUser->save();
         \Log::info('New password hash: ' . $customerUser->password);
         \Log::info('Password updated for user: ' . $email);
