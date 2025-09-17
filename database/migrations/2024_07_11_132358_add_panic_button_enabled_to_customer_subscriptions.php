@@ -8,14 +8,18 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('customer_subscriptions', function (Blueprint $table) {
-            $table->boolean('panic_button_enabled')->default(false);
+            if (!Schema::hasColumn('customer_subscriptions', 'panic_button_enabled')) {
+                $table->boolean('panic_button_enabled')->default(false);
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('customer_subscriptions', function (Blueprint $table) {
-            $table->dropColumn('panic_button_enabled');
+            if (Schema::hasColumn('customer_subscriptions', 'panic_button_enabled')) {
+                $table->dropColumn('panic_button_enabled');
+            }
         });
     }
 };
