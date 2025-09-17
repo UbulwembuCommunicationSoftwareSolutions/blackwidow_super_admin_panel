@@ -16,6 +16,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Illuminate\Support\Collection;
@@ -66,7 +67,7 @@ class CustomerSubscriptionResource extends Resource
                     ->directory('logos'),
                 TextInput::make('database_name'),
                 TextInput::make('forge_site_id'),
-                ToggleColumn::make('panic_button_enabled')
+                Toggle::make('panic_button_enabled')
                     ->label('Panic Button'),
             ]);
     }

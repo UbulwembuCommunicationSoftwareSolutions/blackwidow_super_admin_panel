@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class ListCustomerSubscriptions extends ListRecords
 {
@@ -83,7 +84,9 @@ class ListCustomerSubscriptions extends ListRecords
             ])
             ->headerActions([
                 CreateAction::make(),
-                ExportAction::make('table')->fromTable(),
+                ExportAction::make('export')->exports([
+                    ExcelExport::make('table')->queue()->fromTable(),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
