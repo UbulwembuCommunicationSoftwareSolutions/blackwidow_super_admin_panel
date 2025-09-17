@@ -2,6 +2,14 @@
 
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
 use App\Filament\Resources\CustomerResource;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
@@ -15,7 +23,6 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -32,12 +39,12 @@ class CustomerUserRelationManager extends RelationManager
     protected static string $relationship = 'customerUsers';
 
     protected static string $resource = CustomerResource::class;
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
 
-            Forms\Components\Section::make('User Information')
+            Section::make('User Information')
                 ->schema([
                     Select::make('customer_id')
                         ->label('Customer')
@@ -74,25 +81,25 @@ class CustomerUserRelationManager extends RelationManager
                         ->minLength(6)
                         ->required(fn (string $operation): bool => $operation === 'create'),
                 ]),
-            Forms\Components\Section::make('Access Rights')
+            Section::make('Access Rights')
                 ->schema([
                     Toggle::make('is_system_admin')
                         ->label('Is Super Admin'),
-                    Forms\Components\Toggle::make('console_access')
+                    Toggle::make('console_access')
                         ->required(),
-                    Forms\Components\Toggle::make('firearm_access')
+                    Toggle::make('firearm_access')
                         ->required(),
-                    Forms\Components\Toggle::make('responder_access')
+                    Toggle::make('responder_access')
                         ->required(),
-                    Forms\Components\Toggle::make('reporter_access')
+                    Toggle::make('reporter_access')
                         ->required(),
-                    Forms\Components\Toggle::make('security_access')
+                    Toggle::make('security_access')
                         ->required(),
-                    Forms\Components\Toggle::make('survey_access')
+                    Toggle::make('survey_access')
                         ->required(),
-                    Forms\Components\Toggle::make('time_and_attendance_access')
+                    Toggle::make('time_and_attendance_access')
                         ->required(),
-                    Forms\Components\Toggle::make('stock_access')
+                    Toggle::make('stock_access')
                         ->required(),
                 ])->columns(2)
             ]);
@@ -119,21 +126,21 @@ class CustomerUserRelationManager extends RelationManager
 
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-                Tables\Actions\Action::make('updatePassword')
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
+                Action::make('updatePassword')
                     ->label('Update Password')
                     ->icon('heroicon-m-key')
-                    ->form([
-                        \Filament\Forms\Components\TextInput::make('new_password')
+                    ->schema([
+                        TextInput::make('new_password')
                             ->label('New Password')
                             ->password()
                             ->required()
                             ->minLength(6),
-                        \Filament\Forms\Components\TextInput::make('confirm_password')
+                        TextInput::make('confirm_password')
                             ->label('Confirm Password')
                             ->password()
                             ->required()
@@ -156,15 +163,15 @@ class CustomerUserRelationManager extends RelationManager
                                 ->send();
                         }
                     }),
-                \Filament\Tables\Actions\Action::make('Send Welcome Email')
+                Action::make('Send Welcome Email')
                     ->label('Send Welcome Email')
                     ->action(function ($record) {
                         $user = CustomerUser::find($record->id);
                         SendWelcomeEmailJob::dispatch($user);
                     }),
-                \Filament\Tables\Actions\Action::make('Send Login Email')
+                Action::make('Send Login Email')
                     ->label('Send Login Email')
-                    ->form(fn ($record) => [
+                    ->schema(fn ($record) => [
                         Select::make('subscription_type_id')
                             ->label('Subscription Type')
                             ->required()
@@ -194,37 +201,37 @@ class CustomerUserRelationManager extends RelationManager
 
 
                     }),
-                Tables\Actions\Action::make('manageAccessRights')
+                Action::make('manageAccessRights')
                     ->label('Manage Access Rights')
                     ->icon('heroicon-m-key')
-                    ->form([
-                        Forms\Components\Section::make('Access Rights')
+                    ->schema([
+                        Section::make('Access Rights')
                             ->schema([
-                                Forms\Components\Toggle::make('is_system_admin')
+                                Toggle::make('is_system_admin')
                                     ->label('Super Admin')
                                     ->required(),
-                                Forms\Components\Toggle::make('console_access')
+                                Toggle::make('console_access')
                                     ->label('Console Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('firearm_access')
+                                Toggle::make('firearm_access')
                                     ->label('Firearm Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('responder_access')
+                                Toggle::make('responder_access')
                                     ->label('Responder Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('reporter_access')
+                                Toggle::make('reporter_access')
                                     ->label('Reporter Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('security_access')
+                                Toggle::make('security_access')
                                     ->label('Security Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('survey_access')
+                                Toggle::make('survey_access')
                                     ->label('Survey Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('time_and_attendance_access')
+                                Toggle::make('time_and_attendance_access')
                                     ->label('Time and Attendance Access')
                                     ->required(),
-                                Forms\Components\Toggle::make('stock_access')
+                                Toggle::make('stock_access')
                                     ->label('Stock Access')
                                     ->required(),
                             ])->columns(2)
@@ -249,12 +256,12 @@ class CustomerUserRelationManager extends RelationManager
                             ->send();
                     })
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('Send Login Email')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('Send Login Email')
                         ->label('Send Login Email')
-                        ->form([
+                        ->schema([
                             Select::make('subscription_type_id')
                                 ->label('Subscription Type')
                                 ->required()

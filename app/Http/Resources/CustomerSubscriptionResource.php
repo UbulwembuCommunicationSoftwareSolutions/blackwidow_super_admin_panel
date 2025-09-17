@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\CustomerSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\CustomerSubscription */
+/** @mixin CustomerSubscription */
 class CustomerSubscriptionResource extends JsonResource
 {
     public function toArray(Request $request): array

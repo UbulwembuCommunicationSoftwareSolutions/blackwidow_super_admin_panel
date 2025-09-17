@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
+use App\Models\CustomerSubscription;
+use App\Jobs\SendEnvToForge;
 use Illuminate\Console\Command;
 
 class SendEnvToAllConsoles extends Command
@@ -25,9 +27,9 @@ class SendEnvToAllConsoles extends Command
      */
     public function handle()
     {
-        $subscriptions = \App\Models\CustomerSubscription::get();
+        $subscriptions = CustomerSubscription::get();
         foreach($subscriptions as $subscription){
-            $job = \App\Jobs\SendEnvToForge::dispatch($subscription);
+            $job = SendEnvToForge::dispatch($subscription);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Jobs\SiteDeployment;
 
+use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +30,7 @@ class DeploySite implements ShouldQueue
     public function handle(): void
     {
         $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $customerSubscription->deployed_at = now();
         $customerSubscription->deployed_version = $customerSubscription->subscriptionType->master_version;
         $customerSubscription->save();

@@ -2,6 +2,16 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
+use Filament\Notifications\Notification;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ExportAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Filament\Exports\EnvVariableExporter;
 use App\Jobs\SendEnvToForge;
 use App\Models\CustomerSubscription;
@@ -10,10 +20,8 @@ use App\Models\RequiredEnvVariables;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Tables\Actions\BulkAction;
-use Filament\Tables\Actions\ExportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -45,7 +53,7 @@ class EnvVariablesRelationManager extends RelationManager
             $array .= $env->key.' , ';
         }
         if(strlen($array) > 0) {
-            \Filament\Notifications\Notification::make()
+            Notification::make()
                 ->title('The following environment variables are required for this subscription: '.$array)
                 ->send();
         }
@@ -53,10 +61,10 @@ class EnvVariablesRelationManager extends RelationManager
 
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('key')
                     ->required(),
 
@@ -77,18 +85,18 @@ class EnvVariablesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('key')
             ->columns([
-                Tables\Columns\TextColumn::make('key')
+                TextColumn::make('key')
                 ->sortable()
                 ->searchable(),
-                Tables\Columns\TextColumn::make('value')
+                TextColumn::make('value')
             ])
             ->filters([
-                Tables\Filters\Filter::make('is_null')
+                Filter::make('is_null')
                     ->query(fn (Builder $query): Builder => $query->where('value', null))
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
-                Tables\Actions\Action::make('SendToServer')
+                CreateAction::make(),
+                Action::make('SendToServer')
                     ->label('Send To Server')
                     ->action(fn ($record) => $this->sendToServer($record))
                     ->requiresConfirmation()
@@ -97,13 +105,13 @@ class EnvVariablesRelationManager extends RelationManager
                 ExportAction::make()
                     ->exporter(EnvVariableExporter::class)
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

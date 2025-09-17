@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use Mail;
 use App\Mail\AppURLMail;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
@@ -36,7 +37,7 @@ class SendSubscriptionEmailJob implements ShouldQueue
         $cellphone = $this->customerUser->cellphone;
         $app_install_link = $this->customerSubscription->url;
         $email = $this->customerUser->email_address;
-        \Mail::to($this->customerUser->email_address)->send(
+        Mail::to($this->customerUser->email_address)->send(
             new AppURLMail($user, $customer, $app_name, $cellphone, $app_install_link,$email)
         );
     }

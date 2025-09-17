@@ -2,6 +2,8 @@
 
 namespace App\Helpers;
 
+use Exception;
+use Log;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Image\Enums\Fit;
 use Spatie\Image\Exceptions\CouldNotLoadImage;
@@ -22,7 +24,7 @@ class ImageHelper
         $imagePath = Storage::disk('public')->path($imagePath);
 
         if (!file_exists($imagePath)) {
-            throw new \Exception("Image file not found: " . $imagePath);
+            throw new Exception("Image file not found: " . $imagePath);
         }
 
         // Define storage paths
@@ -41,13 +43,13 @@ class ImageHelper
         $command = "cd {$quasarProjectPath} && icongenie generate -m pwa -i " . escapeshellarg($imagePath) . " --include pwa";
 
         $quasarIconsPath = "{$quasarProjectPath}/public";
-        \Log::info("Running command: " . $command);
+        Log::info("Running command: " . $command);
         exec($command, $output, $returnVar);
         // Check if the command executed successfully
 
         sleep(30);
         $command2 = "cp -R ".$quasarProjectPath."/public/* " . escapeshellarg($basePath);
-        \Log::info("Running command: " . $command2);
+        Log::info("Running command: " . $command2);
         exec($command2);
         return true;
     }
@@ -68,12 +70,12 @@ class ImageHelper
             $img = new Imagick($imagePath);
             $img->resizeImage($size, $size, Imagick::FILTER_LANCZOS, 1, false);
             $outputPath = $outputPath . "icon-{$size}x{$size}.png";
-            \Log::info("Saving image to: " . $outputPath);
+            Log::info("Saving image to: " . $outputPath);
             $img->writeImage($outputPath);
             $img->clear();
             $ico->addImage($img);
         }
-        \Log::info("Saving image to: favicon.ico");
+        Log::info("Saving image to: favicon.ico");
         $ico->writeImage($outputPath . "favicon.ico");
 
         $ico->clear();

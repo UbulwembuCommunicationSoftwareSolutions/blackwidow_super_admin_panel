@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Str;
 use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,8 +23,8 @@ class Customer extends Model
             if (strlen($model->token) > 0) {
                 return;
             } else {
-                $model->token = \Str::uuid();
-                $model->uuid = \Str::uuid();
+                $model->token = Str::uuid();
+                $model->uuid = Str::uuid();
                 $model->save();
             }
         });

@@ -2,18 +2,21 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\NginxTemplateResource\Pages\ListNginxTemplates;
+use App\Filament\Resources\NginxTemplateResource\Pages\CreateNginxTemplate;
+use App\Filament\Resources\NginxTemplateResource\Pages\EditNginxTemplate;
 use App\Filament\Resources\NginxTemplateResource\Pages;
 use App\Models\ForgeServer;
 use App\Models\NginxTemplate;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -23,14 +26,14 @@ class NginxTemplateResource extends Resource
 
     protected static ?string $slug = 'nginx-templates';
 
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static string | \UnitEnum | null $navigationGroup = 'System Administration';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('name')
                     ->required(),
 
@@ -64,11 +67,11 @@ class NginxTemplateResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
@@ -78,9 +81,9 @@ class NginxTemplateResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListNginxTemplates::route('/'),
-            'create' => Pages\CreateNginxTemplate::route('/create'),
-            'edit' => Pages\EditNginxTemplate::route('/{record}/edit'),
+            'index' => ListNginxTemplates::route('/'),
+            'create' => CreateNginxTemplate::route('/create'),
+            'edit' => EditNginxTemplate::route('/{record}/edit'),
         ];
     }
 

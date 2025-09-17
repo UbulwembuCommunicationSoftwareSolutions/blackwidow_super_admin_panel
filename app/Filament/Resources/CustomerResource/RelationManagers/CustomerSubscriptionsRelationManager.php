@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Models\SubscriptionType;
 use Filament\Actions\Action;
 use Filament\Forms;
@@ -51,7 +55,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     ->options(SubscriptionType::pluck('name', 'id')),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('create')
+                Action::make('create')
                     ->label('Create Subscription')
                     ->icon('heroicon-o-plus')
                     ->action(function () {
@@ -60,19 +64,19 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                         ]);
                     }),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                \Filament\Tables\Actions\Action::make('navigate')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('navigate')
                     ->label('Navigate')
                     ->icon('heroicon-o-arrow-right')
                     ->action(function ($record) {
                         return redirect()->route('filament.admin.resources.customer-subscriptions.edit', $record);
                     }),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

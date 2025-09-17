@@ -2,20 +2,23 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use App\Filament\Resources\SubscriptionTypeResource\Pages\ListSubscriptionTypes;
+use App\Filament\Resources\SubscriptionTypeResource\Pages\CreateSubscriptionType;
+use App\Filament\Resources\SubscriptionTypeResource\Pages\EditSubscriptionType;
 use App\Filament\Resources\SubscriptionTypeResource\Pages;
 use App\Models\SubscriptionType;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ForceDeleteAction;
-use Filament\Tables\Actions\ForceDeleteBulkAction;
-use Filament\Tables\Actions\RestoreAction;
-use Filament\Tables\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -28,14 +31,14 @@ class SubscriptionTypeResource extends Resource
 
     protected static ?string $slug = 'subscription-types';
 
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static string | \UnitEnum | null $navigationGroup = 'System Administration';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Placeholder::make('created_at')
                     ->label('Created Date')
                     ->content(fn(?SubscriptionType $record): string => $record?->created_at?->diffForHumans() ?? '-'),
@@ -80,13 +83,13 @@ class SubscriptionTypeResource extends Resource
             ->filters([
                 TrashedFilter::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     RestoreBulkAction::make(),
@@ -98,9 +101,9 @@ class SubscriptionTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSubscriptionTypes::route('/'),
-            'create' => Pages\CreateSubscriptionType::route('/create'),
-            'edit' => Pages\EditSubscriptionType::route('/{record}/edit'),
+            'index' => ListSubscriptionTypes::route('/'),
+            'create' => CreateSubscriptionType::route('/create'),
+            'edit' => EditSubscriptionType::route('/{record}/edit'),
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Jobs\SiteDeployment;
 
+use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -26,7 +27,7 @@ class AddSSLOnSiteJob implements ShouldQueue
     public function handle(): void
     {
         $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $forgeApi->letsEncryptCertificate($customerSubscription);
     }
 }

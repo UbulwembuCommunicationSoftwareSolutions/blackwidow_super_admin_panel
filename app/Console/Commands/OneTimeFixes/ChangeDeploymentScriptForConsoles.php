@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands\OneTimeFixes;
 
+use App\Models\CustomerSubscription;
+use Exception;
 use Illuminate\Console\Command;
 
 class ChangeDeploymentScriptForConsoles extends Command
@@ -25,7 +27,7 @@ class ChangeDeploymentScriptForConsoles extends Command
      */
     public function handle()
     {
-        $consoles = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
+        $consoles = CustomerSubscription::where('subscription_type_id', 1)->get();
         foreach($consoles as $console){
             try{
                 $deploymentScript = $console->deploymentScript()->first();
@@ -37,7 +39,7 @@ class ChangeDeploymentScriptForConsoles extends Command
                     );
                     $deploymentScript->save();
                 }
-            }catch (\Exception $e){
+            }catch (Exception $e){
                 echo $e->getMessage();
             }
 

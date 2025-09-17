@@ -2,6 +2,8 @@
 
 namespace App\Jobs\SiteDeployment;
 
+use App\Helpers\ForgeApi;
+use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,8 +29,8 @@ class AddGitRepoOnForgeJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $forgeApi = new \App\Helpers\ForgeApi();
-        $customerSubscription = \App\Models\CustomerSubscription::find($this->customerSubscriptionId);
+        $forgeApi = new ForgeApi();
+        $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
         $forgeApi->sendGitRepository($customerSubscription);
     }
 }

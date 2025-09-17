@@ -2,21 +2,24 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use App\Filament\Resources\UserCustomerResource\Pages\ListUserCustomers;
+use App\Filament\Resources\UserCustomerResource\Pages\CreateUserCustomer;
+use App\Filament\Resources\UserCustomerResource\Pages\EditUserCustomer;
 use App\Filament\Resources\UserCustomerResource\Pages;
 use App\Models\UserCustomer;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ForceDeleteAction;
-use Filament\Tables\Actions\ForceDeleteBulkAction;
-use Filament\Tables\Actions\RestoreAction;
-use Filament\Tables\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -30,14 +33,14 @@ class UserCustomerResource extends Resource
 
     protected static ?string $slug = 'user-customers';
 
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static string | \UnitEnum | null $navigationGroup = 'System Administration';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Select::make('user_id')
                     ->relationship('user', 'email')
                     ->searchable()
@@ -72,13 +75,13 @@ class UserCustomerResource extends Resource
             ->filters([
                 TrashedFilter::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     RestoreBulkAction::make(),
@@ -90,9 +93,9 @@ class UserCustomerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUserCustomers::route('/'),
-            'create' => Pages\CreateUserCustomer::route('/create'),
-            'edit' => Pages\EditUserCustomer::route('/{record}/edit'),
+            'index' => ListUserCustomers::route('/'),
+            'create' => CreateUserCustomer::route('/create'),
+            'edit' => EditUserCustomer::route('/{record}/edit'),
         ];
     }
 

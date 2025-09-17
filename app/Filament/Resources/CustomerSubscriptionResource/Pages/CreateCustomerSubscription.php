@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Actions\Action;
+use Exception;
 use App\Console\Commands\ForgeGetters\SyncForge;
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\SendCommandToForge;
@@ -17,14 +21,11 @@ use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use App\Services\CustomerSubscriptionService;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -42,10 +43,10 @@ class CreateCustomerSubscription extends CreateRecord
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Customer Info')->schema([
                     Hidden::make('urlConfirmed')
                         ->default(false),
@@ -149,7 +150,7 @@ class CreateCustomerSubscription extends CreateRecord
 
                             // Check if URL is unique
                             $domain = $url . $get('postfix');
-                            $exists = \App\Models\CustomerSubscription::where('url', 'https://' . $domain)->exists();
+                            $exists = CustomerSubscription::where('url', 'https://' . $domain)->exists();
                             if ($exists) {
                                 Notification::make()
                                     ->title('This URL is already taken')
@@ -502,7 +503,7 @@ class CreateCustomerSubscription extends CreateRecord
                     ->send();
                 return false;
             }
-        }catch (\Exception $e){
+        }catch (Exception $e){
             Notification::make()
                 ->title('Domain does not resolve to IP '.$domain)
                 ->danger()

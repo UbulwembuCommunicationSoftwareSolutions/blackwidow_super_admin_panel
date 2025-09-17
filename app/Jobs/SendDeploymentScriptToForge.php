@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +32,7 @@ class SendDeploymentScriptToForge implements ShouldQueue
     public function handle(): void
     {
         $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $forgeApi->sendDeploymentScript($customerSubscription);
     }
 }

@@ -30,7 +30,7 @@ class GenerateDeploymentScriptForSites extends Command
      */
     public function handle()
     {
-        $customerSubscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 3)->get();
+        $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 3)->get();
         foreach($customerSubscriptions as $customerSubscription){
             $deploymentScript = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
             if($deploymentScript){

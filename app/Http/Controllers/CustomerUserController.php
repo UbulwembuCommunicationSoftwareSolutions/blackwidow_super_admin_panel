@@ -42,10 +42,10 @@ class CustomerUserController extends Controller
         $url = $request->get('app_url');
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
         if(!$customerSubscription){
-            \Log::info("Customer Subscription not found");
+            Log::info("Customer Subscription not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-        \Log::info('Customer Subscription Found: ' . $customerSubscription->url);
+        Log::info('Customer Subscription Found: ' . $customerSubscription->url);
         $customerUser = null;
         if($email){
             $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
@@ -54,7 +54,7 @@ class CustomerUserController extends Controller
             $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
         }
         if (!$customerUser){
-            \Log::info("Customer User not found");
+            Log::info("Customer User not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
         if($customerUser){
@@ -68,9 +68,9 @@ class CustomerUserController extends Controller
                 );
             }
         }
-        \Log::info('Stored hash: ' . $customerUser->password);
-        \Log::info('Entered password: ' . $request->password);
-        \Log::info('Hash Check: ' . (Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
+        Log::info('Stored hash: ' . $customerUser->password);
+        Log::info('Entered password: ' . $request->password);
+        Log::info('Hash Check: ' . (Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
         if(!\Hash::check($request->password, $customerUser->password)) {
             return response()->json(
                 [
@@ -105,7 +105,7 @@ class CustomerUserController extends Controller
     }
 
     public function checkAccess(CustomerUser $user,CustomerSubscription $subscription){
-        \Log::info("Checking if user ".$user->cellphone." has access to subscription ".$subscription->url);
+        Log::info("Checking if user ".$user->cellphone." has access to subscription ".$subscription->url);
         if((int)$subscription->subscription_type_id == 1){
             if($user->console_access){
                 return true;
@@ -173,7 +173,7 @@ class CustomerUserController extends Controller
     }
 
     public function setAccess(CustomerUser $user, CustomerSubscription $subscription){
-        \Log::info("Setting access for user ".$user->cellphone." to subscription ".$subscription->url);
+        Log::info("Setting access for user ".$user->cellphone." to subscription ".$subscription->url);
 
         switch((int)$subscription->subscription_type_id) {
             case 1:
@@ -204,18 +204,18 @@ class CustomerUserController extends Controller
                 $user->stock_access = true;
                 break;
             default:
-                \Log::warning("Unknown subscription type ID: " . $subscription->subscription_type_id);
+                Log::warning("Unknown subscription type ID: " . $subscription->subscription_type_id);
                 return false;
         }
 
         $user->save();
-        \Log::info("Access granted for user " . $user->email_address . " to subscription type " . $subscription->subscription_type_id);
+        Log::info("Access granted for user " . $user->email_address . " to subscription type " . $subscription->subscription_type_id);
         return true;
     }
 
     public function store(Request $request)
     {
-        \Log::info(json_encode($request->all()));
+        Log::info(json_encode($request->all()));
         $customerSub = CustomerSubscription::where('uuid', $request->subscription_id)->first();
         $customer = Customer::find($customerSub->customer_id);
         $data = $request->all();
@@ -293,17 +293,17 @@ class CustomerUserController extends Controller
             $email = null;
         }
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
-        \Log::info('Password update for Customer: ' . $request->app_url);
+        Log::info('Password update for Customer: ' . $request->app_url);
         $customer = $customerSub->customer;
         if($customer){
-            \Log::info('Customer Found: ' . $customer->company_name);
+            Log::info('Customer Found: ' . $customer->company_name);
         }
-        \Log::info("Received ".$request->password);
+        Log::info("Received ".$request->password);
         $customerUser = CustomerUser::where('id', $id)
             ->where('customer_id', $customer->id)
             ->first();
-        \Log::info('User found: '.$customerUser->id);
-        \Log::info('Old password hash: ' . $customerUser->password);
+        Log::info('User found: '.$customerUser->id);
+        Log::info('Old password hash: ' . $customerUser->password);
         $password = $request->password;
         if($password){
             $customerUser->password = $password;
@@ -315,8 +315,8 @@ class CustomerUserController extends Controller
             $customerUser->cellphone = $cellphone;
         }
         $customerUser->save();
-        \Log::info('New password hash: ' . $customerUser->password);
-        \Log::info('Password updated for user: ' . $email);
+        Log::info('New password hash: ' . $customerUser->password);
+        Log::info('Password updated for user: ' . $email);
         return response()->json(['message' => 'Password updated successfully to '.$request->password]);
     }
 
@@ -325,7 +325,7 @@ class CustomerUserController extends Controller
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         $customer = $customerSub->customer;
         if($customer){
-            \Log::info('Customer Found: ' . $customer->company_name);
+            Log::info('Customer Found: ' . $customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)
@@ -343,7 +343,7 @@ class CustomerUserController extends Controller
         $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
         $customer = $customerSub->customer;
         if($customer){
-            \Log::info('Customer Found: ' . $customer->company_name);
+            Log::info('Customer Found: ' . $customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)

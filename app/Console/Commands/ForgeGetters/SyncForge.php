@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\ForgeGetters;
 
+use App\Helpers\ForgeApi;
 use Illuminate\Console\Command;
 
 class SyncForge extends Command
@@ -25,7 +26,7 @@ class SyncForge extends Command
      */
     public function handle()
     {
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $forgeApi->syncForge();
     }
 }

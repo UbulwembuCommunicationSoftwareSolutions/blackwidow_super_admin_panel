@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
+use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
@@ -30,7 +31,7 @@ class DeploySiteByType extends Command
         $delay = now(); // Start with the current time
 
         foreach ($customerSubscriptions as $customerSubscription) {
-            \App\Jobs\SiteDeployment\DeploySite::dispatch($customerSubscription->id)->delay($delay);
+            DeploySite::dispatch($customerSubscription->id)->delay($delay);
             $delay = $delay->addMinutes(10); // Increment delay by 1 minute for each job
         }
     }
