@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
+use App\Filament\Exports\CustomerSubscriptionExport;
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Models\SubscriptionType;
 use Filament\Actions\CreateAction;
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\BulkActionGroup;
@@ -12,6 +14,7 @@ use Filament\Tables\Actions\CreateAction as ActionsCreateAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -19,8 +22,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 
 class ListCustomerSubscriptions extends ListRecords
@@ -86,9 +87,12 @@ class ListCustomerSubscriptions extends ListRecords
             ])
             ->headerActions([
                 ActionsCreateAction::make(),
-                ExportAction::make('export')->exports([
-                    ExcelExport::make('table')->queue()->fromTable(),
-                ]),
+                ExportAction::make()
+                    ->exporter(CustomerSubscriptionExport::class)
+                    ->formats([
+                        ExportFormat::Xlsx,
+                        ExportFormat::Csv,
+                    ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
