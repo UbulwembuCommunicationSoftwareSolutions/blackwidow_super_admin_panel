@@ -14,7 +14,7 @@ class ListCustomerSubscriptions extends ListRecords
     {
         return [
             CreateAction::make(),
-            ExportAction::make('table')->queue()->fromTable(),
+            ExportAction::make('table')->fromTable(),
         ];
     }
 
