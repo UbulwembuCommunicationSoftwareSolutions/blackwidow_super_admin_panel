@@ -8,6 +8,7 @@ use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\CreateAction as ActionsCreateAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
@@ -83,7 +84,7 @@ class ListCustomerSubscriptions extends ListRecords
                 DeleteAction::make(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                ActionsCreateAction::make(),
                 ExportAction::make('export')->exports([
                     ExcelExport::make('table')->queue()->fromTable(),
                 ]),
