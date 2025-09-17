@@ -1,108 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\DeploymentScript;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class DeploymentScriptPolicy
 {
     use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any_deployment::script');
+        return $authUser->can('ViewAny:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, DeploymentScript $deploymentScript): bool
+    public function view(AuthUser $authUser, DeploymentScript $deploymentScript): bool
     {
-        return $user->can('view_deployment::script');
+        return $authUser->can('View:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create_deployment::script');
+        return $authUser->can('Create:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, DeploymentScript $deploymentScript): bool
+    public function update(AuthUser $authUser, DeploymentScript $deploymentScript): bool
     {
-        return $user->can('update_deployment::script');
+        return $authUser->can('Update:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, DeploymentScript $deploymentScript): bool
+    public function delete(AuthUser $authUser, DeploymentScript $deploymentScript): bool
     {
-        return $user->can('delete_deployment::script');
+        return $authUser->can('Delete:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
-    public function deleteAny(User $user): bool
+    public function restore(AuthUser $authUser, DeploymentScript $deploymentScript): bool
     {
-        return $user->can('delete_any_deployment::script');
+        return $authUser->can('Restore:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
-    public function forceDelete(User $user, DeploymentScript $deploymentScript): bool
+    public function forceDelete(AuthUser $authUser, DeploymentScript $deploymentScript): bool
     {
-        return $user->can('force_delete_deployment::script');
+        return $authUser->can('ForceDelete:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
-    public function forceDeleteAny(User $user): bool
+    public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_any_deployment::script');
+        return $authUser->can('ForceDeleteAny:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
-    public function restore(User $user, DeploymentScript $deploymentScript): bool
+    public function restoreAny(AuthUser $authUser): bool
     {
-        return $user->can('restore_deployment::script');
+        return $authUser->can('RestoreAny:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
-    public function restoreAny(User $user): bool
+    public function replicate(AuthUser $authUser, DeploymentScript $deploymentScript): bool
     {
-        return $user->can('restore_any_deployment::script');
+        return $authUser->can('Replicate:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
-    public function replicate(User $user, DeploymentScript $deploymentScript): bool
+    public function reorder(AuthUser $authUser): bool
     {
-        return $user->can('replicate_deployment::script');
+        return $authUser->can('Reorder:DeploymentScript');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_deployment::script');
-    }
 }

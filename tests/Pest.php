@@ -13,8 +13,11 @@
 
 uses(
     Tests\TestCase::class,
-    // Illuminate\Foundation\Testing\RefreshDatabase::class,
 )->in('Feature');
+
+uses(
+    Tests\TestCase::class,
+)->in('Browser');
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +34,10 @@ expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
 
+expect()->extend('toBeSoftDeleted', function () {
+    return $this->not->toBeNull();
+});
+
 /*
 |--------------------------------------------------------------------------
 | Functions
@@ -42,7 +49,24 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function createUserWithRole(string $role): \App\Models\User
 {
-    // ..
+    $user = \App\Models\User::factory()->create();
+    $user->assignRole($role);
+    return $user;
+}
+
+function createCustomerWithSubscriptions(int $count = 1): \App\Models\Customer
+{
+    $customer = \App\Models\Customer::factory()->create();
+    $subscriptionType = \App\Models\SubscriptionType::factory()->create();
+
+    for ($i = 0; $i < $count; $i++) {
+        \App\Models\CustomerSubscription::factory()->create([
+            'customer_id' => $customer->id,
+            'subscription_type_id' => $subscriptionType->id,
+        ]);
+    }
+
+    return $customer;
 }

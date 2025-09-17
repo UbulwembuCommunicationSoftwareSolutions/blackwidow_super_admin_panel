@@ -1,108 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\ForgeServer;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ForgeServerPolicy
 {
     use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any_forge::server');
+        return $authUser->can('ViewAny:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, ForgeServer $forgeServer): bool
+    public function view(AuthUser $authUser, ForgeServer $forgeServer): bool
     {
-        return $user->can('view_forge::server');
+        return $authUser->can('View:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create_forge::server');
+        return $authUser->can('Create:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, ForgeServer $forgeServer): bool
+    public function update(AuthUser $authUser, ForgeServer $forgeServer): bool
     {
-        return $user->can('update_forge::server');
+        return $authUser->can('Update:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, ForgeServer $forgeServer): bool
+    public function delete(AuthUser $authUser, ForgeServer $forgeServer): bool
     {
-        return $user->can('delete_forge::server');
+        return $authUser->can('Delete:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
-    public function deleteAny(User $user): bool
+    public function restore(AuthUser $authUser, ForgeServer $forgeServer): bool
     {
-        return $user->can('delete_any_forge::server');
+        return $authUser->can('Restore:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
-    public function forceDelete(User $user, ForgeServer $forgeServer): bool
+    public function forceDelete(AuthUser $authUser, ForgeServer $forgeServer): bool
     {
-        return $user->can('force_delete_forge::server');
+        return $authUser->can('ForceDelete:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
-    public function forceDeleteAny(User $user): bool
+    public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_any_forge::server');
+        return $authUser->can('ForceDeleteAny:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
-    public function restore(User $user, ForgeServer $forgeServer): bool
+    public function restoreAny(AuthUser $authUser): bool
     {
-        return $user->can('restore_forge::server');
+        return $authUser->can('RestoreAny:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
-    public function restoreAny(User $user): bool
+    public function replicate(AuthUser $authUser, ForgeServer $forgeServer): bool
     {
-        return $user->can('restore_any_forge::server');
+        return $authUser->can('Replicate:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
-    public function replicate(User $user, ForgeServer $forgeServer): bool
+    public function reorder(AuthUser $authUser): bool
     {
-        return $user->can('replicate_forge::server');
+        return $authUser->can('Reorder:ForgeServer');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_forge::server');
-    }
 }

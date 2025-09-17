@@ -13,11 +13,19 @@ class CustomerFactory extends Factory
     public function definition()
     {
         return [
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
-            'name' => $this->faker->name(),
-            'surname' => $this->faker->word(),
-            'cellphone' => $this->faker->word(),
+            'company_name' => $this->faker->company(),
+            'token' => $this->faker->uuid(),
+            'max_users' => $this->faker->numberBetween(1, 100),
+            'docket_description' => $this->faker->sentence(),
+            'task_description' => $this->faker->sentence(),
+            'level_one_description' => $this->faker->sentence(),
+            'level_one_in_use' => $this->faker->boolean(),
+            'level_two_description' => $this->faker->sentence(),
+            'level_two_in_use' => $this->faker->boolean(),
+            'level_three_description' => $this->faker->sentence(),
+            'level_three_in_use' => $this->faker->boolean(),
+            'level_four_description' => $this->faker->sentence(),
+            'level_five_description' => $this->faker->sentence(),
         ];
     }
 }
