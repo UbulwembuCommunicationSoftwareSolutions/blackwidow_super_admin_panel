@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Hash;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Services\CMSService;
@@ -252,6 +253,6 @@ class CustomerUser extends Authenticatable
     }
 
     public function setPasswordAttribute($value){
-        $this->attributes['password'] = \Hash::make($value);
+        $this->attributes['password'] = Hash::make($value);
     }
 }

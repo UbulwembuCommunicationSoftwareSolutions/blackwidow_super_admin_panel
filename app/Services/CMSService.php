@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Log;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
@@ -40,7 +41,7 @@ class CMSService
             'email' => $customerUser->email_address
         ];
         $response = Http::withToken($subscription->customer->token)->post($url,$data);
-        \Log::info($response->body());
+        Log::info($response->body());
     }
 
     public function sendWelcomeEmail(CustomerUser $customerUser){
@@ -48,12 +49,12 @@ class CMSService
             ->where('customer_id',$customerUser->customer_id)
             ->first();
         $url = $subscription->url.'/admin-api/send-welcome-email';
-        \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
+        Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
         $data = [
             'email' => $customerUser->email_address
         ];
         $response = Http::withToken($subscription->customer->token)->post($url,$data);
-        \Log::info($response->body());
+        Log::info($response->body());
     }
 
     public static function syncUsers($id){
@@ -64,9 +65,9 @@ class CMSService
                 ->first();
             if($subscription){
                 $url = $subscription->url.'/admin-api/sync-users';
-                \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
+                Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
                 $response = Http::withToken($subscription->customer->token)->post($url);
-                \Log::info($response->body());
+                Log::info($response->body());
             }
         }
     }
@@ -74,12 +75,12 @@ class CMSService
     public function sendAppLink(CustomerUser $customerUser,CustomerSubscription $customerSubscription){
 
         $url = $customerSubscription->url;
-        \Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
+        Log::info('Doing request to '.$url.' with token '.$subscription->customer->token);
         $data = [
             'email' => $customerUser->email_address
         ];
         $response = Http::withToken($subscription->customer->token)->post($url,$data);
-        \Log::info($response->body());
+        Log::info($response->body());
     }
 
 }

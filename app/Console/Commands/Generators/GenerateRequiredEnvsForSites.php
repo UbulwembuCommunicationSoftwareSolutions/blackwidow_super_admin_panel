@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\Generators;
 
+use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
@@ -28,7 +29,7 @@ class GenerateRequiredEnvsForSites extends Command
     {
         $subscriptions = CustomerSubscription::where('subscription_type_id', 3)->get();
         foreach ($subscriptions as $customerSubscription) {
-            $forgeApi = new \App\Helpers\ForgeApi();
+            $forgeApi = new ForgeApi();
             $forgeApi->addMissingEnv($customerSubscription);
         }
     }

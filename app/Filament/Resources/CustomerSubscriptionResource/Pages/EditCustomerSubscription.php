@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
 use App\Filament\Resources\CustomerSubscriptionResource;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
@@ -11,11 +13,9 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Support\Carbon;
@@ -42,7 +42,7 @@ class EditCustomerSubscription extends EditRecord
                     ]);
                 }),
             Action::make('EditServerDetails')
-                ->form([
+                ->schema([
                     Select::make('forge_server_id')
                         ->options(fn()=>ForgeServer::pluck('name','forge_server_id')),
                 ])
@@ -53,10 +53,10 @@ class EditCustomerSubscription extends EditRecord
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Customer Info')->schema([
                     Select::make('customer_id')
                         ->label('Customer')

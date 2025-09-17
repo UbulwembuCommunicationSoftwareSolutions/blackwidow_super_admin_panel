@@ -2,16 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ForgeServerResource\Pages\ListForgeServers;
+use App\Filament\Resources\ForgeServerResource\Pages\CreateForgeServer;
+use App\Filament\Resources\ForgeServerResource\Pages\EditForgeServer;
 use App\Filament\Resources\ForgeServerResource\Pages;
 use App\Models\ForgeServer;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,16 +22,16 @@ class ForgeServerResource extends Resource
 {
     protected static ?string $model = ForgeServer::class;
 
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static string | \UnitEnum | null $navigationGroup = 'System Administration';
 
     protected static ?string $slug = 'forge-servers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('forge_server_id')
                     ->required()
                     ->integer(),
@@ -62,11 +65,11 @@ class ForgeServerResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
@@ -76,9 +79,9 @@ class ForgeServerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListForgeServers::route('/'),
-            'create' => Pages\CreateForgeServer::route('/create'),
-            'edit' => Pages\EditForgeServer::route('/{record}/edit'),
+            'index' => ListForgeServers::route('/'),
+            'create' => CreateForgeServer::route('/create'),
+            'edit' => EditForgeServer::route('/{record}/edit'),
         ];
     }
 

@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use App\Filament\Resources\CustomerSubscriptionResource\Pages\ListCustomerSubscriptions;
+use App\Filament\Resources\CustomerSubscriptionResource\Pages\CreateCustomerSubscription;
+use App\Filament\Resources\CustomerSubscriptionResource\Pages\EditCustomerSubscription;
 use App\Filament\Resources\CustomerSubscriptionResource\Pages;
 use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\DeploymentScriptRelationManager;
 use App\Filament\Resources\CustomerSubscriptionResource\RelationManagers\EnvVariablesRelationManager;
@@ -17,7 +21,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Illuminate\Support\Collection;
 
@@ -27,14 +30,14 @@ class CustomerSubscriptionResource extends Resource
 
     protected static ?string $slug = 'customer-subscriptions';
 
-    protected static ?string $navigationGroup = 'Customers';
+    protected static string | \UnitEnum | null $navigationGroup = 'Customers';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('url')
                     ->required(),
                 TextInput::make('domain')
@@ -83,9 +86,9 @@ class CustomerSubscriptionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCustomerSubscriptions::route('/'),
-            'create' => Pages\CreateCustomerSubscription::route('/create'),
-            'edit' => Pages\EditCustomerSubscription::route('/{record}/edit'),
+            'index' => ListCustomerSubscriptions::route('/'),
+            'create' => CreateCustomerSubscription::route('/create'),
+            'edit' => EditCustomerSubscription::route('/{record}/edit'),
         ];
     }
 

@@ -10,7 +10,6 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\CreateAction as ActionsCreateAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\EditAction;
@@ -81,12 +80,12 @@ class ListCustomerSubscriptions extends ListRecords
                     ->relationship('subscriptionType', 'name')
                     ->options(SubscriptionType::pluck('name', 'id')),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
             ->headerActions([
-                ActionsCreateAction::make(),
+                CreateAction::make(),
                 ExportAction::make()
                     ->exporter(CustomerSubscriptionExport::class)
                     ->formats([
@@ -94,7 +93,7 @@ class ListCustomerSubscriptions extends ListRecords
                         ExportFormat::Csv,
                     ]),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     BulkAction::make('send_ent_to_forge')

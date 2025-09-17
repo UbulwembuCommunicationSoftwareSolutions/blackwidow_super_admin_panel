@@ -2,6 +2,10 @@
 
 namespace App\Console\Commands\Importers;
 
+use App\Models\CustomerSubscription;
+use mysqli;
+use App\Models\CustomerUser;
+use Exception;
 use Illuminate\Console\Command;
 
 class ImportExistingUsers extends Command
@@ -26,16 +30,16 @@ class ImportExistingUsers extends Command
     public function handle()
     {
         $customer = $this->ask('Enter the customer id');
-        $consoles = \App\Models\CustomerSubscription::where('customer_id',$customer)->where('subscription_type_id', 1)->get();
+        $consoles = CustomerSubscription::where('customer_id',$customer)->where('subscription_type_id', 1)->get();
         foreach($consoles as $console){
             $database = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_DATABASE')->first();
             $user = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_USERNAME')->first();
             $password = $console->envVariables()->where('customer_subscription_id',$console->id)->where('key','DB_PASSWORD')->first();
             try{
-                $mysqli = new \mysqli("localhost", $user->value, $password->value, $database->value);
+                $mysqli = new mysqli("localhost", $user->value, $password->value, $database->value);
                 $result = $mysqli->query("SELECT * FROM users");
                 while($row = $result->fetch_assoc()){
-                    $user = \App\Models\CustomerUser::updateOrCreate([
+                    $user = CustomerUser::updateOrCreate([
                         'email_address' => $row['email'],
                         'customer_id' => $console->customer_id,
                     ],[
@@ -45,7 +49,7 @@ class ImportExistingUsers extends Command
                         'password' => $row['password']
                     ]);
                 }
-            }catch (\Exception $e){
+            }catch (Exception $e){
                 echo $e->getMessage();
             }
 

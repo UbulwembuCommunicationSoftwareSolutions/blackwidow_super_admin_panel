@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Helpers\ForgeApi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,7 +31,7 @@ class SendCommandToForgeJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $forgeApi->sendCommand($this->customerSubscriptionId,$this->command);
     }
 }

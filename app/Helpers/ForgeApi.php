@@ -2,6 +2,8 @@
 
 namespace App\Helpers;
 
+use Log;
+use Exception;
 use App\Jobs\GetSitesForServerJob;
 use App\Jobs\SendEnvToForge;
 use App\Jobs\TriggerForgeDeployment;
@@ -89,7 +91,7 @@ class ForgeApi
         $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
         foreach($customerSubscriptions as $customerSubscription){
             if($customerSubscription->server_id == null || $customerSubscription->forge_site_id == null){
-                \Log::error("Server ID or Site ID not found for Subscription ID: ".$customerSubscription->id);
+                Log::error("Server ID or Site ID not found for Subscription ID: ".$customerSubscription->id);
             }else{
                 TriggerForgeDeployment::dispatch($customerSubscription->server_id, $customerSubscription->forge_site_id);
             }
@@ -123,10 +125,10 @@ class ForgeApi
         try{
             foreach($this->forge->sites($serverId) as $site){
                 $sites[] = $site;
-                \Log::info(json_encode($site));
+                Log::info(json_encode($site));
             }
             return $sites;
-        }catch (\Exception $e){
+        }catch (Exception $e){
            // echo $e->getMessage();
         }
     }
@@ -179,7 +181,7 @@ class ForgeApi
             ];
         }
 
-        \Log::info(json_encode($payload));
+        Log::info(json_encode($payload));
         $this->forge->createSite($server_id,$payload);
         $this->syncForge();
     }

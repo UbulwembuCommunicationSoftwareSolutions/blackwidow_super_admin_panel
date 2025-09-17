@@ -2,32 +2,35 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\DeploymentScriptResource\Pages\ListDeploymentScripts;
+use App\Filament\Resources\DeploymentScriptResource\Pages\CreateDeploymentScript;
+use App\Filament\Resources\DeploymentScriptResource\Pages\EditDeploymentScript;
 use App\Filament\Resources\DeploymentScriptResource\Pages;
 use App\Models\DeploymentScript;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class DeploymentScriptResource extends Resource
 {
     protected static ?string $model = DeploymentScript::class;
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static string | \UnitEnum | null $navigationGroup = 'System Administration';
     protected static ?string $slug = 'deployment-scripts';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Placeholder::make('created_at')
                     ->label('Created Date')
                     ->content(fn(?DeploymentScript $record): string => $record?->created_at?->diffForHumans() ?? '-'),
@@ -56,11 +59,11 @@ class DeploymentScriptResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
@@ -70,9 +73,9 @@ class DeploymentScriptResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDeploymentScripts::route('/'),
-            'create' => Pages\CreateDeploymentScript::route('/create'),
-            'edit' => Pages\EditDeploymentScript::route('/{record}/edit'),
+            'index' => ListDeploymentScripts::route('/'),
+            'create' => CreateDeploymentScript::route('/create'),
+            'edit' => EditDeploymentScript::route('/{record}/edit'),
         ];
     }
 

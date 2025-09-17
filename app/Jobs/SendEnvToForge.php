@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,7 +29,7 @@ class SendEnvToForge implements ShouldQueue
      */
     public function handle(): void
     {
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
         $forgeApi->sendEnv($customerSubscription);
     }

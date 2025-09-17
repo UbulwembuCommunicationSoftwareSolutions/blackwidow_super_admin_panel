@@ -2,18 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\RequiredEnvVariablesResource\Pages\ListRequiredEnvVariables;
+use App\Filament\Resources\RequiredEnvVariablesResource\Pages\CreateRequiredEnvVariables;
+use App\Filament\Resources\RequiredEnvVariablesResource\Pages\EditRequiredEnvVariables;
 use App\Filament\Resources\RequiredEnvVariablesResource\Pages;
 use App\Models\RequiredEnvVariables;
 use App\Models\SubscriptionType;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,14 +29,14 @@ class RequiredEnvVariablesResource extends Resource
 
     protected static ?string $slug = 'required-env-variables';
 
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static string | \UnitEnum | null $navigationGroup = 'System Administration';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Placeholder::make('created_at')
                     ->label('Created Date')
                     ->content(fn(?RequiredEnvVariables $record): string => $record?->created_at?->diffForHumans() ?? '-'),
@@ -65,10 +69,10 @@ class RequiredEnvVariablesResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                \Filament\Tables\Filters\Filter::make('subscriptionType')
+                Filter::make('subscriptionType')
                     ->label('Product')
-                    ->form([
-                        \Filament\Forms\Components\Select::make('subscriptionType')
+                    ->schema([
+                        Select::make('subscriptionType')
                             ->options(
                                 SubscriptionType::pluck('name', 'id'),
                             )
@@ -78,11 +82,11 @@ class RequiredEnvVariablesResource extends Resource
                         return $query->where('subscription_type_id', $data['subscriptionType']);
                     }),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
@@ -92,9 +96,9 @@ class RequiredEnvVariablesResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRequiredEnvVariables::route('/'),
-            'create' => Pages\CreateRequiredEnvVariables::route('/create'),
-            'edit' => Pages\EditRequiredEnvVariables::route('/{record}/edit'),
+            'index' => ListRequiredEnvVariables::route('/'),
+            'create' => CreateRequiredEnvVariables::route('/create'),
+            'edit' => EditRequiredEnvVariables::route('/{record}/edit'),
         ];
     }
 

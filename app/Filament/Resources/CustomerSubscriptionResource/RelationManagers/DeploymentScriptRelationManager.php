@@ -2,16 +2,24 @@
 
 namespace App\Filament\Resources\CustomerSubscriptionResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ExportAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Filament\Exports\EnvVariableExporter;
 use App\Jobs\SendDeploymentScriptToForge;
 use App\Jobs\SendEnvToForge;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Tables\Actions\BulkAction;
-use Filament\Tables\Actions\ExportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -23,11 +31,11 @@ class DeploymentScriptRelationManager extends RelationManager
 {
     protected static string $relationship = 'deploymentScript';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Textarea::make('script')
+        return $schema
+            ->components([
+                Textarea::make('script')
                     ->rows(50)
                     ->required(),
                 Select::make('customer_subscription_id')
@@ -45,17 +53,17 @@ class DeploymentScriptRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('key')
             ->columns([
-                Tables\Columns\TextColumn::make('string')
+                TextColumn::make('string')
                 ->sortable()
                 ->searchable(),
             ])
             ->filters([
-                Tables\Filters\Filter::make('is_null')
+                Filter::make('is_null')
                     ->query(fn (Builder $query): Builder => $query->where('value', null))
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
-                Tables\Actions\Action::make('SendToServer')
+                CreateAction::make(),
+                Action::make('SendToServer')
                     ->label('Send To Server')
                     ->action(fn ($record) => $this->sendToServer($record))
                     ->requiresConfirmation()
@@ -64,13 +72,13 @@ class DeploymentScriptRelationManager extends RelationManager
                 ExportAction::make()
                     ->exporter(EnvVariableExporter::class)
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\OneTimeFixes;
 
+use Str;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
@@ -29,7 +30,7 @@ class createUuidForAllCustomers extends Command
     {
         $customers = CustomerSubscription::get();
         foreach ($customers as $customer) {
-            $customer->uuid = \Str::uuid();
+            $customer->uuid = Str::uuid();
             $customer->save();
         }
     }

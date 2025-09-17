@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
+use App\Helpers\ForgeApi;
 use App\Models\CustomerSubscription;
 use Illuminate\Console\Command;
 
@@ -27,7 +28,7 @@ class GenerateCertificate extends Command
     public function handle()
     {
         $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
-        $forgeApi = new \App\Helpers\ForgeApi();
+        $forgeApi = new ForgeApi();
         $forgeApi->letsEncryptCertificate($customerSubscription);
     }
 }

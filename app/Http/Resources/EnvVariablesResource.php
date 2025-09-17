@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\EnvVariables;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\EnvVariables */
+/** @mixin EnvVariables */
 class EnvVariablesResource extends JsonResource
 {
     public function toArray(Request $request): array
