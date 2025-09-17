@@ -2,107 +2,66 @@
 
 namespace App\Policies;
 
-use App\Models\User;
-use App\Models\CustomerUser;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CustomerUserPolicy
 {
     use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any_customer::user');
+        return $authUser->can('ViewAny:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, CustomerUser $customerUser): bool
+    public function view(AuthUser $authUser): bool
     {
-        return $user->can('view_customer::user');
+        return $authUser->can('View:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create_customer::user');
+        return $authUser->can('Create:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, CustomerUser $customerUser): bool
+    public function update(AuthUser $authUser): bool
     {
-        return $user->can('update_customer::user');
+        return $authUser->can('Update:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, CustomerUser $customerUser): bool
+    public function delete(AuthUser $authUser): bool
     {
-        return $user->can('delete_customer::user');
+        return $authUser->can('Delete:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
-    public function deleteAny(User $user): bool
+    public function restore(AuthUser $authUser): bool
     {
-        return $user->can('delete_any_customer::user');
+        return $authUser->can('Restore:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
-    public function forceDelete(User $user, CustomerUser $customerUser): bool
+    public function forceDelete(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_customer::user');
+        return $authUser->can('ForceDelete:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
-    public function forceDeleteAny(User $user): bool
+    public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_any_customer::user');
+        return $authUser->can('ForceDeleteAny:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
-    public function restore(User $user, CustomerUser $customerUser): bool
+    public function restoreAny(AuthUser $authUser): bool
     {
-        return $user->can('restore_customer::user');
+        return $authUser->can('RestoreAny:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
-    public function restoreAny(User $user): bool
+    public function replicate(AuthUser $authUser): bool
     {
-        return $user->can('restore_any_customer::user');
+        return $authUser->can('Replicate:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
-    public function replicate(User $user, CustomerUser $customerUser): bool
+    public function reorder(AuthUser $authUser): bool
     {
-        return $user->can('replicate_customer::user');
+        return $authUser->can('Reorder:CustomerUser');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_customer::user');
-    }
 }

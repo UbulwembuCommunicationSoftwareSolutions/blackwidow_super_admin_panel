@@ -1,108 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\RequiredEnvVariables;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class RequiredEnvVariablesPolicy
 {
     use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any_required::env::variables');
+        return $authUser->can('ViewAny:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, RequiredEnvVariables $requiredEnvVariables): bool
+    public function view(AuthUser $authUser, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('view_required::env::variables');
+        return $authUser->can('View:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create_required::env::variables');
+        return $authUser->can('Create:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, RequiredEnvVariables $requiredEnvVariables): bool
+    public function update(AuthUser $authUser, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('update_required::env::variables');
+        return $authUser->can('Update:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, RequiredEnvVariables $requiredEnvVariables): bool
+    public function delete(AuthUser $authUser, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('delete_required::env::variables');
+        return $authUser->can('Delete:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
-    public function deleteAny(User $user): bool
+    public function restore(AuthUser $authUser, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('delete_any_required::env::variables');
+        return $authUser->can('Restore:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
-    public function forceDelete(User $user, RequiredEnvVariables $requiredEnvVariables): bool
+    public function forceDelete(AuthUser $authUser, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('force_delete_required::env::variables');
+        return $authUser->can('ForceDelete:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
-    public function forceDeleteAny(User $user): bool
+    public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_any_required::env::variables');
+        return $authUser->can('ForceDeleteAny:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
-    public function restore(User $user, RequiredEnvVariables $requiredEnvVariables): bool
+    public function restoreAny(AuthUser $authUser): bool
     {
-        return $user->can('restore_required::env::variables');
+        return $authUser->can('RestoreAny:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
-    public function restoreAny(User $user): bool
+    public function replicate(AuthUser $authUser, RequiredEnvVariables $requiredEnvVariables): bool
     {
-        return $user->can('restore_any_required::env::variables');
+        return $authUser->can('Replicate:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
-    public function replicate(User $user, RequiredEnvVariables $requiredEnvVariables): bool
+    public function reorder(AuthUser $authUser): bool
     {
-        return $user->can('replicate_required::env::variables');
+        return $authUser->can('Reorder:RequiredEnvVariables');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_required::env::variables');
-    }
 }

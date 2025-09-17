@@ -1,108 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\NginxTemplate;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class NginxTemplatePolicy
 {
     use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any_nginx::template');
+        return $authUser->can('ViewAny:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, NginxTemplate $nginxTemplate): bool
+    public function view(AuthUser $authUser, NginxTemplate $nginxTemplate): bool
     {
-        return $user->can('view_nginx::template');
+        return $authUser->can('View:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create_nginx::template');
+        return $authUser->can('Create:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, NginxTemplate $nginxTemplate): bool
+    public function update(AuthUser $authUser, NginxTemplate $nginxTemplate): bool
     {
-        return $user->can('update_nginx::template');
+        return $authUser->can('Update:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, NginxTemplate $nginxTemplate): bool
+    public function delete(AuthUser $authUser, NginxTemplate $nginxTemplate): bool
     {
-        return $user->can('delete_nginx::template');
+        return $authUser->can('Delete:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
-    public function deleteAny(User $user): bool
+    public function restore(AuthUser $authUser, NginxTemplate $nginxTemplate): bool
     {
-        return $user->can('delete_any_nginx::template');
+        return $authUser->can('Restore:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
-    public function forceDelete(User $user, NginxTemplate $nginxTemplate): bool
+    public function forceDelete(AuthUser $authUser, NginxTemplate $nginxTemplate): bool
     {
-        return $user->can('force_delete_nginx::template');
+        return $authUser->can('ForceDelete:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
-    public function forceDeleteAny(User $user): bool
+    public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_any_nginx::template');
+        return $authUser->can('ForceDeleteAny:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
-    public function restore(User $user, NginxTemplate $nginxTemplate): bool
+    public function restoreAny(AuthUser $authUser): bool
     {
-        return $user->can('restore_nginx::template');
+        return $authUser->can('RestoreAny:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
-    public function restoreAny(User $user): bool
+    public function replicate(AuthUser $authUser, NginxTemplate $nginxTemplate): bool
     {
-        return $user->can('restore_any_nginx::template');
+        return $authUser->can('Replicate:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
-    public function replicate(User $user, NginxTemplate $nginxTemplate): bool
+    public function reorder(AuthUser $authUser): bool
     {
-        return $user->can('replicate_nginx::template');
+        return $authUser->can('Reorder:NginxTemplate');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_nginx::template');
-    }
 }

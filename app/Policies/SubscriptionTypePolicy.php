@@ -1,108 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\SubscriptionType;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SubscriptionTypePolicy
 {
     use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any_subscription::type');
+        return $authUser->can('ViewAny:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, SubscriptionType $subscriptionType): bool
+    public function view(AuthUser $authUser, SubscriptionType $subscriptionType): bool
     {
-        return $user->can('view_subscription::type');
+        return $authUser->can('View:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create_subscription::type');
+        return $authUser->can('Create:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, SubscriptionType $subscriptionType): bool
+    public function update(AuthUser $authUser, SubscriptionType $subscriptionType): bool
     {
-        return $user->can('update_subscription::type');
+        return $authUser->can('Update:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, SubscriptionType $subscriptionType): bool
+    public function delete(AuthUser $authUser, SubscriptionType $subscriptionType): bool
     {
-        return $user->can('delete_subscription::type');
+        return $authUser->can('Delete:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
-    public function deleteAny(User $user): bool
+    public function restore(AuthUser $authUser, SubscriptionType $subscriptionType): bool
     {
-        return $user->can('delete_any_subscription::type');
+        return $authUser->can('Restore:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
-    public function forceDelete(User $user, SubscriptionType $subscriptionType): bool
+    public function forceDelete(AuthUser $authUser, SubscriptionType $subscriptionType): bool
     {
-        return $user->can('force_delete_subscription::type');
+        return $authUser->can('ForceDelete:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
-    public function forceDeleteAny(User $user): bool
+    public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $user->can('force_delete_any_subscription::type');
+        return $authUser->can('ForceDeleteAny:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
-    public function restore(User $user, SubscriptionType $subscriptionType): bool
+    public function restoreAny(AuthUser $authUser): bool
     {
-        return $user->can('restore_subscription::type');
+        return $authUser->can('RestoreAny:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
-    public function restoreAny(User $user): bool
+    public function replicate(AuthUser $authUser, SubscriptionType $subscriptionType): bool
     {
-        return $user->can('restore_any_subscription::type');
+        return $authUser->can('Replicate:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
-    public function replicate(User $user, SubscriptionType $subscriptionType): bool
+    public function reorder(AuthUser $authUser): bool
     {
-        return $user->can('replicate_subscription::type');
+        return $authUser->can('Reorder:SubscriptionType');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_subscription::type');
-    }
 }
