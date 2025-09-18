@@ -7,8 +7,9 @@ use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
+use App\Filament\Resources\Customers\RelationManagers\CustomerSubscriptionsRelationManager;
+use App\Filament\Resources\Customers\RelationManagers\CustomerUserRelationManager;
 use App\Models\Customer;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -16,7 +17,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
-use UnitEnum;
 
 class CustomerResource extends Resource
 {
@@ -24,14 +24,9 @@ class CustomerResource extends Resource
 
     protected static ?string $slug = 'customers';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Customers';
+    protected static string|null $navigationGroup = 'Customers';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    public static function form(Schema $schema): Schema
-    {
-        return CustomerForm::configure($schema);
-    }
+    protected static string|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     public static function table(Table $table): Table
     {
@@ -42,8 +37,8 @@ class CustomerResource extends Resource
     {
         return [
             // TODO: Add relation managers when they are created
-            // 'subscriptions' => CustomerSubscriptionsRelationManager::class,
-            // 'users' => CustomerUserRelationManager::class,
+            'subscriptions' => CustomerSubscriptionsRelationManager::class,
+            'users' => CustomerUserRelationManager::class,
         ];
     }
 
