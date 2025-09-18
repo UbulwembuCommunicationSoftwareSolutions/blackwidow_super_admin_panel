@@ -1,0 +1,170 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "php.suggest.basic": false,
+        "php.validate.enable": true,
+        "php.validate.executablePath": "/usr/bin/php",
+        "php.validate.run": "onSave",
+        "intelephense.files.maxSize": 5000000,
+        "intelephense.files.associations": [
+            "*.php",
+            "*.phtml"
+        ],
+        "intelephense.files.exclude": [
+            "**/node_modules/**",
+            "**/vendor/**",
+            "**/storage/**",
+            "**/bootstrap/cache/**",
+            "**/.git/**"
+        ],
+        "intelephense.environment.phpVersion": "8.2",
+        "intelephense.environment.includePaths": [
+            "vendor"
+        ],
+        "intelephense.stubs": [
+            "apache",
+            "bcmath",
+            "bz2",
+            "calendar",
+            "com_dotnet",
+            "Core",
+            "ctype",
+            "curl",
+            "date",
+            "dba",
+            "dom",
+            "enchant",
+            "exif",
+            "FFI",
+            "fileinfo",
+            "filter",
+            "fpm",
+            "ftp",
+            "gd",
+            "gettext",
+            "gmp",
+            "hash",
+            "iconv",
+            "imap",
+            "intl",
+            "json",
+            "ldap",
+            "libxml",
+            "mbstring",
+            "meta",
+            "mysqli",
+            "oci8",
+            "odbc",
+            "openssl",
+            "pcntl",
+            "pcre",
+            "PDO",
+            "pdo_ibm",
+            "pdo_mysql",
+            "pdo_pgsql",
+            "pdo_sqlite",
+            "pgsql",
+            "Phar",
+            "posix",
+            "pspell",
+            "readline",
+            "Reflection",
+            "session",
+            "shmop",
+            "SimpleXML",
+            "snmp",
+            "soap",
+            "sockets",
+            "sodium",
+            "SPL",
+            "sqlite3",
+            "standard",
+            "superglobals",
+            "sysvmsg",
+            "sysvsem",
+            "sysvshm",
+            "tidy",
+            "tokenizer",
+            "xml",
+            "xmlreader",
+            "xmlrpc",
+            "xmlwriter",
+            "xsl",
+            "Zend OPcache",
+            "zip",
+            "zlib"
+        ],
+        "files.associations": {
+            "*.blade.php": "blade"
+        },
+        "emmet.includeLanguages": {
+            "blade": "html"
+        },
+        "blade.format.enable": true,
+        "laravel_goto_view.files": [
+            "*.php",
+            "*.blade.php"
+        ],
+        "laravel_goto_view.include": [
+            "resources/views/**",
+            "app/**",
+            "vendor/laravel/framework/src/Illuminate/Foundation/resources/views/**"
+        ],
+        "laravel_goto_view.exclude": [
+            "vendor/**",
+            "node_modules/**",
+            "storage/**",
+            "bootstrap/cache/**"
+        ],
+        "php-cs-fixer.executablePath": "./vendor/bin/php-cs-fixer",
+        "php-cs-fixer.rules": "@PSR12",
+        "php-cs-fixer.config": ".php-cs-fixer.php",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/vendor": true,
+            "**/storage": true,
+            "**/bootstrap/cache": true,
+            "**/.git": true
+        },
+        "files.exclude": {
+            "**/node_modules": true,
+            "**/vendor": true,
+            "**/storage": true,
+            "**/bootstrap/cache": true
+        },
+        "tailwindCSS.includeLanguages": {
+            "blade": "html"
+        },
+        "tailwindCSS.experimental.classRegex": [
+            ["fi-([^\\s]*)\\s*=\\s*[\"']([^\"']*)[\"']", "fi-$1"],
+            ["@apply\\s+([^\\s;]+)", "@apply $1"]
+        ]
+    },
+    "extensions": {
+        "recommendations": [
+            "bmewburn.vscode-intelephense-client",
+            "onecentlin.laravel-blade",
+            "onecentlin.laravel-extension-pack",
+            "amirmarmul.laravel-vscode-helper",
+            "codingyu.laravel-goto-view",
+            "junstyle.php-cs-fixer",
+            "ms-vscode.vscode-json",
+            "bradlc.vscode-tailwindcss",
+            "formulahendry.auto-rename-tag",
+            "esbenp.prettier-vscode",
+            "ms-vscode.vscode-typescript-next",
+            "ms-vscode.vscode-css-peek",
+            "ms-vscode.vscode-html-css-support",
+            "ritwickdey.liveserver",
+            "ms-vscode.live-server"
+        ]
+    }
+}

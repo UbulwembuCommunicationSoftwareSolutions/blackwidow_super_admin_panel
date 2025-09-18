@@ -24,6 +24,7 @@
         "ysfkaya/filament-phone-input": "^4.0"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "*",
         "fakerphp/faker": "^1.23",
         "filament/upgrade": "^4.0",
         "laravel/pint": "^1.13",
