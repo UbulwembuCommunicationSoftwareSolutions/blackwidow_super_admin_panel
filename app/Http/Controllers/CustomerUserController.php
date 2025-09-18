@@ -40,6 +40,10 @@ class CustomerUserController extends Controller
         }
         $password = $request->get('password');
         $url = $request->get('app_url');
+        //IF URL IS HTTP, REPLACE WITH HTTPS
+        if(strpos($url, 'http://') === 0){
+            $url = str_replace('http://', 'https://', $url);
+        }
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
         if(!$customerSubscription){
             Log::info("Customer Subscription not found");
