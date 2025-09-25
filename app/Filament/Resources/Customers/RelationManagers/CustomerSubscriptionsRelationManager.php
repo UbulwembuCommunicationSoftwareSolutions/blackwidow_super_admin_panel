@@ -174,6 +174,11 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     $set('theVertical', $verticalMap[$get('vertical')] ?? 'unknown');
                                     $set('theType', $theType);
                                     $set('postfix', '.' . $theType . '.' . $get('vertical'));
+                                    
+                                    // Update database name if URL exists
+                                    if ($get('url')) {
+                                        $set('database_name', $get('url') . '_' . $theType . '_' . $get('theVertical'));
+                                    }
                                 }),
                             TextInput::make('url')
                                 ->live(debounce: 1000)
