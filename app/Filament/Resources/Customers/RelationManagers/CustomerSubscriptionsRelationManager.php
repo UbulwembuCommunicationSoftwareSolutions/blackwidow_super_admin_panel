@@ -85,6 +85,31 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->default(false),
                             Hidden::make('postfix')
                                 ->default(''),
+                            Select::make('customer_id')
+                                ->label('Customer')
+                                ->searchable()
+                                ->preload()
+                                ->default($this->ownerRecord->id)
+                                ->relationship('customer', 'company_name')
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function($get, $set, $state) {
+                                    if ($state) {
+                                        $customer = \App\Models\Customer::find($state);
+                                        if ($customer) {
+                                            // Auto-generate app name from customer company name
+                                            $appName = $this->generateAppName($customer->company_name);
+                                            $set('app_name', $appName);
+                                            
+                                            // Auto-generate URL from customer company name
+                                            $url = $this->generateUrl($customer->company_name);
+                                            $set('url', $url);
+                                            
+                                            // Update database name
+                                            $set('database_name', $url . '_' . $get('theType') . '_' . $get('theVertical'));
+                                        }
+                                    }
+                                }),
                             Select::make('subscription_type_id')
                                 ->live()
                                 ->default(1)
@@ -109,6 +134,11 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     };
                                     $set('theType', $theType);
                                     $set('postfix', '.' . $theType . '.' . $get('vertical'));
+                                    
+                                    // Update database name if URL exists
+                                    if ($get('url')) {
+                                        $set('database_name', $get('url') . '_' . $theType . '_' . $get('theVertical'));
+                                    }
                                 }),
                             Select::make('vertical')
                                 ->live()
@@ -474,5 +504,44 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
         $customerSubscription->jobs = json_encode($jobs);
         $customerSubscription->save();
+    }
+
+    private function generateAppName(string $companyName): string
+    {
+        // Clean and format company name for app name
+        $appName = strtolower(trim($companyName));
+        $appName = preg_replace('/[^a-z0-9\s]/', '', $appName);
+        $appName = preg_replace('/\s+/', ' ', $appName);
+        $appName = str_replace(' ', '', ucwords($appName));
+        
+        // Ensure it's not empty and has a reasonable length
+        if (empty($appName)) {
+            $appName = 'CustomerApp';
+        }
+        
+        return $appName;
+    }
+
+    private function generateUrl(string $companyName): string
+    {
+        // Clean and format company name for URL
+        $url = strtolower(trim($companyName));
+        $url = preg_replace('/[^a-z0-9\s-]/', '', $url);
+        $url = preg_replace('/\s+/', '-', $url);
+        $url = preg_replace('/-+/', '-', $url);
+        $url = trim($url, '-');
+        
+        // Ensure it's not empty and has a reasonable length
+        if (empty($url)) {
+            $url = 'customer';
+        }
+        
+        // Limit length to 50 characters
+        if (strlen($url) > 50) {
+            $url = substr($url, 0, 50);
+            $url = rtrim($url, '-');
+        }
+        
+        return $url;
     }
 }
