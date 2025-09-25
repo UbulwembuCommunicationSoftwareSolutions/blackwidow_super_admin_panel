@@ -194,6 +194,8 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     'max:63'
                                 ])
                                 ->validationAttribute('URL')
+                                ->hint(fn($get) => $get('url') && $get('postfix') ? 'Full URL: https://' . $get('url') . $get('postfix') : 'Enter a URL slug (will be auto-generated from customer name)')
+                                ->placeholder('e.g., my-company')
                                 ->afterStateUpdated(function($get, $set) {
                                     $url = strtolower(trim($get('url')));
                                     $set('url', $url);
