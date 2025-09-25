@@ -40,6 +40,21 @@ class CustomerUserRelationManager extends RelationManager
 
     protected static string $resource = CustomerResource::class;
 
+    public function canCreate(): bool
+    {
+        return true; // Allow creation even on view pages
+    }
+
+    public function canEdit($record): bool
+    {
+        return true; // Allow editing even on view pages
+    }
+
+    public function canDelete($record): bool
+    {
+        return true; // Allow deletion even on view pages
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema

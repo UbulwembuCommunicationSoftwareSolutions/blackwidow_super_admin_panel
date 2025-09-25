@@ -47,6 +47,21 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'customerSubscriptions';
 
+    public function canCreate(): bool
+    {
+        return true; // Allow creation even on view pages
+    }
+
+    public function canEdit($record): bool
+    {
+        return true; // Allow editing even on view pages
+    }
+
+    public function canDelete($record): bool
+    {
+        return true; // Allow deletion even on view pages
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -232,7 +247,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->required()
                                 ->options(fn() => ForgeServer::pluck('name','forge_server_id')),
                             TextInput::make('app_name')
-                                ->required(),
+                                ->required()
+                                ->hint('Will be auto-generated from customer name')
+                                ->placeholder('e.g., MyCompanyApp'),
                             TextInput::make('database_name')
                                 ->required()
                         ]),
