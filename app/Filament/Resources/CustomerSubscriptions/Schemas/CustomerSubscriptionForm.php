@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomerSubscriptions\Schemas;
 
+use App\Services\CustomerSubscriptionService;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -31,20 +32,95 @@ class CustomerSubscriptionForm
                     ->maxLength(8)
                     ->nullable(),
                 FileUpload::make('logo_1')
-                    ->image()
-                    ->directory('logos'),
+                    ->live()
+                    ->downloadable()
+                    ->reactive()
+                    ->label(function($get){
+                        $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                        if($types){
+                            $result = $types[0];
+                        }
+                        else{
+                            $result = 'Logo 1';
+                        }
+                        return $result;
+                    })
+                    ->disk('public')
+                    ->visibility('public')
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
                 FileUpload::make('logo_2')
-                    ->image()
-                    ->directory('logos'),
+                    ->live()
+                    ->reactive()
+                    ->downloadable()
+                    ->label(function($get){
+                        $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                        if($types){
+                            $result = $types[1];
+                        }
+                        else{
+                            $result = 'Logo 2';
+                        }
+                        return $result;
+                    })
+                    ->disk('public')
+                    ->visibility('public')
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
                 FileUpload::make('logo_3')
-                    ->image()
-                    ->directory('logos'),
+                    ->live()
+                    ->reactive()
+                    ->downloadable()
+                    ->label(function($get){
+                        $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                        if($types){
+                            $result = $types[2];
+                        }
+                        else{
+                            $result = 'Logo 3';
+                        }
+                        return $result;
+                    })
+                    ->disk('public')
+                    ->visibility('public')
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
                 FileUpload::make('logo_4')
-                    ->image()
-                    ->directory('logos'),
+                    ->live()
+                    ->reactive()
+                    ->downloadable()
+                    ->label(function($get){
+                        $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                        if($types){
+                            $result = $types[3];
+                        }
+                        else{
+                            $result = 'Logo 4';
+                        }
+                        return $result;
+                    })
+                    ->disk('public')
+                    ->visibility('public')
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
                 FileUpload::make('logo_5')
-                    ->image()
-                    ->directory('logos'),
+                    ->live()
+                    ->reactive()
+                    ->downloadable()
+                    ->label(function($get){
+                        $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+                        if($types){
+                            $result = $types[4];
+                        }
+                        else{
+                            $result = 'Logo 5';
+                        }
+                        return $result;
+                    })
+                    ->disk('public')
+                    ->visibility('public')
+                    ->nullable()
+                    ->rules(['nullable', 'file', 'max:10240']),
                 TextInput::make('database_name'),
                 TextInput::make('forge_site_id'),
                 Toggle::make('panic_button_enabled')
