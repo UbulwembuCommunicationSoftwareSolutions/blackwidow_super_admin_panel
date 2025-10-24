@@ -285,7 +285,7 @@ class CustomerUserController extends Controller
         // Validate the request
         $validated = $request->validate([
             'app_url' => 'required|string',
-            'subscription_id' => 'required|string',
+            'subscription_id' => 'nullable', // This field is ignored, we only use app_url
             'password' => 'required|string',
             'user' => 'required|array',
             'user.first_name' => 'required|string',
@@ -305,13 +305,17 @@ class CustomerUserController extends Controller
             'user.is_system_admin' => 'nullable|boolean',
         ]);
 
-        $customerSub = CustomerSubscription::where('uuid', $validated['subscription_id'])->first();
+        // Find customer subscription by app_url only
+        $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
         if (!$customerSub) {
+            Log::error('Customer subscription not found for app_url: ' . $validated['app_url']);
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid subscription ID',
+                'message' => 'Invalid app URL',
             ], 400);
         }
+        
+        Log::info('Found customer subscription: ' . $customerSub->id . ' for customer: ' . $customerSub->customer_id);
 
         $customer = Customer::find($customerSub->customer_id);
         $data = $validated;
@@ -328,6 +332,7 @@ class CustomerUserController extends Controller
             ->first();
             
         if ($existingUser) {
+            Log::info('User already exists with email: ' . $email);
             return response()->json([
                 'success' => false,
                 'message' => 'Email already exists',
@@ -336,31 +341,48 @@ class CustomerUserController extends Controller
                 ]
             ], 422);
         }
+        
+        Log::info('Creating new user with email: ' . $email . ' for customer: ' . $customer->id);
 
-        $user = CustomerUser::create([
-            'customer_id' => $customer->id,
-            'first_name' => $name,
-            'last_name' => $surname,
-            'email_address' => $email,
-            'cellphone' => $cellphone,
-            'password' => $password, // Cleartext - model will hash it automatically
-            'console_access' => $data['user']['console_access'] ?? ($data['user']['active'] ?? true),
-            'firearm_access' => $data['user']['firearm_access'] ?? false,
-            'responder_access' => $data['user']['responder_access'] ?? false,
-            'reporter_access' => $data['user']['reporter_access'] ?? false,
-            'security_access' => $data['user']['security_access'] ?? false,
-            'driver_access' => $data['user']['driver_access'] ?? false,
-            'survey_access' => $data['user']['survey_access'] ?? false,
-            'time_and_attendance_access' => $data['user']['time_and_attendance_access'] ?? false,
-            'stock_access' => $data['user']['stock_access'] ?? false,
-            'is_system_admin' => $data['user']['is_system_admin'] ?? false,
-        ]);
-        
-        $this->setAccess($user, $customerSub);
-        $user->save();
-        
-        // Trigger user import to customer subscriptions
-        StartUserSyncJob::dispatch($customer->id);
+        try {
+            $user = CustomerUser::create([
+                'customer_id' => $customer->id,
+                'first_name' => $name,
+                'last_name' => $surname,
+                'email_address' => $email,
+                'cellphone' => $cellphone,
+                'password' => $password, // Cleartext - model will hash it automatically
+                'console_access' => $data['user']['console_access'] ?? ($data['user']['active'] ?? true),
+                'firearm_access' => $data['user']['firearm_access'] ?? false,
+                'responder_access' => $data['user']['responder_access'] ?? false,
+                'reporter_access' => $data['user']['reporter_access'] ?? false,
+                'security_access' => $data['user']['security_access'] ?? false,
+                'driver_access' => $data['user']['driver_access'] ?? false,
+                'survey_access' => $data['user']['survey_access'] ?? false,
+                'time_and_attendance_access' => $data['user']['time_and_attendance_access'] ?? false,
+                'stock_access' => $data['user']['stock_access'] ?? false,
+                'is_system_admin' => $data['user']['is_system_admin'] ?? false,
+            ]);
+            
+            Log::info('User created successfully with ID: ' . $user->id);
+            
+            $this->setAccess($user, $customerSub);
+            $user->save();
+            
+            Log::info('User access set and saved');
+            
+            // Trigger user import to customer subscriptions
+            StartUserSyncJob::dispatch($customer->id);
+            
+            Log::info('User sync job dispatched for customer: ' . $customer->id);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to create user: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create user: ' . $e->getMessage(),
+            ], 500);
+        }
         
         return response()->json([
             'success' => true,

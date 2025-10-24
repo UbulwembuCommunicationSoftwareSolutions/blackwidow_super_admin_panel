@@ -20,9 +20,28 @@ class CustomerController extends Controller
         return CustomerResource::collection(Customer::all());
     }
 
+     private function cleanAppUrl(string $appUrl): string
+    {
+        // Remove http:// and https:// protocols
+        $cleaned = preg_replace('/^https?:\/\//', '', $appUrl);
+        $cleaned = preg_replace('/^http?:\/\//', '', $appUrl);
+        
+        // Remove trailing slash if present
+        $cleaned = rtrim($cleaned, '/');
+        
+        return $cleaned;
+    }
+    
+    private function findCustomerSubscriptionByUrl(string $appUrl): ?CustomerSubscription
+    {
+        $cleanedUrl = $this->cleanAppUrl($appUrl);
+        
+        return CustomerSubscription::where('url', 'LIKE', '%' . $cleanedUrl . '%')->first();
+    }
+
     public function getUrls(Request $request)
     {
-        $customerSub = CustomerSubscription::where('url', $request->app_url)->first();
+        $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         $customer = Customer::find($customerSub->customer_id);
         $urls = [];
         foreach($customer->customerSubscriptions as $subscription){
