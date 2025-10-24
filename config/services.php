@@ -39,4 +39,12 @@ return [
         'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
+    'superadmin' => [
+        'api_url' => env('SUPERADMIN_API_URL', 'https://superadmin.blackwidow.org.za'),
+        'api_token' => env('SUPERADMIN_API_TOKEN'),
+        'sync_enabled' => env('SUPERADMIN_SYNC_ENABLED', true),
+        'sync_interval' => env('SUPERADMIN_SYNC_INTERVAL', 15),
+        'batch_size' => env('SUPERADMIN_SYNC_BATCH_SIZE', 50),
+    ],
+
 ];

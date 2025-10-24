@@ -7,6 +7,7 @@ use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Services\CMSService;
 use Cassandra\Custom;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -15,11 +16,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 class CustomerUser extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, Notifiable, HasFactory;
     use SoftDeletes;
 
     public $fillable = [
         'customer_id',
+        'super_admin_user_id',
         'first_name',
         'last_name',
         'email_address',
@@ -35,11 +37,16 @@ class CustomerUser extends Authenticatable
         'stock_access',
         'created_at',
         'cellphone',
-        'is_system_admin'
+        'is_system_admin',
+        'last_synced_at',
+        'sync_hash',
+        'skip_sync'
     ];
 
     public $casts = [
-        'is_system_admin' => 'boolean'
+        'is_system_admin' => 'boolean',
+        'skip_sync' => 'boolean',
+        'last_synced_at' => 'datetime',
     ];
 
     public function checkAccess($subscription_type_id) : bool
@@ -250,6 +257,11 @@ class CustomerUser extends Authenticatable
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function syncLogs()
+    {
+        return $this->hasMany(UserSyncLog::class);
     }
 
     public function setPasswordAttribute($value){

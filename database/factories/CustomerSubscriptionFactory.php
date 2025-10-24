@@ -15,17 +15,17 @@ class CustomerSubscriptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
-            'app_url' => $this->faker->url(),
-            'console_login_logo' => $this->faker->word(),
-            'console_menu_logo' => $this->faker->word(),
-            'console_background_logo' => $this->faker->word(),
-            'app_install_logo' => $this->faker->word(),
-            'app_background_logo' => $this->faker->word(),
-
+            'url' => $this->faker->url(),
+            'domain' => $this->faker->domainName(),
+            'subscription_type_id' => 1,
             'customer_id' => Customer::factory(),
-            'subscription_type_id' => SubscriptionType::factory(),
+            'logo_1' => $this->faker->word(),
+            'logo_2' => $this->faker->word(),
+            'logo_3' => $this->faker->word(),
+            'env' => 'production',
+            'uuid' => $this->faker->uuid(),
+            'database_name' => $this->faker->word(),
+            'app_name' => $this->faker->word(),
         ];
     }
 }

@@ -4,6 +4,7 @@ use App\Models\EnvVariables;
 use App\Models\RequiredEnvVariables;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 
 
@@ -111,3 +112,9 @@ use Illuminate\Support\Facades\Artisan;
 //
 //})->purpose('Send Deploymeny Script To All Consoles')->daily();
 //
+
+// Schedule the user sync command to run every 15 minutes
+Schedule::command('app:sync-users-with-super-admin')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

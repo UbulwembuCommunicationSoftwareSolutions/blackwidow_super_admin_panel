@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\CustomerUser;
+use App\Observers\UserSyncObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register the UserSyncObserver
+        CustomerUser::observe(UserSyncObserver::class);
     }
 }

@@ -21,3 +21,10 @@ Route::post('urls', 'App\Http\Controllers\CustomerController@getUrls');
 Route::middleware('auth:sanctum')->post('/token-user',[\App\Http\Controllers\CustomerSubscriptionController::class,'checkLoggedIn']);
 
 Route::post('/google-places-proxy', [\App\Http\Controllers\GooglePlacesProxyController::class, 'proxy']);
+
+// User Sync API endpoints
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/admin-api/trigger-user-sync', [\App\Http\Controllers\UserSyncController::class, 'triggerSync']);
+    Route::get('/admin-api/user-sync-status/{userId}', [\App\Http\Controllers\UserSyncController::class, 'getSyncStatus']);
+    Route::get('/admin-api/user-sync-stats', [\App\Http\Controllers\UserSyncController::class, 'getSyncStats']);
+});
