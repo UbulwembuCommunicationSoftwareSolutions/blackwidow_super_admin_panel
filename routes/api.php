@@ -11,6 +11,9 @@ Route::get('/user', function (Request $request) {
 Route::post('user-login', 'App\Http\Controllers\CustomerUserController@login');
 Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
 Route::post('create-user', 'App\Http\Controllers\CustomerUserController@store');
+Route::post('update-user', 'App\Http\Controllers\CustomerUserController@updateFromCMS');
+Route::post('get-user', 'App\Http\Controllers\CustomerUserController@getSingleUser');
+Route::post('update-password', 'App\Http\Controllers\CustomerUserController@updatePasswordFromCMS');
 Route::get('customer/app-functions', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getAppFunctions']);
 Route::get('customer/responder-functions', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getResponderAppFunctions']);
 Route::get('app_manifest', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getManifest']);
