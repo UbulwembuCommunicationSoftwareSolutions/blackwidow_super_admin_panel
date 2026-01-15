@@ -25,10 +25,10 @@ class CustomerUserController extends Controller
         // Remove http:// and https:// protocols
         $cleaned = preg_replace('/^https?:\/\//', '', $appUrl);
         $cleaned = preg_replace('/^http?:\/\//', '', $appUrl);
-        
+
         // Remove trailing slash if present
         $cleaned = rtrim($cleaned, '/');
-        
+
         return $cleaned;
     }
 
@@ -38,7 +38,7 @@ class CustomerUserController extends Controller
     private function findCustomerSubscriptionByUrl(string $appUrl): ?CustomerSubscription
     {
         $cleanedUrl = $this->cleanAppUrl($appUrl);
-        
+
         return CustomerSubscription::where('url', 'LIKE', '%' . $cleanedUrl . '%')->first();
     }
 
@@ -46,16 +46,16 @@ class CustomerUserController extends Controller
     {
         $url = $request->get('app_url');
         $customerSubscription = $this->findCustomerSubscriptionByUrl($url);
-        
+
         if (!$customerSubscription) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid app URL',
             ], 400);
         }
-        
+
         $users = CustomerUser::where('customer_id', $customerSubscription->customer_id)->get();
-        
+
         // Return in the format expected by CMS
         $userData = $users->map(function ($user) {
             return [
@@ -79,7 +79,7 @@ class CustomerUserController extends Controller
                 'updated_at' => $user->updated_at->toISOString(), // Critical for conflict resolution
             ];
         });
-        
+
         return response()->json([
             'success' => true,
             'data' => $userData->toArray()
@@ -107,6 +107,7 @@ class CustomerUserController extends Controller
         }
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
         if(!$customerSubscription){
+            Log::info(CustomerSubscription::where('url', $url)->toRawSql());
             Log::info("Customer Subscription not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
@@ -281,7 +282,7 @@ class CustomerUserController extends Controller
     public function store(Request $request)
     {
         Log::info(json_encode($request->all()));
-        
+
         // Validate the request
         $validated = $request->validate([
             'app_url' => 'required|string',
@@ -314,23 +315,23 @@ class CustomerUserController extends Controller
                 'message' => 'Invalid app URL',
             ], 400);
         }
-        
+
         Log::info('Found customer subscription: ' . $customerSub->id . ' for customer: ' . $customerSub->customer_id);
 
         $customer = Customer::find($customerSub->customer_id);
         $data = $validated;
-        
+
         $name = $data['user']['first_name'];
         $surname = $data['user']['last_name'] ?? null;
         $email = $data['user']['email'];
         $cellphone = $data['user']['cellphone'] ?? null;
         $password = $data['password'];
-        
+
         // Check if user already exists
         $existingUser = CustomerUser::where('customer_id', $customer->id)
             ->where('email_address', $email)
             ->first();
-            
+
         if ($existingUser) {
             Log::info('User already exists with email: ' . $email);
             return response()->json([
@@ -341,7 +342,7 @@ class CustomerUserController extends Controller
                 ]
             ], 422);
         }
-        
+
         Log::info('Creating new user with email: ' . $email . ' for customer: ' . $customer->id);
 
         try {
@@ -363,19 +364,19 @@ class CustomerUserController extends Controller
                 'stock_access' => $data['user']['stock_access'] ?? false,
                 'is_system_admin' => $data['user']['is_system_admin'] ?? false,
             ]);
-            
+
             Log::info('User created successfully with ID: ' . $user->id);
-            
+
             $this->setAccess($user, $customerSub);
             $user->save();
-            
+
             Log::info('User access set and saved');
-            
+
             // Trigger user import to customer subscriptions
             StartUserSyncJob::dispatch($customer->id);
-            
+
             Log::info('User sync job dispatched for customer: ' . $customer->id);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to create user: ' . $e->getMessage());
             return response()->json([
@@ -383,7 +384,7 @@ class CustomerUserController extends Controller
                 'message' => 'Failed to create user: ' . $e->getMessage(),
             ], 500);
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'User created successfully',
@@ -525,7 +526,7 @@ class CustomerUserController extends Controller
     public function updateFromCMS(Request $request)
     {
         Log::info('Update user from CMS: ' . json_encode($request->all()));
-        
+
         // Validate the request
         $validated = $request->validate([
             'app_url' => 'required|string',
@@ -575,7 +576,7 @@ class CustomerUserController extends Controller
         if (isset($validated['cms_updated_at'])) {
             $cmsUpdatedAt = \Carbon\Carbon::parse($validated['cms_updated_at']);
             $superAdminUpdatedAt = $user->updated_at;
-            
+
             // If SuperAdmin version is newer, return SuperAdmin's data
             if ($superAdminUpdatedAt->gt($cmsUpdatedAt)) {
                 Log::info('Conflict detected: SuperAdmin version is newer. Returning SuperAdmin data.');
@@ -669,7 +670,7 @@ class CustomerUserController extends Controller
     public function getSingleUser(Request $request)
     {
         Log::info('Get single user: ' . json_encode($request->all()));
-        
+
         // Validate the request
         $validated = $request->validate([
             'app_url' => 'required|string',
@@ -729,7 +730,7 @@ class CustomerUserController extends Controller
     public function updatePasswordFromCMS(Request $request)
     {
         Log::info('Update password from CMS: ' . json_encode($request->all()));
-        
+
         // Validate the request
         $validated = $request->validate([
             'app_url' => 'required|string',
@@ -763,7 +764,7 @@ class CustomerUserController extends Controller
 
         // Update password (will be automatically hashed by the model's setPasswordAttribute)
         $user->password = $validated['password']; // Plain text - model will hash it
-        
+
         // Update other fields if provided
         if (isset($validated['email'])) {
             $user->email_address = $validated['email'];
@@ -771,7 +772,7 @@ class CustomerUserController extends Controller
         if (isset($validated['cellphone'])) {
             $user->cellphone = $validated['cellphone'];
         }
-        
+
         $user->save();
 
         // Trigger user import to customer subscriptions
