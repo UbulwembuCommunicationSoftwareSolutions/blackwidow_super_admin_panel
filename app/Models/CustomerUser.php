@@ -2,21 +2,21 @@
 
 namespace App\Models;
 
-use Hash;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
+use App\Jobs\StartUserSyncJob;
 use App\Services\CMSService;
-use Cassandra\Custom;
+use Hash;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+
 class CustomerUser extends Authenticatable
 {
-    use HasApiTokens, Notifiable, HasFactory;
+    use HasApiTokens, HasFactory, Notifiable;
     use SoftDeletes;
 
     public $fillable = [
@@ -40,7 +40,7 @@ class CustomerUser extends Authenticatable
         'is_system_admin',
         'last_synced_at',
         'sync_hash',
-        'skip_sync'
+        'skip_sync',
     ];
 
     public $casts = [
@@ -49,7 +49,7 @@ class CustomerUser extends Authenticatable
         'last_synced_at' => 'datetime',
     ];
 
-    public function checkAccess($subscription_type_id) : bool
+    public function checkAccess($subscription_type_id): bool
     {
         // Define the access types and their corresponding subscription type IDs
         $accessTypes = [
@@ -78,72 +78,76 @@ class CustomerUser extends Authenticatable
         parent::boot();
 
         static::created(function ($model) {
-            // Your logic here
-            if($model->console_access){
+            // Push new user to CMS (skip when created from inbound sync e.g. createUserFromRemoteData)
+            if (! $model->skip_sync) {
+                StartUserSyncJob::dispatch($model->customer_id);
+            }
+
+            if ($model->console_access) {
                 SendWelcomeEmailJob::dispatch($model);
-            };
-            if($model->firearm_access){
+            }
+            if ($model->firearm_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',2)
+                    ->where('subscription_type_id', 2)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->responder_access){
+            if ($model->responder_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',3)
+                    ->where('subscription_type_id', 3)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->reporter_access){
+            if ($model->reporter_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',4)
+                    ->where('subscription_type_id', 4)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->security_access){
+            if ($model->security_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',5)
+                    ->where('subscription_type_id', 5)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->driver_access){
+            if ($model->driver_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',6)
+                    ->where('subscription_type_id', 6)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->survey_access){
+            if ($model->survey_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',7)
+                    ->where('subscription_type_id', 7)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->time_and_attendance_access){
+            if ($model->time_and_attendance_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',9)
+                    ->where('subscription_type_id', 9)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
-            if($model->stock_access){
+            if ($model->stock_access) {
                 $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                    ->where('subscription_type_id',10)
+                    ->where('subscription_type_id', 10)
                     ->first();
-                if($subscription){
-                  SendSubscriptionEmailJob::dispatch($model,$subscription);
+                if ($subscription) {
+                    SendSubscriptionEmailJob::dispatch($model, $subscription);
                 }
             }
         });
@@ -154,93 +158,93 @@ class CustomerUser extends Authenticatable
             CMSService::syncUsers($model->customer_id);
 
             if ($model->wasChanged('console_access')) {
-                if($model->console_access){
+                if ($model->console_access) {
                     SendWelcomeEmailJob::dispatch($model);
-                }else{
+                } else {
                     CMSService::suspendService($model);
                 }
             }
             if ($model->wasChanged('firearm_access')) {
-                if($model->firearm_access){
+                if ($model->firearm_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
-                        ->where('subscription_type_id',2)
+                        ->where('subscription_type_id', 2)
                         ->first();
-                    if($subscription){
-                        SendSubscriptionEmailJob::dispatch($model,$subscription);
+                    if ($subscription) {
+                        SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
 
             }
             if ($model->wasChanged('responder_access')) {
-                if($model->responder_access) {
+                if ($model->responder_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 3)
                         ->first();
-                    if($subscription){
-                        SendSubscriptionEmailJob::dispatch($model,$subscription);
+                    if ($subscription) {
+                        SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
                 // Example: If a specific field was updated, dispatch a job
             }
             if ($model->wasChanged('reporter_access')) {
-                if($model->reporter_access) {
+                if ($model->reporter_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 4)
                         ->first();
-                    if($subscription){
+                    if ($subscription) {
                         SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
             }
             if ($model->wasChanged('security_access')) {
-                if($model->security_access) {
+                if ($model->security_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 5)
                         ->first();
                     // Example: If a specific field was updated, dispatch a job
-                    if($subscription) {
+                    if ($subscription) {
                         SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
             }
             if ($model->wasChanged('driver_access')) {
-                if($model->driver_access) {
+                if ($model->driver_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 6)
                         ->first();
-                    if($subscription) {
+                    if ($subscription) {
                         SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
             }
             if ($model->wasChanged('survey_access')) {
-                if($model->survey_access) {
+                if ($model->survey_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 7)
                         ->first();
-                    if($subscription) {
+                    if ($subscription) {
                         SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
             }
             if ($model->wasChanged('time_and_attendance_access')) {
-                if($model->time_and_attendance_access) {
+                if ($model->time_and_attendance_access) {
                     // Example: If a specific field was updated, dispatch a job
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 9)
                         ->first();
-                    if($subscription) {
+                    if ($subscription) {
                         SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
             }
             if ($model->wasChanged('stock_access')) {
-                if($model->stock_access) {
+                if ($model->stock_access) {
                     $subscription = CustomerSubscription::where('customer_id', $model->customer_id)
                         ->where('subscription_type_id', 10)
                         ->first();
                     // Example: If a specific field was updated, dispatch a job
-                    if($subscription) {
+                    if ($subscription) {
                         SendSubscriptionEmailJob::dispatch($model, $subscription);
                     }
                 }
@@ -250,10 +254,11 @@ class CustomerUser extends Authenticatable
 
         static::deleted(function ($model) {
             // Your logic here
-            $user = CustomerUser::withTrashed()->where('id',$model->id)->first();
+            $user = CustomerUser::withTrashed()->where('id', $model->id)->first();
             CMSService::syncUsers($user->customer_id);
         });
     }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -264,7 +269,8 @@ class CustomerUser extends Authenticatable
         return $this->hasMany(UserSyncLog::class);
     }
 
-    public function setPasswordAttribute($value){
+    public function setPasswordAttribute($value)
+    {
         $this->attributes['password'] = Hash::make($value);
     }
 }

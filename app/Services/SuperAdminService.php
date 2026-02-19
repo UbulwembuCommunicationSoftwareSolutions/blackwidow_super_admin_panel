@@ -4,13 +4,14 @@ namespace App\Services;
 
 use App\Models\CustomerUser;
 use App\Models\UserSyncLog;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Hash;
 
 class SuperAdminService
 {
     protected string $apiUrl;
+
     protected ?string $apiToken;
 
     public function __construct()
@@ -25,17 +26,22 @@ class SuperAdminService
     public function importUsers(): array
     {
         $response = Http::withToken($this->apiToken)
-            ->post($this->apiUrl . '/api/user-import');
+            ->post($this->apiUrl.'/api/user-import');
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to import users from SuperAdmin', [
                 'status' => $response->status(),
-                'body' => $response->body()
+                'body' => $response->body(),
             ]);
-            return [];
+
+            return [
+                'imported' => 0,
+                'updated' => 0,
+                'total' => 0,
+            ];
         }
 
-        $data = $response->json();
+        $data = $response->json() ?? [];
         $importedCount = 0;
         $updatedCount = 0;
 
@@ -51,7 +57,7 @@ class SuperAdminService
         return [
             'imported' => $importedCount,
             'updated' => $updatedCount,
-            'total' => count($data['users'] ?? [])
+            'total' => count($data['users'] ?? []),
         ];
     }
 
@@ -62,9 +68,10 @@ class SuperAdminService
     {
         $localUser = CustomerUser::where('super_admin_user_id', $remoteUserData['id'])->first();
 
-        if (!$localUser) {
+        if (! $localUser) {
             // Create new user
             $localUser = $this->createUserFromRemoteData($remoteUserData);
+
             return ['action' => 'created', 'user' => $localUser];
         }
 
@@ -75,6 +82,7 @@ class SuperAdminService
         if ($remoteUpdatedAt->gt($localUpdatedAt)) {
             // Remote is newer, update local
             $this->updateUserFromRemoteData($localUser, $remoteUserData);
+
             return ['action' => 'updated', 'user' => $localUser];
         } elseif ($localUpdatedAt->gt($remoteUpdatedAt)) {
             // Local is newer, will be pushed later
@@ -96,7 +104,7 @@ class SuperAdminService
             'first_name' => $remoteData['first_name'],
             'last_name' => $remoteData['last_name'],
             'email_address' => $remoteData['email'],
-            'password' => Hash::make('temporary_password_' . uniqid()),
+            'password' => Hash::make('temporary_password_'.uniqid()),
             'cellphone' => $remoteData['cellphone'] ?? null,
             'console_access' => $remoteData['console_access'] ?? false,
             'firearm_access' => $remoteData['firearm_access'] ?? false,
@@ -129,7 +137,7 @@ class SuperAdminService
     protected function updateUserFromRemoteData(CustomerUser $user, array $remoteData): void
     {
         $user->skip_sync = true; // Prevent observer from triggering
-        
+
         $user->update([
             'first_name' => $remoteData['first_name'],
             'last_name' => $remoteData['last_name'],
@@ -182,10 +190,10 @@ class SuperAdminService
         ];
 
         $response = Http::withToken($this->apiToken)
-            ->post($this->apiUrl . '/api/update-user', $userData);
+            ->post($this->apiUrl.'/api/update-user', $userData);
 
-        if (!$response->successful()) {
-            throw new \Exception('Failed to update user on SuperAdmin: ' . $response->body());
+        if (! $response->successful()) {
+            throw new \Exception('Failed to update user on SuperAdmin: '.$response->body());
         }
 
         return $response->json();
@@ -197,9 +205,9 @@ class SuperAdminService
     public function fetchUser(string $superAdminUserId): ?array
     {
         $response = Http::withToken($this->apiToken)
-            ->get($this->apiUrl . '/api/user/' . $superAdminUserId);
+            ->get($this->apiUrl.'/api/user/'.$superAdminUserId);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return null;
         }
 
