@@ -372,10 +372,7 @@ class CustomerUserController extends Controller
 
             Log::info('User access set and saved');
 
-            // Trigger user import to customer subscriptions
-            StartUserSyncJob::dispatch($customer->id);
-
-            Log::info('User sync job dispatched for customer: ' . $customer->id);
+            // CustomerUser created event triggers StartUserSyncJob → sync-users → ImportUsersJob
 
         } catch (\Exception $e) {
             Log::error('Failed to create user: ' . $e->getMessage());
