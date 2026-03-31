@@ -37,6 +37,7 @@ class CustomerController extends Controller
     {
         $cleanedUrl = $this->cleanAppUrl($appUrl);
 
+        Log::info(CustomerSubscription::where('url', 'LIKE', '%' . $cleanedUrl . '%')->toRawSql());
         return CustomerSubscription::where('url', 'LIKE', '%' . $cleanedUrl . '%')->first();
     }
 
