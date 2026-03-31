@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CustomerController extends Controller
 {
@@ -25,22 +26,23 @@ class CustomerController extends Controller
         // Remove http:// and https:// protocols
         $cleaned = preg_replace('/^https?:\/\//', '', $appUrl);
         $cleaned = preg_replace('/^http?:\/\//', '', $appUrl);
-        
+
         // Remove trailing slash if present
         $cleaned = rtrim($cleaned, '/');
-        
+
         return $cleaned;
     }
-    
+
     private function findCustomerSubscriptionByUrl(string $appUrl): ?CustomerSubscription
     {
         $cleanedUrl = $this->cleanAppUrl($appUrl);
-        
+
         return CustomerSubscription::where('url', 'LIKE', '%' . $cleanedUrl . '%')->first();
     }
 
     public function getUrls(Request $request)
     {
+        Log::info('getUrls', ['app_url' => $request->app_url]);
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         $customer = Customer::find($customerSub->customer_id);
         $urls = [];
