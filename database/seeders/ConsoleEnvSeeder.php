@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\RequiredEnvVariables;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class ConsoleEnvSeeder extends Seeder
 {
@@ -118,10 +117,11 @@ class ConsoleEnvSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            $required = RequiredEnvVariables::create([
+            RequiredEnvVariables::create([
                 'subscription_type_id' => 1,
                 'key' => $setting['key'],
                 'value' => $setting['value'],
+                'requires_manual_fill' => false,
             ]);
         }
     }

@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class CustomerSubscription extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'url',
         'domain',
@@ -44,30 +46,31 @@ class CustomerSubscription extends Model
         return $this->belongsTo(SubscriptionType::class);
     }
 
-    public function deploymentScript(){
+    public function deploymentScript()
+    {
         return $this->hasMany(DeploymentScript::class);
     }
 
-
-    public static function createMissingEnv(){
+    public static function createMissingEnv()
+    {
         $subscriptions = CustomerSubscription::get();
-        foreach($subscriptions as $subscription){
+        foreach ($subscriptions as $subscription) {
             $envs = $subscription->envVariables;
             $requiredEnv = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)->get();
-            foreach($requiredEnv as $env){
+            foreach ($requiredEnv as $env) {
                 $found = false;
-                foreach($envs as $e){
-                    if($e->key == $env->key){
-                        echo $e->key . " found in " . $subscription->id . "\n";
+                foreach ($envs as $e) {
+                    if ($e->key == $env->key) {
+                        echo $e->key.' found in '.$subscription->id."\n";
                         $found = true;
                         break;
                     }
                 }
-                if(!$found){
-                    echo $env->key . " not found in " . $subscription->id . "\n";
-                    $newEnv = new EnvVariables();
+                if (! $found) {
+                    echo $env->key.' not found in '.$subscription->id."\n";
+                    $newEnv = new EnvVariables;
                     $newEnv->key = $env->key;
-                    $newEnv->value = $env->value;
+                    $newEnv->value = $env->initialEnvValue();
                     $newEnv->customer_subscription_id = $subscription->id;
                     $newEnv->save();
                 }
@@ -80,11 +83,32 @@ class CustomerSubscription extends Model
         return $this->hasMany(EnvVariables::class);
     }
 
+    public function getNullVariableCountAttribute(): int
+    {
+        $manualKeys = RequiredEnvVariables::query()
+            ->where('subscription_type_id', $this->subscription_type_id)
+            ->where('requires_manual_fill', true)
+            ->pluck('key');
 
-    public function getNullVariableCountAttribute(){
-        return $this->envVariables()->whereNull('value')->count();
+        if ($manualKeys->isEmpty()) {
+            return 0;
+        }
+
+        return $this->envVariables()
+            ->whereIn('key', $manualKeys)
+            ->where(function ($query) {
+                $query->whereNull('value')->orWhere('value', '');
+            })
+            ->count();
     }
 
+    /**
+     * True when any manual-required env key for this subscription type is still null or empty.
+     */
+    public function hasIncompleteManualEnvVariables(): bool
+    {
+        return $this->getNullVariableCountAttribute() > 0;
+    }
 
     public function customer(): BelongsTo
     {

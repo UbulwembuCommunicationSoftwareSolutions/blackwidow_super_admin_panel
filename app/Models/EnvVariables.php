@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EnvVariables extends Model
 {
-
     public $fillable = [
         'key',
         'value',
@@ -15,6 +14,7 @@ class EnvVariables extends Model
         'created_at',
         'updated_at',
     ];
+
     public function customerSubscription(): BelongsTo
     {
         return $this->belongsTo(CustomerSubscription::class);

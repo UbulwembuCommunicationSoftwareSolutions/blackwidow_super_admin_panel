@@ -8,6 +8,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
@@ -19,8 +20,16 @@ class RequiredEnvVariablesTable
     {
         return $table
             ->columns([
-                TextColumn::make('key'),
-                TextColumn::make('value'),
+                TextColumn::make('key')
+                    ->searchable(),
+                TextColumn::make('value')
+                    ->limit(32)
+                    ->tooltip(fn ($record) => $record->value),
+                IconColumn::make('requires_manual_fill')
+                    ->label('Manual')
+                    ->boolean(),
+                TextColumn::make('admin_label')
+                    ->toggleable(),
                 TextColumn::make('subscriptionType.name')
                     ->sortable(),
             ])

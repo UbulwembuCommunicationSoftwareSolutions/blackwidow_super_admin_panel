@@ -29,18 +29,18 @@ class SyncAllRequiredEnvVariables extends Command
     public function handle()
     {
         $subscriptions = CustomerSubscription::get();
-        foreach($subscriptions as $subscription){
+        foreach ($subscriptions as $subscription) {
             $addedEnv = EnvVariables::where('customer_subscription_id', $subscription->id)->pluck('key');
             $missing = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)
                 ->whereNotIn('key', $addedEnv)
                 ->get();
             $this->info('Subscription '.$subscription->url.' is missing '.count($missing).' required options');
-            foreach($missing as $value){
+            foreach ($missing as $value) {
                 $this->info($subscription->url.' is missing '.$value->key.' adding it');
                 EnvVariables::create([
                     'key' => $value->key,
-                    'value' => $value->value,
-                    'customer_subscription_id' => $subscription->id
+                    'value' => $value->initialEnvValue(),
+                    'customer_subscription_id' => $subscription->id,
                 ]);
             }
         }

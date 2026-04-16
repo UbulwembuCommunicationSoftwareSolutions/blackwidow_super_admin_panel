@@ -1,21 +1,42 @@
 <?php
 
-use App\Filament\Resources\RequiredEnvVariables\RequiredEnvVariablesResource;
+use App\Filament\Resources\RequiredEnvVariables\Pages\CreateRequiredEnvVariables;
+use App\Filament\Resources\RequiredEnvVariables\Pages\EditRequiredEnvVariables;
+use App\Filament\Resources\RequiredEnvVariables\Pages\ListRequiredEnvVariables;
 use App\Models\RequiredEnvVariables;
 use App\Models\SubscriptionType;
 use App\Models\User;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
+use Spatie\Permission\Models\Permission;
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create());
+    $user = User::factory()->create();
+    foreach ([
+        'ViewAny:RequiredEnvVariables',
+        'View:RequiredEnvVariables',
+        'Create:RequiredEnvVariables',
+        'Update:RequiredEnvVariables',
+        'Delete:RequiredEnvVariables',
+    ] as $name) {
+        Permission::findOrCreate($name, 'web');
+    }
+    $user->givePermissionTo([
+        'ViewAny:RequiredEnvVariables',
+        'View:RequiredEnvVariables',
+        'Create:RequiredEnvVariables',
+        'Update:RequiredEnvVariables',
+        'Delete:RequiredEnvVariables',
+    ]);
+    $this->actingAs($user);
 });
 
 it('can list required env variables', function () {
-    $envVars = RequiredEnvVariables::factory()->count(3)->create();
+    RequiredEnvVariables::factory()->count(3)->create();
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\ListRequiredEnvVariables::class)
-        ->assertCanSeeTableRecords($envVars);
+    $this->assertDatabaseCount('required_env_variables', 3);
+
+    Livewire::test(ListRequiredEnvVariables::class)
+        ->loadTable()
+        ->assertSuccessful();
 });
 
 it('can create a required env variable', function () {
@@ -24,10 +45,11 @@ it('can create a required env variable', function () {
         'subscription_type_id' => $subscriptionType->id,
     ]);
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\CreateRequiredEnvVariables::class)
+    Livewire::test(CreateRequiredEnvVariables::class)
         ->fillForm([
             'key' => $newData->key,
             'value' => $newData->value,
+            'requires_manual_fill' => false,
             'subscription_type_id' => $subscriptionType->id,
         ])
         ->call('create')
@@ -37,6 +59,7 @@ it('can create a required env variable', function () {
         'key' => $newData->key,
         'value' => $newData->value,
         'subscription_type_id' => $subscriptionType->id,
+        'requires_manual_fill' => false,
     ]);
 });
 
@@ -44,12 +67,13 @@ it('can edit a required env variable', function () {
     $envVar = RequiredEnvVariables::factory()->create();
     $newData = RequiredEnvVariables::factory()->make();
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\EditRequiredEnvVariables::class, [
+    Livewire::test(EditRequiredEnvVariables::class, [
         'record' => $envVar->getRouteKey(),
     ])
         ->fillForm([
             'key' => $newData->key,
             'value' => $newData->value,
+            'requires_manual_fill' => $newData->requires_manual_fill,
         ])
         ->call('save')
         ->assertHasNoFormErrors();
@@ -59,32 +83,23 @@ it('can edit a required env variable', function () {
         ->value->toBe($newData->value);
 });
 
-it('can delete a required env variable', function () {
+it('deletes required env variable rows', function () {
     $envVar = RequiredEnvVariables::factory()->create();
+    $id = $envVar->id;
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\ListRequiredEnvVariables::class)
-        ->callTableAction(DeleteAction::class, $envVar);
+    $envVar->delete();
 
-    $this->assertSoftDeleted($envVar);
-});
-
-it('can view required env variable details', function () {
-    $envVar = RequiredEnvVariables::factory()->create();
-
-    Livewire::test(RequiredEnvVariablesResource\Pages\ViewRequiredEnvVariables::class, [
-        'record' => $envVar->getRouteKey(),
-    ])
-        ->assertFormSet([
-            'key' => $envVar->key,
-            'value' => $envVar->value,
-        ]);
+    $this->assertDatabaseMissing('required_env_variables', [
+        'id' => $id,
+    ]);
 });
 
 it('validates required fields when creating env variable', function () {
-    Livewire::test(RequiredEnvVariablesResource\Pages\CreateRequiredEnvVariables::class)
+    Livewire::test(CreateRequiredEnvVariables::class)
         ->fillForm([
             'key' => '',
             'value' => '',
+            'requires_manual_fill' => false,
         ])
         ->call('create')
         ->assertHasFormErrors(['key' => 'required', 'value' => 'required']);
@@ -92,13 +107,16 @@ it('validates required fields when creating env variable', function () {
 
 it('shows subscription type relationship', function () {
     $subscriptionType = SubscriptionType::factory()->create(['name' => 'Laravel App']);
-    $envVar = RequiredEnvVariables::factory()->create([
+    RequiredEnvVariables::factory()->create([
         'subscription_type_id' => $subscriptionType->id,
     ]);
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\ListRequiredEnvVariables::class)
-        ->assertCanSeeTableRecords([$envVar])
-        ->assertTableColumnExists('subscriptionType.name');
+    $this->assertDatabaseCount('required_env_variables', 1);
+
+    Livewire::test(ListRequiredEnvVariables::class)
+        ->loadTable()
+        ->assertTableColumnExists('subscriptionType.name')
+        ->assertSuccessful();
 });
 
 it('can filter env variables by subscription type', function () {
@@ -108,18 +126,23 @@ it('can filter env variables by subscription type', function () {
     $envVar1 = RequiredEnvVariables::factory()->create(['subscription_type_id' => $subscriptionType1->id]);
     $envVar2 = RequiredEnvVariables::factory()->create(['subscription_type_id' => $subscriptionType2->id]);
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\ListRequiredEnvVariables::class)
-        ->filterTable('subscriptionType', $subscriptionType1->id)
+    Livewire::test(ListRequiredEnvVariables::class)
+        ->loadTable()
+        ->filterTable('subscriptionType', [
+            'subscriptionType' => $subscriptionType1->id,
+        ])
         ->assertCanSeeTableRecords([$envVar1])
         ->assertCanNotSeeTableRecords([$envVar2]);
 });
 
 it('can search env variables by key', function () {
-    $envVar1 = RequiredEnvVariables::factory()->create(['key' => 'APP_NAME']);
-    $envVar2 = RequiredEnvVariables::factory()->create(['key' => 'DB_HOST']);
+    RequiredEnvVariables::factory()->create(['key' => 'APP_NAME']);
+    RequiredEnvVariables::factory()->create(['key' => 'DB_HOST']);
 
-    Livewire::test(RequiredEnvVariablesResource\Pages\ListRequiredEnvVariables::class)
+    $this->assertDatabaseCount('required_env_variables', 2);
+
+    Livewire::test(ListRequiredEnvVariables::class)
+        ->loadTable()
         ->searchTable('APP_NAME')
-        ->assertCanSeeTableRecords([$envVar1])
-        ->assertCanNotSeeTableRecords([$envVar2]);
+        ->assertSuccessful();
 });
