@@ -19,5 +19,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Optional: seed required env templates for all subscription types (uses placeholders for secrets).
+        // $this->call(SubscriptionRequiredEnvVariablesSeeder::class);
     }
 }
