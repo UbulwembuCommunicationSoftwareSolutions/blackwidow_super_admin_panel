@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('env_variables', function (Blueprint $table) {
             $table->id();
             $table->string('key');
-            $table->string('value');
+            $table->text('value');
             $table->foreignId('customer_subscription_id');
             $table->timestamps();
         });

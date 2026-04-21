@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('env_variables', function (Blueprint $table) {
-            $table->string('value')->nullable()->change();
+            $table->text('value')->nullable()->change();
         });
     }
 
     public function down(): void
     {
         Schema::table('env_variables', function (Blueprint $table) {
-            $table->string('value')->nullable(false)->change();
+            $table->text('value')->nullable(false)->change();
         });
     }
 };
