@@ -11,18 +11,14 @@ Authentication uses **Laravel Sanctum** personal access tokens on the `User` mod
 
 ## 1. Create a Sanctum token (one-time)
 
-In the project root, with a running DB and migrations (including `personal_access_tokens`):
+With DB configured and migrations run (including `personal_access_tokens`):
 
 ```bash
-php artisan tinker
+php artisan mcp:create-token
+# or: php artisan mcp:create-token you@example.com
 ```
 
-```php
-$user = \App\Models\User::where('email', 'you@example.com')->first();
-$user->createToken('mcp')->plainTextToken;
-```
-
-Copy the shown token. It is shown **once**.
+Copy the printed token. It is shown **once**, then paste it into `BLACKWIDOW_API_TOKEN` in your MCP client config (Claude: `~/Library/Application Support/Claude/claude_desktop_config.json` under `mcpServers.blackwidow-site.env`, or `.cursor/mcp.json` for Cursor).
 
 ## 2. Install Node dependencies
 

@@ -21,3 +21,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+# Local MCP config may contain API tokens
+.cursor/mcp.json

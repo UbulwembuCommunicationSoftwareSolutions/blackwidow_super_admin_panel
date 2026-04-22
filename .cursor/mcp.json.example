@@ -2,7 +2,9 @@
   "mcpServers": {
     "blackwidow-site": {
       "command": "node",
-      "args": ["${workspaceFolder}/mcp/blackwidow-site/index.mjs"],
+      "args": [
+        "/Users/jacquestredoux/PhpstormProjects/blackwidow_super_admin_panel/mcp/blackwidow-site/index.mjs"
+      ],
       "env": {
         "BLACKWIDOW_API_BASE_URL": "http://127.0.0.1:8000",
         "BLACKWIDOW_API_TOKEN": "your-sanctum-plain-token"

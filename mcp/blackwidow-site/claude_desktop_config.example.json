@@ -3,7 +3,7 @@
     "blackwidow-site": {
       "command": "node",
       "args": [
-        "/absolute/path/to/blackwidow_super_admin_panel/mcp/blackwidow-site/index.mjs"
+        "/Users/jacquestredoux/PhpstormProjects/blackwidow_super_admin_panel/mcp/blackwidow-site/index.mjs"
       ],
       "env": {
         "BLACKWIDOW_API_BASE_URL": "http://127.0.0.1:8000",
