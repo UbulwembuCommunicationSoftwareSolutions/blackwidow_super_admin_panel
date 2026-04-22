@@ -8,6 +8,7 @@ use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
 use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
+use Illuminate\Support\Facades\Log;
 
 class ForgeService
 {
@@ -25,6 +26,17 @@ class ForgeService
     {
         $forgeApi = new ForgeApi();
         $response = $forgeApi->forge->siteEnvironmentFile($subscription->server_id, $subscription->forge_site_id);
+
+        $responseForLog = is_string($response)
+            ? $response
+            : json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        Log::info('Pull env from Forge: received API response', [
+            'customer_subscription_id' => $subscription->id,
+            'server_id' => $subscription->server_id,
+            'forge_site_id' => $subscription->forge_site_id,
+            'response_json' => $responseForLog,
+        ]);
+
         $string_env = self::resolveEnvFileContent($response);
         $subscription->env = $string_env;
         $env = $forgeApi->parseEnvContent($string_env);
