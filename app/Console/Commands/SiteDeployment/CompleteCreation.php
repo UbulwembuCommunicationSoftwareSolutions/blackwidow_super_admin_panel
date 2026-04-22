@@ -95,6 +95,8 @@ class CompleteCreation extends Command
         }
 
         //TODO: DATABASE ENV not working, need to fix it.
+        //TODO: APP_KEY missing, need to fix it.
+        //TODO: SECURE_TOKEN missing, need to fix it.
 
     }
 }
