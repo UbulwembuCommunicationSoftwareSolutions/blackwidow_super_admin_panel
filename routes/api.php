@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\McpSiteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,4 +31,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin-api/trigger-user-sync', [\App\Http\Controllers\UserSyncController::class, 'triggerSync']);
     Route::get('/admin-api/user-sync-status/{userId}', [\App\Http\Controllers\UserSyncController::class, 'getSyncStatus']);
     Route::get('/admin-api/user-sync-stats', [\App\Http\Controllers\UserSyncController::class, 'getSyncStats']);
+});
+
+// MCP / automation: read-only site introspection (Sanctum bearer token; create via $user->createToken('mcp'))
+Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
+    Route::get('/health', [McpSiteController::class, 'health']);
+    Route::get('/subscription-types', [McpSiteController::class, 'subscriptionTypes']);
 });
