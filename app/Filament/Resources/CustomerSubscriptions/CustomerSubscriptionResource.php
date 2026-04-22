@@ -6,6 +6,7 @@ use App\Filament\Resources\CustomerSubscriptions\Pages\CreateCustomerSubscriptio
 use App\Filament\Resources\CustomerSubscriptions\Pages\EditCustomerSubscription;
 use App\Filament\Resources\CustomerSubscriptions\Pages\ListCustomerSubscriptions;
 use App\Filament\Resources\CustomerSubscriptions\Pages\ViewCustomerSubscription;
+use App\Filament\Resources\CustomerSubscriptions\RelationManagers\AllEnvVariablesRelationManager;
 use App\Filament\Resources\CustomerSubscriptions\RelationManagers\ManualEnvVariablesRelationManager;
 use App\Filament\Resources\CustomerSubscriptions\Schemas\CustomerSubscriptionForm;
 use App\Filament\Resources\CustomerSubscriptions\Tables\CustomerSubscriptionsTable;
@@ -45,6 +46,7 @@ class CustomerSubscriptionResource extends Resource
     {
         return [
             ManualEnvVariablesRelationManager::class,
+            AllEnvVariablesRelationManager::class,
         ];
     }
 
