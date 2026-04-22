@@ -7,10 +7,13 @@ use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use App\Services\CustomerSubscriptionService;
+use App\Services\ForgeService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Log;
 
 class EditCustomerSubscription extends EditRecord
 {
@@ -35,6 +38,35 @@ class EditCustomerSubscription extends EditRecord
                 ->modalHeading('Deploy Site')
                 ->modalDescription('This will trigger a site deployment. Continue?')
                 ->modalSubmitActionLabel('Deploy'),
+            Action::make('pullEnvFromServer')
+                ->label('Pull env from server')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->visible(fn (CustomerSubscription $record): bool => filled($record->server_id) && filled($record->forge_site_id))
+                ->requiresConfirmation()
+                ->modalHeading('Pull environment from Forge')
+                ->modalDescription('This fetches the site .env from Laravel Forge and updates the stored env copy and env variable rows for this subscription. Existing keys will be overwritten with server values (FORGE_API_KEY is skipped). Continue?')
+                ->modalSubmitActionLabel('Pull env')
+                ->action(function (CustomerSubscription $record) {
+                    try {
+                        ForgeService::getSiteEnvironment($record);
+                        Notification::make()
+                            ->title('Environment pulled from server')
+                            ->success()
+                            ->send();
+
+                        return redirect()->to(CustomerSubscriptionResource::getUrl('edit', ['record' => $record]));
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to pull env from Forge', [
+                            'customer_subscription_id' => $record->id,
+                            'exception' => $e,
+                        ]);
+                        Notification::make()
+                            ->title('Could not pull environment')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
             Action::make('backToCustomer')
                 ->label('Back to Customer')
                 ->icon('heroicon-o-arrow-left')

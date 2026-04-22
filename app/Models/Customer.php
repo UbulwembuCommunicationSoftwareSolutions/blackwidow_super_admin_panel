@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-use Str;
 use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Str;
 
 class Customer extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected static function boot()
     {
@@ -31,44 +31,46 @@ class Customer extends Model
 
         static::updating(function ($model) {
             $updated = false;
-            if($model->isDirty('level_one_in_use')){
+            if ($model->isDirty('level_one_in_use')) {
                 $updated = true;
             }
-            if($model->isDirty('level_two_in_use')){
+            if ($model->isDirty('level_two_in_use')) {
                 $updated = true;
             }
-            if($model->isDirty('level_three_in_use')){
+            if ($model->isDirty('level_three_in_use')) {
                 $updated = true;
             }
-            if($model->isDirty('level_one_description')){
+            if ($model->isDirty('level_one_description')) {
                 $updated = true;
             }
-            if($model->isDirty('level_two_description')){
+            if ($model->isDirty('level_two_description')) {
                 $updated = true;
             }
-            if($model->isDirty('level_three_description')){
+            if ($model->isDirty('level_three_description')) {
                 $updated = true;
             }
-            if($model->isDirty('level_four_description')){
+            if ($model->isDirty('level_four_description')) {
                 $updated = true;
             }
-            if($model->isDirty('level_five_description')){
+            if ($model->isDirty('level_five_description')) {
                 $updated = true;
             }
-            if($model->isDirty('task_description')){
+            if ($model->isDirty('task_description')) {
                 $updated = true;
             }
-            if($model->isDirty('docket_description')){
+            if ($model->isDirty('docket_description')) {
                 $updated = true;
             }
-            if($updated){
+            if ($updated) {
                 SendSystemConfigJob::dispatch($model->id);
             }
         });
     }
+
     protected $fillable = [
         'company_name',
         'token',
+        'google_api_key',
         'max_users',
         'docket_description',
         'task_description',
@@ -87,12 +89,12 @@ class Customer extends Model
         return $this->belongsToMany(User::class, 'user_customers');
     }
 
-    public function customerSubscriptions() : hasMany
+    public function customerSubscriptions(): hasMany
     {
         return $this->hasMany(CustomerSubscription::class);
     }
 
-    public function customerUsers() : hasMany
+    public function customerUsers(): hasMany
     {
         return $this->hasMany(CustomerUser::class);
     }

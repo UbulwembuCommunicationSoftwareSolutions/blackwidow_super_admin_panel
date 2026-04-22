@@ -23,6 +23,9 @@ class CustomerInfolist
                 TextEntry::make('updated_at')
                     ->dateTime()
                     ->placeholder('-'),
+                TextEntry::make('google_api_key')
+                    ->label('Google API key')
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? '********' : '—'),
                 TextEntry::make('token')
                     ->placeholder('-'),
                 TextEntry::make('docket_description'),

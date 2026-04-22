@@ -14,6 +14,11 @@ class CustomerForm
             ->components([
                 TextInput::make('company_name')
                     ->required(),
+                TextInput::make('google_api_key')
+                    ->label('Google API key')
+                    ->password()
+                    ->revealable()
+                    ->nullable(),
                 TextInput::make('token'),
                 TextInput::make('docket_description')
                     ->required()

@@ -21,6 +21,10 @@ class CustomersTable
             ->columns([
                 TextColumn::make('company_name')
                     ->searchable(),
+                IconColumn::make('google_api_key')
+                    ->label('Google API key')
+                    ->boolean()
+                    ->getStateUsing(fn ($record): bool => filled($record->google_api_key)),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

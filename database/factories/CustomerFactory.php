@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\Customer;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Carbon;
 
 class CustomerFactory extends Factory
 {
@@ -14,6 +13,7 @@ class CustomerFactory extends Factory
     {
         return [
             'company_name' => $this->faker->company(),
+            'google_api_key' => null,
             'token' => $this->faker->uuid(),
             'max_users' => $this->faker->numberBetween(1, 100),
             'docket_description' => $this->faker->sentence(),

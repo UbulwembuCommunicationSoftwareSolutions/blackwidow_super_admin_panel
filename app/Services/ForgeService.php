@@ -21,10 +21,11 @@ class ForgeService
 
     }
 
-    public static function getSiteEnvironment($subscription)
+    public static function getSiteEnvironment(CustomerSubscription $subscription): void
     {
         $forgeApi = new ForgeApi();
-        $string_env = $forgeApi->forge->siteEnvironmentFile($subscription->serverId, $subscription->forge_site_id);
+        $response = $forgeApi->forge->siteEnvironmentFile($subscription->server_id, $subscription->forge_site_id);
+        $string_env = self::resolveEnvFileContent($response);
         $subscription->env = $string_env;
         $env = $forgeApi->parseEnvContent($string_env);
         foreach($env as $key=>$value){
@@ -45,6 +46,18 @@ class ForgeService
             }
         }
         $subscription->save();
+    }
+
+    /**
+     * Forge returns JSON (e.g. ['content' => '...']) from the site env API; normalize to a plain string.
+     */
+    private static function resolveEnvFileContent(mixed $response): string
+    {
+        if (is_array($response)) {
+            return (string) ($response['content'] ?? '');
+        }
+
+        return is_string($response) ? $response : (string) $response;
     }
 
     public static function setSitesDeploymentScripts(){
