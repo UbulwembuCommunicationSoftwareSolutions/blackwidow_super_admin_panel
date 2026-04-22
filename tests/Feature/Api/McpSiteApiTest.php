@@ -83,3 +83,62 @@ it('lists customer subscriptions without env blob for a sanctum user', function 
     $first = collect($res->json('data'))->firstWhere('id', $sub->id);
     expect($first)->not->toHaveKey('env');
 });
+
+it('can create and delete a template env variable', function () {
+    Sanctum::actingAs(User::factory()->create());
+    $st = SubscriptionType::factory()->create();
+
+    $r = $this->postJson('/api/mcp/template-env-variables', [
+        'subscription_type_id' => $st->id,
+        'key' => 'MCP_TEST_KEY',
+        'value' => 'x',
+        'requires_manual_fill' => false,
+    ])->assertCreated();
+
+    $id = $r->json('data.id');
+    $this->getJson("/api/mcp/template-env-variables/{$id}")->assertOk()->assertJsonPath('data.key', 'MCP_TEST_KEY');
+    $this->putJson("/api/mcp/template-env-variables/{$id}", ['value' => 'y'])->assertOk()->assertJsonPath('data.value', 'y');
+    $this->deleteJson("/api/mcp/template-env-variables/{$id}")->assertOk();
+});
+
+it('can create update delete an env variable row', function () {
+    Sanctum::actingAs(User::factory()->create());
+    $sub = CustomerSubscription::factory()->create();
+    $r = $this->postJson('/api/mcp/env-variables', [
+        'customer_subscription_id' => $sub->id,
+        'key' => 'MCP_FOO',
+        'value' => 'bar',
+    ])->assertCreated();
+    $id = $r->json('data.id');
+    $this->putJson("/api/mcp/env-variables/{$id}", ['value' => 'baz'])->assertOk()->assertJsonPath('data.value', 'baz');
+    $this->deleteJson("/api/mcp/env-variables/{$id}")->assertOk();
+});
+
+it('can create update delete a customer without secret fields in response', function () {
+    Sanctum::actingAs(User::factory()->create());
+    $r = $this->postJson('/api/mcp/customers', [
+        'company_name' => 'McpCo',
+        'max_users' => 10,
+    ])->assertCreated();
+    $id = $r->json('data.id');
+    expect($r->json('data'))->not->toHaveKey('s3_secret');
+    $this->putJson("/api/mcp/customers/{$id}", ['company_name' => 'McpCo2'])->assertOk();
+    $this->deleteJson("/api/mcp/customers/{$id}")->assertOk();
+});
+
+it('can create a customer subscription', function () {
+    Sanctum::actingAs(User::factory()->create());
+    $st = SubscriptionType::factory()->create();
+    $cust = Customer::factory()->create();
+    $r = $this->postJson('/api/mcp/customer-subscriptions', [
+        'url' => 'https://example.com',
+        'domain' => 'example.com',
+        'database_name' => 'mcp_test_db',
+        'subscription_type_id' => $st->id,
+        'customer_id' => $cust->id,
+    ])->assertCreated();
+    expect($r->json('data'))->not->toHaveKey('env');
+    $id = $r->json('data.id');
+    $this->putJson("/api/mcp/customer-subscriptions/{$id}", ['app_name' => 'MCP App'])->assertOk();
+    $this->deleteJson("/api/mcp/customer-subscriptions/{$id}")->assertOk();
+});

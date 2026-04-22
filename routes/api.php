@@ -33,12 +33,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin-api/user-sync-stats', [\App\Http\Controllers\UserSyncController::class, 'getSyncStats']);
 });
 
-// MCP / automation: read-only site introspection (Sanctum bearer token; create via $user->createToken('mcp'))
+// MCP / automation: JSON API (Sanctum bearer token; create via php artisan mcp:create-token)
 Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
     Route::get('/health', [McpSiteController::class, 'health']);
     Route::get('/subscription-types', [McpSiteController::class, 'subscriptionTypes']);
     Route::get('/template-env-variables', [McpSiteController::class, 'templateEnvVariables']);
+    Route::get('/template-env-variables/{id}', [McpSiteController::class, 'showTemplateEnvVariable'])->whereNumber('id');
+    Route::post('/template-env-variables', [McpSiteController::class, 'storeTemplateEnvVariable']);
+    Route::put('/template-env-variables/{id}', [McpSiteController::class, 'updateTemplateEnvVariable'])->whereNumber('id');
+    Route::delete('/template-env-variables/{id}', [McpSiteController::class, 'destroyTemplateEnvVariable'])->whereNumber('id');
     Route::get('/env-variables', [McpSiteController::class, 'envVariables']);
+    Route::get('/env-variables/{id}', [McpSiteController::class, 'showEnvVariable'])->whereNumber('id');
+    Route::post('/env-variables', [McpSiteController::class, 'storeEnvVariable']);
+    Route::put('/env-variables/{id}', [McpSiteController::class, 'updateEnvVariable'])->whereNumber('id');
+    Route::delete('/env-variables/{id}', [McpSiteController::class, 'destroyEnvVariable'])->whereNumber('id');
     Route::get('/customers', [McpSiteController::class, 'customers']);
+    Route::get('/customers/{id}', [McpSiteController::class, 'showCustomer'])->whereNumber('id');
+    Route::post('/customers', [McpSiteController::class, 'storeCustomer']);
+    Route::put('/customers/{id}', [McpSiteController::class, 'updateCustomer'])->whereNumber('id');
+    Route::delete('/customers/{id}', [McpSiteController::class, 'destroyCustomer'])->whereNumber('id');
     Route::get('/customer-subscriptions', [McpSiteController::class, 'customerSubscriptions']);
+    Route::get('/customer-subscriptions/{id}', [McpSiteController::class, 'showCustomerSubscription'])->whereNumber('id');
+    Route::post('/customer-subscriptions', [McpSiteController::class, 'storeCustomerSubscription']);
+    Route::put('/customer-subscriptions/{id}', [McpSiteController::class, 'updateCustomerSubscription'])->whereNumber('id');
+    Route::delete('/customer-subscriptions/{id}', [McpSiteController::class, 'destroyCustomerSubscription'])->whereNumber('id');
 });
