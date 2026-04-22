@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\EnvVariables;
-use App\Models\RequiredEnvVariables;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -47,7 +45,7 @@ use Illuminate\Support\Facades\Schedule;
 //})->purpose('Deploy All Consoles')->daily();
 //
 //Artisan::command('syncOneRequiredOptions', function () {
-//    $required_options = \App\Models\RequiredEnvVariables::get();
+//    $required_options = \App\Models\TemplateEnvVariables::get();
 //    $subscription = $this->ask('Enter Subscription ID');
 //    $subscription = \App\Models\CustomerSubscription::find($subscription);
 //    foreach($required_options as $option){

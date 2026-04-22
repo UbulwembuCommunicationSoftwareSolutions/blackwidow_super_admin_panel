@@ -7,7 +7,7 @@ use App\Filament\Resources\RequiredEnvVariables\Pages\EditRequiredEnvVariables;
 use App\Filament\Resources\RequiredEnvVariables\Pages\ListRequiredEnvVariables;
 use App\Filament\Resources\RequiredEnvVariables\Schemas\RequiredEnvVariablesForm;
 use App\Filament\Resources\RequiredEnvVariables\Tables\RequiredEnvVariablesTable;
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -19,7 +19,7 @@ use UnitEnum;
 
 class RequiredEnvVariablesResource extends Resource
 {
-    protected static ?string $model = RequiredEnvVariables::class;
+    protected static ?string $model = TemplateEnvVariables::class;
 
     protected static ?string $slug = 'required-env-variables';
 

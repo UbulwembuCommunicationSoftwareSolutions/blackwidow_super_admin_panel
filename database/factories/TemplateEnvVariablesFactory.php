@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\RequiredEnvVariables;
 use App\Models\SubscriptionType;
+use App\Models\TemplateEnvVariables;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class RequiredEnvVariablesFactory extends Factory
+class TemplateEnvVariablesFactory extends Factory
 {
-    protected $model = RequiredEnvVariables::class;
+    protected $model = TemplateEnvVariables::class;
 
     public function definition(): array
     {

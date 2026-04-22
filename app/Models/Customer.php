@@ -71,6 +71,12 @@ class Customer extends Model
         'company_name',
         'token',
         'google_api_key',
+        's3_endpoint',
+        's3_key',
+        's3_secret',
+        's3_region',
+        's3_bucket',
+        's3_use_path_style_endpoint',
         'max_users',
         'docket_description',
         'task_description',
@@ -83,6 +89,13 @@ class Customer extends Model
         'level_four_description',
         'level_five_description',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            's3_use_path_style_endpoint' => 'boolean',
+        ];
+    }
 
     public function users()
     {
@@ -97,5 +110,27 @@ class Customer extends Model
     public function customerUsers(): hasMany
     {
         return $this->hasMany(CustomerUser::class);
+    }
+
+    /**
+     * Laravel s3 disk settings for S3-compatible storage (e.g. MinIO). See config/filesystems.php s3 + endpoint + use_path_style_endpoint.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function s3DiskConfiguration(): ?array
+    {
+        if (! filled($this->s3_endpoint) || ! filled($this->s3_key) || ! filled($this->s3_secret) || ! filled($this->s3_bucket)) {
+            return null;
+        }
+
+        return [
+            'driver' => 's3',
+            'key' => $this->s3_key,
+            'secret' => $this->s3_secret,
+            'region' => $this->s3_region !== null && $this->s3_region !== '' ? $this->s3_region : 'us-east-1',
+            'bucket' => $this->s3_bucket,
+            'endpoint' => $this->s3_endpoint,
+            'use_path_style_endpoint' => (bool) $this->s3_use_path_style_endpoint,
+        ];
     }
 }

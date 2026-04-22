@@ -5,7 +5,7 @@ namespace App\Filament\Resources\CustomerSubscriptions\RelationManagers;
 use App\Filament\Resources\CustomerSubscriptions\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -38,7 +38,7 @@ class ManualEnvVariablesRelationManager extends RelationManager
                         if ($record === null || ! $this->ownerRecord instanceof CustomerSubscription || ! $this->ownerRecord->subscription_type_id) {
                             return null;
                         }
-                        $req = RequiredEnvVariables::query()
+                        $req = TemplateEnvVariables::query()
                             ->where('subscription_type_id', $this->ownerRecord->subscription_type_id)
                             ->where('key', $record->key)
                             ->first();
@@ -57,7 +57,7 @@ class ManualEnvVariablesRelationManager extends RelationManager
                     return $query->whereRaw('1 = 0');
                 }
 
-                $keys = RequiredEnvVariables::query()
+                $keys = TemplateEnvVariables::query()
                     ->where('subscription_type_id', $owner->subscription_type_id)
                     ->where('requires_manual_fill', true)
                     ->pluck('key');
@@ -78,7 +78,7 @@ class ManualEnvVariablesRelationManager extends RelationManager
                         if (! $this->ownerRecord instanceof CustomerSubscription || ! $this->ownerRecord->subscription_type_id) {
                             return '';
                         }
-                        $req = RequiredEnvVariables::query()
+                        $req = TemplateEnvVariables::query()
                             ->where('subscription_type_id', $this->ownerRecord->subscription_type_id)
                             ->where('key', $record->key)
                             ->first();
@@ -92,7 +92,7 @@ class ManualEnvVariablesRelationManager extends RelationManager
                             return '';
                         }
 
-                        return RequiredEnvVariables::query()
+                        return TemplateEnvVariables::query()
                             ->where('subscription_type_id', $this->ownerRecord->subscription_type_id)
                             ->where('key', $record->key)
                             ->value('help_text') ?? '';

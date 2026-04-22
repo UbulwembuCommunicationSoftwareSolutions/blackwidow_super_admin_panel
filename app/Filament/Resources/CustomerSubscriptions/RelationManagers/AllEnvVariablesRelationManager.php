@@ -5,7 +5,7 @@ namespace App\Filament\Resources\CustomerSubscriptions\RelationManagers;
 use App\Filament\Resources\CustomerSubscriptions\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -37,7 +37,7 @@ class AllEnvVariablesRelationManager extends RelationManager
                         if ($record === null || ! $this->ownerRecord instanceof CustomerSubscription || ! $this->ownerRecord->subscription_type_id) {
                             return null;
                         }
-                        $req = RequiredEnvVariables::query()
+                        $req = TemplateEnvVariables::query()
                             ->where('subscription_type_id', $this->ownerRecord->subscription_type_id)
                             ->where('key', $record->key)
                             ->first();

@@ -4,7 +4,7 @@ namespace App\Console\Commands\ForgeGetters;
 
 use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use Illuminate\Console\Command;
 
 class SyncAllRequiredEnvVariables extends Command
@@ -31,7 +31,7 @@ class SyncAllRequiredEnvVariables extends Command
         $subscriptions = CustomerSubscription::get();
         foreach ($subscriptions as $subscription) {
             $addedEnv = EnvVariables::where('customer_subscription_id', $subscription->id)->pluck('key');
-            $missing = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)
+            $missing = TemplateEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)
                 ->whereNotIn('key', $addedEnv)
                 ->get();
             $this->info('Subscription '.$subscription->url.' is missing '.count($missing).' required options');

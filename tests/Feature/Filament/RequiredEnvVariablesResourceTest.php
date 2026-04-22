@@ -3,7 +3,7 @@
 use App\Filament\Resources\RequiredEnvVariables\Pages\CreateRequiredEnvVariables;
 use App\Filament\Resources\RequiredEnvVariables\Pages\EditRequiredEnvVariables;
 use App\Filament\Resources\RequiredEnvVariables\Pages\ListRequiredEnvVariables;
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use App\Models\SubscriptionType;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
@@ -11,26 +11,26 @@ use Spatie\Permission\Models\Permission;
 beforeEach(function () {
     $user = User::factory()->create();
     foreach ([
-        'ViewAny:RequiredEnvVariables',
-        'View:RequiredEnvVariables',
-        'Create:RequiredEnvVariables',
-        'Update:RequiredEnvVariables',
-        'Delete:RequiredEnvVariables',
+        'ViewAny:TemplateEnvVariables',
+        'View:TemplateEnvVariables',
+        'Create:TemplateEnvVariables',
+        'Update:TemplateEnvVariables',
+        'Delete:TemplateEnvVariables',
     ] as $name) {
         Permission::findOrCreate($name, 'web');
     }
     $user->givePermissionTo([
-        'ViewAny:RequiredEnvVariables',
-        'View:RequiredEnvVariables',
-        'Create:RequiredEnvVariables',
-        'Update:RequiredEnvVariables',
-        'Delete:RequiredEnvVariables',
+        'ViewAny:TemplateEnvVariables',
+        'View:TemplateEnvVariables',
+        'Create:TemplateEnvVariables',
+        'Update:TemplateEnvVariables',
+        'Delete:TemplateEnvVariables',
     ]);
     $this->actingAs($user);
 });
 
 it('can list required env variables', function () {
-    RequiredEnvVariables::factory()->count(3)->create();
+    TemplateEnvVariables::factory()->count(3)->create();
 
     $this->assertDatabaseCount('required_env_variables', 3);
 
@@ -41,7 +41,7 @@ it('can list required env variables', function () {
 
 it('can create a required env variable', function () {
     $subscriptionType = SubscriptionType::factory()->create();
-    $newData = RequiredEnvVariables::factory()->make([
+    $newData = TemplateEnvVariables::factory()->make([
         'subscription_type_id' => $subscriptionType->id,
     ]);
 
@@ -64,8 +64,8 @@ it('can create a required env variable', function () {
 });
 
 it('can edit a required env variable', function () {
-    $envVar = RequiredEnvVariables::factory()->create();
-    $newData = RequiredEnvVariables::factory()->make();
+    $envVar = TemplateEnvVariables::factory()->create();
+    $newData = TemplateEnvVariables::factory()->make();
 
     Livewire::test(EditRequiredEnvVariables::class, [
         'record' => $envVar->getRouteKey(),
@@ -84,7 +84,7 @@ it('can edit a required env variable', function () {
 });
 
 it('deletes required env variable rows', function () {
-    $envVar = RequiredEnvVariables::factory()->create();
+    $envVar = TemplateEnvVariables::factory()->create();
     $id = $envVar->id;
 
     $envVar->delete();
@@ -107,7 +107,7 @@ it('validates required fields when creating env variable', function () {
 
 it('shows subscription type relationship', function () {
     $subscriptionType = SubscriptionType::factory()->create(['name' => 'Laravel App']);
-    RequiredEnvVariables::factory()->create([
+    TemplateEnvVariables::factory()->create([
         'subscription_type_id' => $subscriptionType->id,
     ]);
 
@@ -123,8 +123,8 @@ it('can filter env variables by subscription type', function () {
     $subscriptionType1 = SubscriptionType::factory()->create(['name' => 'Laravel App']);
     $subscriptionType2 = SubscriptionType::factory()->create(['name' => 'React App']);
 
-    $envVar1 = RequiredEnvVariables::factory()->create(['subscription_type_id' => $subscriptionType1->id]);
-    $envVar2 = RequiredEnvVariables::factory()->create(['subscription_type_id' => $subscriptionType2->id]);
+    $envVar1 = TemplateEnvVariables::factory()->create(['subscription_type_id' => $subscriptionType1->id]);
+    $envVar2 = TemplateEnvVariables::factory()->create(['subscription_type_id' => $subscriptionType2->id]);
 
     Livewire::test(ListRequiredEnvVariables::class)
         ->loadTable()
@@ -136,8 +136,8 @@ it('can filter env variables by subscription type', function () {
 });
 
 it('can search env variables by key', function () {
-    RequiredEnvVariables::factory()->create(['key' => 'APP_NAME']);
-    RequiredEnvVariables::factory()->create(['key' => 'DB_HOST']);
+    TemplateEnvVariables::factory()->create(['key' => 'APP_NAME']);
+    TemplateEnvVariables::factory()->create(['key' => 'DB_HOST']);
 
     $this->assertDatabaseCount('required_env_variables', 2);
 

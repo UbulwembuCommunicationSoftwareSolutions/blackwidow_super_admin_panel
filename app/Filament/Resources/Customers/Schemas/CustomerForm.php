@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Customers\Schemas;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class CustomerForm
@@ -19,6 +20,35 @@ class CustomerForm
                     ->password()
                     ->revealable()
                     ->nullable(),
+                Section::make('S3 / MinIO storage')
+                    ->description('S3-compatible object storage (e.g. MinIO). Use the same values as Laravel\'s s3 disk: endpoint, access key, secret, region, bucket, and path-style endpoint for MinIO.')
+                    ->schema([
+                        TextInput::make('s3_endpoint')
+                            ->label('Endpoint URL')
+                            ->url()
+                            ->placeholder('http://127.0.0.1:9005')
+                            ->nullable(),
+                        TextInput::make('s3_key')
+                            ->label('Access key')
+                            ->nullable(),
+                        TextInput::make('s3_secret')
+                            ->label('Secret key')
+                            ->password()
+                            ->revealable()
+                            ->nullable(),
+                        TextInput::make('s3_region')
+                            ->label('Region')
+                            ->placeholder('us-east-1')
+                            ->nullable(),
+                        TextInput::make('s3_bucket')
+                            ->label('Bucket')
+                            ->nullable(),
+                        Toggle::make('s3_use_path_style_endpoint')
+                            ->label('Path-style endpoint')
+                            ->helperText('Required for most MinIO setups (see Laravel filesystems s3 disk).')
+                            ->default(true),
+                    ])
+                    ->collapsible(),
                 TextInput::make('token'),
                 TextInput::make('docket_description')
                     ->required()

@@ -26,6 +26,24 @@ class CustomerInfolist
                 TextEntry::make('google_api_key')
                     ->label('Google API key')
                     ->formatStateUsing(fn (?string $state): string => filled($state) ? '********' : '—'),
+                TextEntry::make('s3_endpoint')
+                    ->label('S3 / MinIO endpoint')
+                    ->placeholder('—'),
+                TextEntry::make('s3_key')
+                    ->label('S3 access key')
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? '********' : '—'),
+                TextEntry::make('s3_secret')
+                    ->label('S3 secret key')
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? '********' : '—'),
+                TextEntry::make('s3_region')
+                    ->label('S3 region')
+                    ->placeholder('—'),
+                TextEntry::make('s3_bucket')
+                    ->label('S3 bucket')
+                    ->placeholder('—'),
+                IconEntry::make('s3_use_path_style_endpoint')
+                    ->label('S3 path-style endpoint')
+                    ->boolean(),
                 TextEntry::make('token')
                     ->placeholder('-'),
                 TextEntry::make('docket_description'),

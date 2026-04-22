@@ -306,17 +306,17 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\SubscriptionType|null $subscriptionType
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables whereKey($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables whereSubscriptionTypeId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|RequiredEnvVariables whereValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables whereKey($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables whereSubscriptionTypeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|TemplateEnvVariables whereValue($value)
  */
-	class RequiredEnvVariables extends \Eloquent {}
+	class TemplateEnvVariables extends \Eloquent {}
 }
 
 namespace App\Models{

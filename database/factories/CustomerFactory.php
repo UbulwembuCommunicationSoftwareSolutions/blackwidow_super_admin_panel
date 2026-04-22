@@ -14,6 +14,12 @@ class CustomerFactory extends Factory
         return [
             'company_name' => $this->faker->company(),
             'google_api_key' => null,
+            's3_endpoint' => null,
+            's3_key' => null,
+            's3_secret' => null,
+            's3_region' => null,
+            's3_bucket' => null,
+            's3_use_path_style_endpoint' => true,
             'token' => $this->faker->uuid(),
             'max_users' => $this->faker->numberBetween(1, 100),
             'docket_description' => $this->faker->sentence(),

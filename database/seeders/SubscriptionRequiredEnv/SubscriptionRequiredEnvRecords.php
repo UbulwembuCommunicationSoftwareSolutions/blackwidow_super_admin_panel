@@ -2,7 +2,7 @@
 
 namespace Database\Seeders\SubscriptionRequiredEnv;
 
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 
 final class SubscriptionRequiredEnvRecords
 {
@@ -12,7 +12,7 @@ final class SubscriptionRequiredEnvRecords
     public static function sync(int $subscriptionTypeId, array $rows): void
     {
         foreach ($rows as $row) {
-            RequiredEnvVariables::updateOrCreate(
+            TemplateEnvVariables::updateOrCreate(
                 [
                     'subscription_type_id' => $subscriptionTypeId,
                     'key' => $row['key'],

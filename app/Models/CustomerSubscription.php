@@ -56,7 +56,7 @@ class CustomerSubscription extends Model
         $subscriptions = CustomerSubscription::get();
         foreach ($subscriptions as $subscription) {
             $envs = $subscription->envVariables;
-            $requiredEnv = RequiredEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)->get();
+            $requiredEnv = TemplateEnvVariables::where('subscription_type_id', $subscription->subscription_type_id)->get();
             foreach ($requiredEnv as $env) {
                 $found = false;
                 foreach ($envs as $e) {
@@ -85,7 +85,7 @@ class CustomerSubscription extends Model
 
     public function getNullVariableCountAttribute(): int
     {
-        $manualKeys = RequiredEnvVariables::query()
+        $manualKeys = TemplateEnvVariables::query()
             ->where('subscription_type_id', $this->subscription_type_id)
             ->where('requires_manual_fill', true)
             ->pluck('key');

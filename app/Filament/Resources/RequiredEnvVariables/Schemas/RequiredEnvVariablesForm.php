@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\RequiredEnvVariables\Schemas;
 
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -42,10 +42,10 @@ class RequiredEnvVariablesForm
                     ->required(),
                 Placeholder::make('created_at')
                     ->label('Created Date')
-                    ->content(fn (?RequiredEnvVariables $record): string => $record?->created_at?->diffForHumans() ?? '-'),
+                    ->content(fn (?TemplateEnvVariables $record): string => $record?->created_at?->diffForHumans() ?? '-'),
                 Placeholder::make('updated_at')
                     ->label('Last Modified Date')
-                    ->content(fn (?RequiredEnvVariables $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
+                    ->content(fn (?TemplateEnvVariables $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
             ]);
     }
 }

@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
-use Database\Factories\RequiredEnvVariablesFactory;
+use Database\Factories\TemplateEnvVariablesFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class RequiredEnvVariables extends Model
+class TemplateEnvVariables extends Model
 {
     use HasFactory;
 
-    protected static function newFactory(): RequiredEnvVariablesFactory
+    protected $table = 'required_env_variables';
+
+    protected static function newFactory(): TemplateEnvVariablesFactory
     {
-        return RequiredEnvVariablesFactory::new();
+        return TemplateEnvVariablesFactory::new();
     }
 
     public $fillable = [

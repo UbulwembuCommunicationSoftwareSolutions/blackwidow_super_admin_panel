@@ -25,6 +25,15 @@ class CustomersTable
                     ->label('Google API key')
                     ->boolean()
                     ->getStateUsing(fn ($record): bool => filled($record->google_api_key)),
+                IconColumn::make('s3_configured')
+                    ->label('S3 / MinIO')
+                    ->boolean()
+                    ->getStateUsing(function ($record): bool {
+                        return filled($record->s3_endpoint)
+                            && filled($record->s3_key)
+                            && filled($record->s3_secret)
+                            && filled($record->s3_bucket);
+                    }),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

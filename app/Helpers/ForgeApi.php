@@ -7,7 +7,7 @@ use App\Jobs\TriggerForgeDeployment;
 use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
 use App\Models\ForgeServer;
-use App\Models\RequiredEnvVariables;
+use App\Models\TemplateEnvVariables;
 use Exception;
 use Laravel\Forge\Forge;
 use Log;
@@ -211,7 +211,7 @@ class ForgeApi
     {
         if ($customerSubscription->customer) {
             $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
-            $missing = RequiredEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
+            $missing = TemplateEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
                 ->whereNotIn('key', $addedEnv)
                 ->get();
 
