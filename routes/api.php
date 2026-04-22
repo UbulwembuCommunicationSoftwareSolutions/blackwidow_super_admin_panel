@@ -37,4 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
     Route::get('/health', [McpSiteController::class, 'health']);
     Route::get('/subscription-types', [McpSiteController::class, 'subscriptionTypes']);
+    Route::get('/template-env-variables', [McpSiteController::class, 'templateEnvVariables']);
+    Route::get('/env-variables', [McpSiteController::class, 'envVariables']);
+    Route::get('/customers', [McpSiteController::class, 'customers']);
+    Route::get('/customer-subscriptions', [McpSiteController::class, 'customerSubscriptions']);
 });

@@ -23,3 +23,4 @@ yarn-error.log
 /.vscode
 # Local MCP config may contain API tokens
 .cursor/mcp.json
+claude_desktop_config.json

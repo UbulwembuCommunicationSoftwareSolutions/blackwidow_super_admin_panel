@@ -6,8 +6,14 @@ This is a small [Model Context Protocol](https://modelcontextprotocol.io/) serve
 |------|-----|
 | `site_health` | `GET /api/mcp/health` |
 | `list_subscription_types` | `GET /api/mcp/subscription-types` |
+| `list_template_env_variables` | `GET /api/mcp/template-env-variables` |
+| `list_env_variables` | `GET /api/mcp/env-variables?customer_subscription_id=` |
+| `list_customers` | `GET /api/mcp/customers` (paginated; omits S3 / API key / token) |
+| `list_customer_subscriptions` | `GET /api/mcp/customer-subscriptions` (paginated; omits `env` blob) |
 
 Authentication uses **Laravel Sanctum** personal access tokens on the `User` model (`Authorization: Bearer …`).
+
+**Privacy:** `Customer` responses hide storage credentials and `token`. `CustomerSubscription` responses omit the large `env` field (use per-row env via `list_env_variables` when you need key/value for a site).
 
 ## 1. Create a Sanctum token (one-time)
 
@@ -36,7 +42,17 @@ Set **env vars** in the client (not in the model chat):
 
 ### Claude Desktop (macOS)
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` and merge a `mcpServers` entry (see `claude_desktop_config.example.json` in this folder). **Fully quit and reopen** Claude.
+- **One-shot sync from the repo (recommended):** from the project root, copy the tracked template then edit the token, then copy into place:
+  ```bash
+  cp claude_desktop_config.example.json claude_desktop_config.json
+  # Edit claude_desktop_config.json: set BLACKWIDOW_API_BASE_URL, BLACKWIDOW_API_TOKEN, and merge your Claude preferences if you use a custom sidebarMode, etc.
+  mkdir -p ~/Library/Application\ Support/Claude
+  cp claude_desktop_config.json ~/Library/Application\ Support/Claude/claude_desktop_config.json
+  ```
+  The file `claude_desktop_config.json` in the project root (when present) is **gitignored** so API tokens are not committed.
+- **Or** edit `~/Library/Application Support/Claude/claude_desktop_config.json` by hand and merge a `mcpServers` block (see `claude_desktop_config.example.json` in this folder for MCP only).
+
+**Fully quit and reopen** Claude after changes.
 
 ### Cursor
 

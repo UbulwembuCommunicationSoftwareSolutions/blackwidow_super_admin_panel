@@ -51,6 +51,22 @@ async function apiGet (path) {
   return body;
 }
 
+/**
+ * @param {string} path - e.g. "/mcp/customers"
+ * @param {Record<string, string | number | undefined | null>} [params]
+ */
+async function apiGetQuery (path, params = {}) {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') {
+      qs.set(k, String(v));
+    }
+  }
+  const q = qs.toString();
+  return apiGet(q ? `${p}?${q}` : p);
+}
+
 const server = new McpServer({
   name: 'blackwidow-site',
   version: '1.0.0'
@@ -80,6 +96,90 @@ server.registerTool(
   },
   async () => {
     const data = await apiGet('/mcp/subscription-types');
+    return {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
+    };
+  }
+);
+
+server.registerTool(
+  'list_template_env_variables',
+  {
+    description:
+      'List TemplateEnvVariables rows (per-subscription-type env key templates). Optional filter by subscription_type_id.',
+    inputSchema: z.object({
+      subscription_type_id: z.number().int().optional().describe('Filter by subscription type id')
+    })
+  },
+  async ({ subscription_type_id: subscriptionTypeId }) => {
+    const data = await apiGetQuery('/mcp/template-env-variables', {
+      subscription_type_id: subscriptionTypeId
+    });
+    return {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
+    };
+  }
+);
+
+server.registerTool(
+  'list_env_variables',
+  {
+    description:
+      'List EnvVariables for a customer subscription (key/value rows). Requires customer_subscription_id.',
+    inputSchema: z.object({
+      customer_subscription_id: z
+        .number()
+        .int()
+        .describe('Customer subscription primary key')
+    })
+  },
+  async ({ customer_subscription_id: customerSubscriptionId }) => {
+    const data = await apiGetQuery('/mcp/env-variables', {
+      customer_subscription_id: customerSubscriptionId
+    });
+    return {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
+    };
+  }
+);
+
+server.registerTool(
+  'list_customers',
+  {
+    description:
+      'Paginated customers (sensitive API/S3 fields omitted). Optional: page, per_page (max 100).',
+    inputSchema: z.object({
+      page: z.number().int().min(1).optional(),
+      per_page: z.number().int().min(1).max(100).optional()
+    })
+  },
+  async ({ page, per_page: perPage }) => {
+    const data = await apiGetQuery('/mcp/customers', { page, per_page: perPage });
+    return {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
+    };
+  }
+);
+
+server.registerTool(
+  'list_customer_subscriptions',
+  {
+    description:
+      'Paginated customer subscriptions with subscriptionType and customer (company). The raw env blob is omitted. Optional: customer_id, subscription_type_id, page, per_page.',
+    inputSchema: z.object({
+      customer_id: z.number().int().optional(),
+      subscription_type_id: z.number().int().optional(),
+      page: z.number().int().min(1).optional(),
+      per_page: z.number().int().min(1).max(100).optional()
+    })
+  },
+  async ({ customer_id: customerId, subscription_type_id: subscriptionTypeId, page, per_page: perPage }) => {
+    const data = await apiGetQuery('/mcp/customer-subscriptions', {
+      customer_id: customerId,
+      subscription_type_id: subscriptionTypeId,
+      page,
+      per_page: perPage
+    });
     return {
       content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
     };
