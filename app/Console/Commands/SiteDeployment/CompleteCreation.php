@@ -94,5 +94,7 @@ class CompleteCreation extends Command
             );
         }
 
+        //TODO: DATABASE ENV not working, need to fix it.
+
     }
 }
