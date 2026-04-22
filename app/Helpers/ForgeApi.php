@@ -22,7 +22,15 @@ class ForgeApi
 
     public function __construct()
     {
-        $this->forge = new Forge(env('FORGE_API_KEY'));
+        $apiKey = config('services.forge.key');
+
+        if (blank($apiKey)) {
+            throw new \RuntimeException(
+                'Laravel Forge is not configured: set FORGE_API_KEY in your .env and ensure config is not cached with a missing value (php artisan config:clear then config:cache after setting the key).'
+            );
+        }
+
+        $this->forge = new Forge($apiKey);
     }
 
     public function sendCommand($customerSubscriptionId, $command)
