@@ -12,6 +12,7 @@ use Exception;
 use Laravel\Forge\Exceptions\ValidationException;
 use Laravel\Forge\Forge;
 use Log;
+use Throwable;
 
 class ForgeApi
 {
@@ -311,49 +312,163 @@ class ForgeApi
             $password = (string) $customerSubscription->database_password;
         }
         if ($name === '' || $user === '' || $password === '') {
+            Log::warning('forge.create_database.skip_missing_prereq', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database_empty' => $name === '',
+                'user_empty' => $user === '',
+                'password_empty' => $password === '',
+            ]);
+
             return;
         }
 
-        $payload = [
+        $databasePayload = [
             'name' => $name,
-            'user' => $user,
-            'password' => $password,
         ];
 
         Log::info('forge.create_database', [
             'customer_subscription_id' => $customerSubscription->id,
             'server_id' => $server_id,
             'database' => $name,
-            'mysql_user' => $user,
-            'payload' => $payload,
         ]);
 
+        $databaseId = null;
+
         try {
-            $this->forge->createDatabase($server_id, $payload);
+            $createdDatabase = $this->forge->createDatabase($server_id, $databasePayload);
+            $databaseId = (int) $createdDatabase->id;
             Log::info('forge.database_created', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
                 'database' => $name,
-                'mysql_user' => $user,
+                'database_id' => $databaseId,
             ]);
         } catch (ValidationException $e) {
-            if ($this->forgeDatabaseExistsOnServer($server_id, $name)) {
+            $validationMessage = $e->getMessage();
+            $databaseId = $this->resolveForgeDatabaseId($server_id, $name);
+            if ($databaseId !== null) {
                 Log::info('forge.create_database.skip_exists', [
                     'customer_subscription_id' => $customerSubscription->id,
                     'server_id' => $server_id,
                     'database' => $name,
+                    'database_id' => $databaseId,
+                    'validation_message' => $validationMessage,
+                ]);
+            } else {
+                Log::warning('forge.create_database.validation_not_recovered', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'server_id' => $server_id,
+                    'database' => $name,
+                    'validation_message' => $validationMessage,
+                ]);
+                throw $e;
+            }
+        } catch (Throwable $e) {
+            Log::error('forge.create_database.api_failed', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+
+        $userPayload = [
+            'name' => $user,
+            'password' => $password,
+            'databases' => [$databaseId],
+        ];
+
+        Log::info('forge.create_database_user', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'server_id' => $server_id,
+            'database' => $name,
+            'database_id' => $databaseId,
+            'mysql_user' => $user,
+            'password_length' => strlen($password),
+        ]);
+
+        try {
+            $this->forge->createDatabaseUser($server_id, $userPayload);
+            Log::info('forge.database_user_created', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+                'database_id' => $databaseId,
+                'mysql_user' => $user,
+            ]);
+        } catch (ValidationException $e) {
+            $validationMessage = $e->getMessage();
+            if ($this->forgeDatabaseUserNameExistsOnServer($server_id, $user)
+                || $this->isLikelyDuplicateDatabaseUserMessage($validationMessage)) {
+                Log::warning('forge.create_database_user.skip_exists', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'server_id' => $server_id,
+                    'database' => $name,
+                    'database_id' => $databaseId,
+                    'mysql_user' => $user,
+                    'validation_message' => $validationMessage,
                 ]);
 
                 return;
             }
+
+            Log::warning('forge.create_database_user.validation_not_recovered', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+                'database_id' => $databaseId,
+                'mysql_user' => $user,
+                'validation_message' => $validationMessage,
+            ]);
+            throw $e;
+        } catch (Throwable $e) {
+            Log::error('forge.create_database_user.api_failed', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+                'database_id' => $databaseId,
+                'mysql_user' => $user,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
             throw $e;
         }
     }
 
-    protected function forgeDatabaseExistsOnServer(int $server_id, string $name): bool
+    /**
+     * Heuristic: Forge may return a validation error when the MySQL user name is already taken.
+     */
+    protected function isLikelyDuplicateDatabaseUserMessage(string $message): bool
+    {
+        $m = strtolower($message);
+        if (! str_contains($m, 'user')) {
+            return false;
+        }
+
+        return str_contains($m, 'exist')
+            || str_contains($m, 'taken')
+            || str_contains($m, 'duplicate')
+            || str_contains($m, 'already');
+    }
+
+    protected function resolveForgeDatabaseId(int $server_id, string $name): ?int
     {
         foreach ($this->forge->databases($server_id) as $db) {
             if (($db->name ?? null) === $name) {
+                return (int) $db->id;
+            }
+        }
+
+        return null;
+    }
+
+    protected function forgeDatabaseUserNameExistsOnServer(int $server_id, string $name): bool
+    {
+        foreach ($this->forge->databaseUsers($server_id) as $user) {
+            if (($user->name ?? null) === $name) {
                 return true;
             }
         }
