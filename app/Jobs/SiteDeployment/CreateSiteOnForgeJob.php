@@ -57,6 +57,20 @@ class CreateSiteOnForgeJob implements ShouldQueue
         }
         $forgeApi = new ForgeApi;
         $forgeApi->createSite($customerSubscription->server_id, $customerSubscription);
+        $customerSubscription->refresh();
+        if (blank($customerSubscription->forge_site_id)) {
+            $message = 'forge_site_id was not set after creating the site on Forge; deployment will not continue.';
+            Log::error('site_deployment.create_site.missing_forge_site_id', [
+                'customer_subscription_id' => $this->customerSubscriptionId,
+            ]);
+            if ($this->deploymentJobId !== null) {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    $message
+                );
+            }
+            throw new \RuntimeException($message);
+        }
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }
