@@ -320,6 +320,14 @@ class ForgeApi
             'password' => $password,
         ];
 
+        Log::info('forge.create_database', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'server_id' => $server_id,
+            'database' => $name,
+            'mysql_user' => $user,
+            'payload' => $payload,
+        ]);
+
         try {
             $this->forge->createDatabase($server_id, $payload);
             Log::info('forge.database_created', [
