@@ -39,6 +39,11 @@ class CustomerSubscription extends Model
         'deployed_version',
     ];
 
+    protected $casts = [
+        'site_deployment_queue_started_at' => 'datetime',
+        'last_deployment_error_at' => 'datetime',
+    ];
+
     public $appends = ['null_variable_count'];
 
     public function subscriptionType(): BelongsTo

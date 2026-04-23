@@ -8,7 +8,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-
 Route::post('user-login', 'App\Http\Controllers\CustomerUserController@login');
 Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
 Route::post('create-user', 'App\Http\Controllers\CustomerUserController@store');
@@ -22,7 +21,7 @@ Route::post('user-password', 'App\Http\Controllers\CustomerUserController@update
 Route::post('deactivate-user', 'App\Http\Controllers\CustomerUserController@deactivateUser');
 Route::post('activate-user', 'App\Http\Controllers\CustomerUserController@activateUser');
 Route::post('urls', 'App\Http\Controllers\CustomerController@getUrls');
-Route::middleware('auth:sanctum')->post('/token-user',[\App\Http\Controllers\CustomerSubscriptionController::class,'checkLoggedIn']);
+Route::middleware('auth:sanctum')->post('/token-user', [\App\Http\Controllers\CustomerSubscriptionController::class, 'checkLoggedIn']);
 
 Route::post('/google-places-proxy', [\App\Http\Controllers\GooglePlacesProxyController::class, 'proxy']);
 
@@ -33,7 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin-api/user-sync-stats', [\App\Http\Controllers\UserSyncController::class, 'getSyncStats']);
 });
 
-// MCP / automation: JSON API (Sanctum bearer token; create via php artisan mcp:create-token)
+// MCP / automation: JSON API (Sanctum bearer token; create via php artisan mcp:create-token).
+// customer-subscription POST: optional trigger_site_deployment, force_site_deployment to queue the Forge site pipeline.
 Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
     Route::get('/health', [McpSiteController::class, 'health']);
     Route::get('/subscription-types', [McpSiteController::class, 'subscriptionTypes']);

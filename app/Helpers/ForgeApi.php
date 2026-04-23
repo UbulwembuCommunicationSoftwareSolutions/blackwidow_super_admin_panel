@@ -36,7 +36,14 @@ class ForgeApi
     public function sendCommand($customerSubscriptionId, $command)
     {
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
+        if (! $customerSubscription) {
+            throw new \InvalidArgumentException('Customer subscription not found: '.$customerSubscriptionId);
+        }
+        $this->assertForgeSiteReady($customerSubscription);
         $commands_array['command'] = $command;
+        Log::info('forge.execute_site_command', [
+            'customer_subscription_id' => (int) $customerSubscriptionId,
+        ]);
         $this->forge->executeSiteCommand($customerSubscription->server_id, $customerSubscription->forge_site_id, $commands_array);
     }
 
@@ -51,11 +58,13 @@ class ForgeApi
 
     public function sendDeploymentScript(CustomerSubscription $customerSubscription)
     {
+        $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id, $customerSubscription->deploymentScript()->first()->script);
     }
 
     public function sendGitRepository($customerSubscription)
     {
+        $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $this->forge->installGitRepositoryOnSite(
             $customerSubscription->server_id,
             $customerSubscription->forge_site_id,
@@ -79,22 +88,58 @@ class ForgeApi
     public function getSitesForServer($serverId)
     {
         $sites = $this->getSites($serverId);
+        if (! is_array($sites)) {
+            return;
+        }
         foreach ($sites as $site) {
-            $customerSubscription = CustomerSubscription::where('url', 'like', '%'.'https://'.$site->name.'%')->first();
+            $customerSubscription = CustomerSubscription::query()
+                ->where('server_id', $serverId)
+                ->where(function ($q) use ($site) {
+                    $q->where('domain', $site->name)
+                        ->orWhere('url', 'like', '%://'.$site->name.'%');
+                })
+                ->first();
             if ($customerSubscription) {
-                echo $customerSubscription->url.' '.$site->name."\n";
                 $customerSubscription->forge_site_id = $site->id;
                 $customerSubscription->save();
-            } else {
-                echo 'No Subscription Found for '.$site->name."\n";
-                $customerSubscription = CustomerSubscription::updateOrCreate([
-                    'url' => 'https://'.$site->name,
-                    'subscription_type_id' => null,
-                    'server_id' => $serverId,
+                Log::info('forge.site_matched', [
+                    'customer_subscription_id' => $customerSubscription->id,
                     'forge_site_id' => $site->id,
+                    'site_name' => $site->name,
                 ]);
             }
         }
+    }
+
+    /**
+     * Ensure this subscription has forge_site_id by re-fetching Forge sites for its server (used when API id was not saved).
+     */
+    public function tryLinkForgeSiteId(CustomerSubscription $customerSubscription): bool
+    {
+        if ($customerSubscription->forge_site_id) {
+            return true;
+        }
+        if (! $customerSubscription->server_id) {
+            Log::warning('forge.try_link_no_server', ['customer_subscription_id' => $customerSubscription->id]);
+
+            return false;
+        }
+        $this->getSitesForServer($customerSubscription->server_id);
+        $customerSubscription->refresh();
+
+        return (bool) $customerSubscription->forge_site_id;
+    }
+
+    public function assertForgeSiteReady(CustomerSubscription $customerSubscription): CustomerSubscription
+    {
+        $fresh = $customerSubscription->fresh() ?? $customerSubscription;
+        if (! $fresh->server_id || ! $fresh->forge_site_id) {
+            throw new \RuntimeException(
+                'Subscription '.$fresh->id.' is not ready for Forge API calls (missing server_id or forge_site_id).'
+            );
+        }
+
+        return $fresh;
     }
 
     public function deployAllConsoles()
@@ -142,12 +187,16 @@ class ForgeApi
         try {
             foreach ($this->forge->sites($serverId) as $site) {
                 $sites[] = $site;
-                Log::info(json_encode($site));
             }
 
             return $sites;
         } catch (Exception $e) {
-            // echo $e->getMessage();
+            Log::error('forge.get_sites_failed', [
+                'server_id' => $serverId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return [];
         }
     }
 
@@ -158,6 +207,7 @@ class ForgeApi
 
     public function letsEncryptCertificate(CustomerSubscription $customerSubscription)
     {
+        $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $domain = str_replace('http://', '', $customerSubscription->url);
         $domain = str_replace('https://', '', $domain);
         $this->forge->obtainLetsEncryptCertificate($customerSubscription->server_id, $customerSubscription->forge_site_id, [
@@ -170,7 +220,7 @@ class ForgeApi
     {
         $this->addMissingEnv($customerSubscription);
         $template = null;
-        if (in_array($customerSubscription->subscription_type_id, [1, 2, 9, 10])) {
+        if (in_array($customerSubscription->subscription_type_id, [1, 2, 9, 10, 11], true)) {
             $database = $customerSubscription->database_name;
         } else {
             $database = null;
@@ -201,8 +251,20 @@ class ForgeApi
             ];
         }
 
-        Log::info(json_encode($payload));
-        $this->forge->createSite($server_id, $payload);
+        Log::info('forge.create_site', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'domain' => $customerSubscription->domain,
+        ]);
+        $site = $this->forge->createSite($server_id, $payload);
+        $customerSubscription->forge_site_id = (string) $site->id;
+        if (! $customerSubscription->site_created_at) {
+            $customerSubscription->site_created_at = now();
+        }
+        $customerSubscription->save();
+        Log::info('forge.site_created', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'forge_site_id' => $site->id,
+        ]);
         $this->syncForge();
     }
 
@@ -236,8 +298,10 @@ class ForgeApi
 
             if ($cmsUrl) {
                 $caseManagement = CustomerSubscription::where('customer_id', $customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
-                $cmsUrl->value = $caseManagement->url;
-                $cmsUrl->save();
+                if ($caseManagement) {
+                    $cmsUrl->value = $caseManagement->url;
+                    $cmsUrl->save();
+                }
             }
 
             $cmsUrl = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
@@ -246,8 +310,10 @@ class ForgeApi
 
             if ($cmsUrl) {
                 $caseManagement = CustomerSubscription::where('customer_id', $customerSubscription->customer_id)->where('subscription_type_id', 1)->first();
-                $cmsUrl->value = $caseManagement->url;
-                $cmsUrl->save();
+                if ($caseManagement) {
+                    $cmsUrl->value = $caseManagement->url;
+                    $cmsUrl->save();
+                }
             }
 
             $appName = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
@@ -302,10 +368,14 @@ class ForgeApi
 
     public function sendEnv(CustomerSubscription $customerSubscription)
     {
+        $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
 
         if ($customerSubscription->hasIncompleteManualEnvVariables()) {
+            Log::warning('forge.send_env.blocked_manual_vars', [
+                'customer_subscription_id' => $customerSubscription->id,
+            ]);
             throw new \RuntimeException(
-                'Cannot push environment to Forge: one or more manual-required variables are empty for customer subscription '.$customerSubscription->id.'.'
+                'Cannot push environment to Forge: one or more manual-required template variables are still empty. Fill them in Super Admin, or complete automated env for this subscription type, then retry.'
             );
         }
 

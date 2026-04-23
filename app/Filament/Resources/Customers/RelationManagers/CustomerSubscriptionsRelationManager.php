@@ -2,19 +2,11 @@
 
 namespace App\Filament\Resources\Customers\RelationManagers;
 
-use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
-use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
-use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
-use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
-use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
-use App\Jobs\SiteDeployment\DeploySite;
-use App\Jobs\SiteDeployment\SendSystemConfigJob;
-use App\Jobs\SendCommandToForgeJob;
-use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use App\Models\SubscriptionType;
 use App\Services\CustomerSubscriptionService;
+use App\Services\SiteDeploymentScheduler;
 use Exception;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -22,25 +14,19 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Validation\ValidationException;
 
 class CustomerSubscriptionsRelationManager extends RelationManager
@@ -82,7 +68,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
                 ToggleColumn::make('panic_button_enabled')
                     ->label('Panic Button')
-                    ->disabled(fn ($record) => !$record || !$this->isAppTypeSubscription($record->subscription_type_id)),
+                    ->disabled(fn ($record) => ! $record || ! $this->isAppTypeSubscription($record->subscription_type_id)),
             ])
             ->filters([
                 SelectFilter::make('subscription_type_id')
@@ -108,20 +94,20 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->relationship('customer', 'company_name')
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function($get, $set, $state) {
+                                ->afterStateUpdated(function ($get, $set, $state) {
                                     if ($state) {
                                         $customer = \App\Models\Customer::find($state);
                                         if ($customer) {
                                             // Auto-generate app name from customer company name
                                             $appName = $this->generateAppName($customer->company_name);
                                             $set('app_name', $appName);
-                                            
+
                                             // Auto-generate URL from customer company name
                                             $url = $this->generateUrl($customer->company_name);
                                             $set('url', $url);
-                                            
+
                                             // Update database name
-                                            $set('database_name', $url . '_' . $get('theType') . '_' . $get('theVertical'));
+                                            $set('database_name', $url.'_'.$get('theType').'_'.$get('theVertical'));
                                         }
                                     }
                                 }),
@@ -131,7 +117,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->label('Subscription Type')
                                 ->relationship('subscriptionType', 'name')
                                 ->required()
-                                ->afterStateUpdated(function($get, $set) {
+                                ->afterStateUpdated(function ($get, $set) {
                                     $type = $get('subscription_type_id');
                                     $theType = match ((int) $type) {
                                         1 => 'console',
@@ -148,11 +134,11 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                         default => 'unknown',
                                     };
                                     $set('theType', $theType);
-                                    $set('postfix', '.' . $theType . '.' . $get('vertical'));
-                                    
+                                    $set('postfix', '.'.$theType.'.'.$get('vertical'));
+
                                     // Update database name if URL exists
                                     if ($get('url')) {
-                                        $set('database_name', $get('url') . '_' . $theType . '_' . $get('theVertical'));
+                                        $set('database_name', $get('url').'_'.$theType.'_'.$get('theVertical'));
                                     }
                                 }),
                             Select::make('vertical')
@@ -162,9 +148,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     'blackwidow.org.za' => 'blackwidow.org.za',
                                     'aims.work' => 'aims.work',
                                     'bvigilant.co.za' => 'bvigilant.co.za',
-                                    'siyaleader.org.za' => 'siyaleader.org.za'
+                                    'siyaleader.org.za' => 'siyaleader.org.za',
                                 ])
-                                ->afterStateUpdated(function($get, $set) {
+                                ->afterStateUpdated(function ($get, $set) {
                                     $type = $get('subscription_type_id');
                                     $verticalMap = [
                                         'blackwidow.org.za' => 'blackwidow',
@@ -188,16 +174,16 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     };
                                     $set('theVertical', $verticalMap[$get('vertical')] ?? 'unknown');
                                     $set('theType', $theType);
-                                    $set('postfix', '.' . $theType . '.' . $get('vertical'));
-                                    
+                                    $set('postfix', '.'.$theType.'.'.$get('vertical'));
+
                                     // Update database name if URL exists
                                     if ($get('url')) {
-                                        $set('database_name', $get('url') . '_' . $theType . '_' . $get('theVertical'));
+                                        $set('database_name', $get('url').'_'.$theType.'_'.$get('theVertical'));
                                     }
                                 }),
                             TextInput::make('url')
                                 ->live(debounce: 1000)
-                                ->suffix(fn($get) => $get('postfix'))
+                                ->suffix(fn ($get) => $get('postfix'))
                                 ->extraAttributes(['class' => 'with-suffix'])
                                 ->required()
                                 ->unique(ignoreRecord: true)
@@ -206,20 +192,20 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     'unique:customer_subscriptions,url',
                                     'regex:/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$/',
                                     'min:3',
-                                    'max:63'
+                                    'max:63',
                                 ])
                                 ->validationAttribute('URL')
-                                ->hint(fn($get) => $get('url') && $get('postfix') ? 'Full URL: https://' . $get('url') . $get('postfix') : 'Enter a URL slug (will be auto-generated from customer name)')
+                                ->hint(fn ($get) => $get('url') && $get('postfix') ? 'Full URL: https://'.$get('url').$get('postfix') : 'Enter a URL slug (will be auto-generated from customer name)')
                                 ->placeholder('e.g., my-company')
-                                ->afterStateUpdated(function($get, $set) {
+                                ->afterStateUpdated(function ($get, $set) {
                                     $url = strtolower(trim($get('url')));
                                     $set('url', $url);
                                     $set('urlConfirmed', false);
-                                    $set('database_name', $url . '_' . $get('theType') . '_' . $get('theVertical'));
+                                    $set('database_name', $url.'_'.$get('theType').'_'.$get('theVertical'));
 
                                     // Check if URL is unique
-                                    $domain = $url . $get('postfix');
-                                    $exists = CustomerSubscription::where('url', 'https://' . $domain)->exists();
+                                    $domain = $url.$get('postfix');
+                                    $exists = CustomerSubscription::where('url', 'https://'.$domain)->exists();
                                     if ($exists) {
                                         Notification::make()
                                             ->title('This URL is already taken')
@@ -232,8 +218,8 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 })
                                 ->hintAction(
                                     Action::make('verifyUrl')
-                                        ->icon(function($get) {
-                                            if($get('urlConfirmed')) {
+                                        ->icon(function ($get) {
+                                            if ($get('urlConfirmed')) {
                                                 return 'heroicon-o-check-circle';
                                             } else {
                                                 return 'heroicon-o-exclamation-circle';
@@ -245,13 +231,13 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ),
                             Select::make('server_id')
                                 ->required()
-                                ->options(fn() => ForgeServer::pluck('name','forge_server_id')),
+                                ->options(fn () => ForgeServer::pluck('name', 'forge_server_id')),
                             TextInput::make('app_name')
                                 ->required()
                                 ->hint('Will be auto-generated from customer name')
                                 ->placeholder('e.g., MyCompanyApp'),
                             TextInput::make('database_name')
-                                ->required()
+                                ->required(),
                         ]),
                         Section::make('ENV File')->schema([
                             Placeholder::make('forge_site_id')
@@ -261,8 +247,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                         Section::make('Logos')->schema([
                             FileUpload::make('logo_1')
                                 ->live()
-                                ->label(function($get) {
+                                ->label(function ($get) {
                                     $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+
                                     return $types ? $types[0] : 'Logo 1';
                                 })
                                 ->disk('public')
@@ -271,8 +258,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->rules(['nullable', 'file', 'max:10240']),
                             FileUpload::make('logo_2')
                                 ->live()
-                                ->label(function($get) {
+                                ->label(function ($get) {
                                     $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+
                                     return $types ? $types[1] : 'Logo 2';
                                 })
                                 ->disk('public')
@@ -281,8 +269,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->rules(['nullable', 'file', 'max:10240']),
                             FileUpload::make('logo_3')
                                 ->live()
-                                ->label(function($get) {
+                                ->label(function ($get) {
                                     $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+
                                     return $types ? $types[2] : 'Logo 3';
                                 })
                                 ->disk('public')
@@ -291,8 +280,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->rules(['nullable', 'file', 'max:10240']),
                             FileUpload::make('logo_4')
                                 ->live()
-                                ->label(function($get) {
+                                ->label(function ($get) {
                                     $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+
                                     return $types ? $types[3] : 'Logo 4';
                                 })
                                 ->disk('public')
@@ -301,8 +291,9 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->rules(['nullable', 'file', 'max:10240']),
                             FileUpload::make('logo_5')
                                 ->live()
-                                ->label(function($get) {
+                                ->label(function ($get) {
                                     $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
+
                                     return $types ? $types[4] : 'Logo 5';
                                 })
                                 ->disk('public')
@@ -312,8 +303,8 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                         ]),
                     ])
                     ->using(function (array $data): Model {
-                        $domain = $data['url'] . $data['postfix'];
-                        if (!$this->domainResolvesToIp($domain)) {
+                        $domain = $data['url'].$data['postfix'];
+                        if (! $this->domainResolvesToIp($domain)) {
                             throw ValidationException::withMessages([
                                 'url' => ['The domain does not resolve to a valid IP.'],
                             ]);
@@ -324,12 +315,12 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                             'subscription_type_id' => $data['subscription_type_id'],
                             'domain' => $domain,
                             'server_id' => $data['server_id'],
-                            'url' => 'https://' . $domain,
+                            'url' => 'https://'.$domain,
                             'app_name' => $data['app_name'],
                             'database_name' => $this->cleanDatabaseName($data['database_name']),
                         ]);
 
-                        $this->scheduleDeploymentJobs($customerSubscription);
+                        app(SiteDeploymentScheduler::class)->schedule($customerSubscription);
 
                         return $customerSubscription;
                     })
@@ -397,7 +388,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
         $databaseName = str_replace('>', '_', $databaseName);
         $databaseName = str_replace(',', '_', $databaseName);
         $databaseName = str_replace('?', '_', $databaseName);
-        
+
         return $databaseName;
     }
 
@@ -405,129 +396,39 @@ class CustomerSubscriptionsRelationManager extends RelationManager
     {
         try {
             $dnsRecords = dns_get_record($domain, DNS_A);
-            if (!empty($dnsRecords)) {
+            if (! empty($dnsRecords)) {
                 foreach ($dnsRecords as $record) {
                     if (isset($record['ip'])) {
                         Notification::make()
-                            ->title('Domain Resolves to IP ' . $domain)
+                            ->title('Domain Resolves to IP '.$domain)
                             ->success()
                             ->send();
                         if ($set) {
                             $set('urlConfirmed', true);
-                            $set('database_name', $get('url') . '_' . $get('theType') . '_' . $get('theVertical'));
+                            $set('database_name', $get('url').'_'.$get('theType').'_'.$get('theVertical'));
                         }
+
                         return true;
                     }
                 }
             } else {
                 Notification::make()
-                    ->title('Domain does not resolve to IP ' . $domain)
+                    ->title('Domain does not resolve to IP '.$domain)
                     ->danger()
                     ->send();
+
                 return false;
             }
         } catch (Exception $e) {
             Notification::make()
-                ->title('Domain does not resolve to IP ' . $domain)
+                ->title('Domain does not resolve to IP '.$domain)
                 ->danger()
                 ->send();
+
             return false;
         }
+
         return false;
-    }
-
-    private function scheduleDeploymentJobs(CustomerSubscription $customerSubscription): void
-    {
-        $jobs = [];
-        $seconds = 30;
-
-        $jobs[] = [
-            'id' => CreateSiteOnForgeJob::dispatch($customerSubscription->id),
-            'progress' => 0
-        ];
-
-        $jobs[] = [
-            'id' => SyncForgeJob::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-            'progress' => 0
-        ];
-
-        $seconds += 30;
-
-        $jobs[] = [
-            'id' => AddGitRepoOnForgeJob::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-            'progress' => 0
-        ];
-
-        $seconds += 30;
-
-        $jobs[] = [
-            'id' => AddEnvVariablesOnForgeJob::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-            'progress' => 0
-        ];
-
-        $seconds += 30;
-
-        $jobs[] = [
-            'id' => AddDeploymentScriptOnForgeJob::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-            'progress' => 0
-        ];
-
-        $seconds += 30;
-
-        $jobs[] = [
-            'id' => AddSSLOnSiteJob::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-            'progress' => 0
-        ];
-
-        $seconds += 30;
-
-        $jobs[] = [
-            'id' => DeploySite::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-            'progress' => 0
-        ];
-
-        $seconds += 30;
-
-        if (in_array($customerSubscription->subscription_type_id, [1, 2, 9, 10, 11])) {
-            $jobs[] = [
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id, 'php artisan key:generate --force')->delay(now()->addSeconds($seconds)),
-                'progress' => 0
-            ];
-            $seconds += 30;
-
-            $jobs[] = [
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id, 'php artisan migrate --force')->delay(now()->addSeconds($seconds)),
-                'progress' => 0
-            ];
-            $seconds += 30;
-
-            $jobs[] = [
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id, 'php artisan db:seed BaseLineSeeder --force')->delay(now()->addSeconds($seconds)),
-                'progress' => 0
-            ];
-            $seconds += 30;
-
-            $jobs[] = [
-                'id' => DeploySite::dispatch($customerSubscription->id)->delay(now()->addSeconds($seconds)),
-                'progress' => 0
-            ];
-            $seconds += 30;
-
-            $jobs[] = [
-                'id' => SendSystemConfigJob::dispatch($customerSubscription->customer_id)->delay(now()->addSeconds($seconds)),
-                'progress' => 0
-            ];
-            $seconds += 30;
-
-            $jobs[] = [
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id, 'php artisan storage:link')->delay(now()->addSeconds($seconds)),
-                'progress' => 0
-            ];
-            $seconds += 30;
-        }
-
-        $customerSubscription->jobs = json_encode($jobs);
-        $customerSubscription->save();
     }
 
     private function generateAppName(string $companyName): string
@@ -537,12 +438,12 @@ class CustomerSubscriptionsRelationManager extends RelationManager
         $appName = preg_replace('/[^a-z0-9\s]/', '', $appName);
         $appName = preg_replace('/\s+/', ' ', $appName);
         $appName = str_replace(' ', '', ucwords($appName));
-        
+
         // Ensure it's not empty and has a reasonable length
         if (empty($appName)) {
             $appName = 'CustomerApp';
         }
-        
+
         return $appName;
     }
 
@@ -554,18 +455,18 @@ class CustomerSubscriptionsRelationManager extends RelationManager
         $url = preg_replace('/\s+/', '-', $url);
         $url = preg_replace('/-+/', '-', $url);
         $url = trim($url, '-');
-        
+
         // Ensure it's not empty and has a reasonable length
         if (empty($url)) {
             $url = 'customer';
         }
-        
+
         // Limit length to 50 characters
         if (strlen($url) > 50) {
             $url = substr($url, 0, 50);
             $url = rtrim($url, '-');
         }
-        
+
         return $url;
     }
 }

@@ -8,6 +8,7 @@ use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
 use App\Models\SubscriptionType;
 use App\Models\TemplateEnvVariables;
+use App\Services\SiteDeploymentScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -275,13 +276,28 @@ class McpSiteController extends Controller
     public function storeCustomerSubscription(Request $request): JsonResponse
     {
         $validated = $request->validate($this->customerSubscriptionCreateRules());
+        $triggerSiteDeployment = (bool) ($validated['trigger_site_deployment'] ?? false);
+        $forceSiteDeployment = (bool) ($validated['force_site_deployment'] ?? false);
+        unset($validated['trigger_site_deployment'], $validated['force_site_deployment']);
+
         $row = CustomerSubscription::query()->create($validated);
         if (! $request->boolean('include_env')) {
             $row->makeHidden('env');
         }
         $row->load(['subscriptionType:id,name', 'customer:id,company_name']);
 
-        return response()->json(['data' => $row], 201);
+        if ($triggerSiteDeployment) {
+            try {
+                app(SiteDeploymentScheduler::class)->schedule($row, $forceSiteDeployment);
+            } catch (\RuntimeException $e) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'data' => $row,
+                ], 409);
+            }
+        }
+
+        return response()->json(['data' => $row->fresh()->load(['subscriptionType:id,name', 'customer:id,company_name'])], 201);
     }
 
     public function updateCustomerSubscription(Request $request, int $id): JsonResponse
@@ -380,6 +396,8 @@ class McpSiteController extends Controller
             'deployed_at' => ['nullable', 'date'],
             'panic_button_enabled' => ['nullable', 'boolean'],
             'deployed_version' => ['nullable', 'string', 'max:100'],
+            'trigger_site_deployment' => ['sometimes', 'boolean'],
+            'force_site_deployment' => ['sometimes', 'boolean'],
         ];
     }
 

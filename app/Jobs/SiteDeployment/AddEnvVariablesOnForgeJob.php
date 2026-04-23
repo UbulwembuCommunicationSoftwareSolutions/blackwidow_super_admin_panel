@@ -3,35 +3,61 @@
 namespace App\Jobs\SiteDeployment;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class AddEnvVariablesOnForgeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use LogsSiteDeploymentFailure;
 
+    public int $tries = 3;
 
-    public $customerSubscriptionId;
     /**
-     * Create a new job instance.
+     * @return list<int>
      */
-    public function __construct($customerSubscriptionId)
+    public function backoff(): array
     {
-        $this->customerSubscriptionId = $customerSubscriptionId;
+        return [30, 60, 120];
     }
 
-    /**
-     * Execute the job.
-     */
+    public int $timeout = 300;
+
+    public function __construct(
+        public int $customerSubscriptionId
+    ) {}
+
     public function handle(): void
     {
-        $forgeApi = new ForgeApi();
-        $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
+        $customerSubscription = CustomerSubscription::query()->find($this->customerSubscriptionId);
+        if (! $customerSubscription) {
+            Log::warning('site_deployment.add_env.missing_subscription', [
+                'customer_subscription_id' => $this->customerSubscriptionId,
+            ]);
+
+            return;
+        }
+
+        Log::info('site_deployment.add_env', [
+            'customer_subscription_id' => $this->customerSubscriptionId,
+        ]);
+        $forgeApi = new ForgeApi;
         $forgeApi->addMissingEnv($customerSubscription);
-        $forgeApi->sendEnv($customerSubscription);
+        try {
+            $forgeApi->sendEnv($customerSubscription);
+        } catch (RuntimeException $e) {
+            Log::error('site_deployment.add_env.blocked', [
+                'customer_subscription_id' => $this->customerSubscriptionId,
+                'message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

@@ -2,17 +2,8 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
-use App\Console\Commands\ForgeGetters\SyncForge;
-use App\Jobs\SendCommandToForgeJob;
-use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
-use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
-use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
-use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
-use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
-use App\Jobs\SiteDeployment\DeploySite;
-use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
-use Filament\Notifications\Notification;
+use App\Services\SiteDeploymentScheduler;
 use Illuminate\Console\Command;
 
 class CompleteCreation extends Command
@@ -22,81 +13,34 @@ class CompleteCreation extends Command
      *
      * @var string
      */
-    protected $signature = 'app:complete-creation {customer-subscription-id}';
+    protected $signature = 'app:complete-creation {customer-subscription-id : Customer subscription to queue the Forge setup pipeline for} {--force : Queue even if a previous deployment was already scheduled}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Queue the same automated Forge site-creation steps used by the admin UI (create site, env, SSL, deploy, etc.).';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function handle(SiteDeploymentScheduler $siteDeploymentScheduler): int
     {
-        $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
-        CreateSiteOnForgeJob::dispatch($customerSubscription->id);
-        $jobs[] = array(
-            'id' => CreateSiteOnForgeJob::dispatch($customerSubscription->id),
-            'progress' => 0
-        );
-        $jobs[] = array(
-            'id' => SyncForgeJob::dispatch()->delay(now()->addSeconds(30)),
-            'progress' => 0
-        );
+        $id = (int) $this->argument('customer-subscription-id');
+        $customerSubscription = CustomerSubscription::query()->find($id);
+        if (! $customerSubscription) {
+            $this->error("Customer subscription {$id} not found.");
 
-        $jobs[] = array(
-            'id' => AddGitRepoOnForgeJob::dispatch($customerSubscription->id)->delay(now()->addMinutes(2)),
-            'progress' => 0
-        );
-
-
-        $jobs[] = array(
-            'id' => AddEnvVariablesOnForgeJob::dispatch($customerSubscription->id)->delay(now()->addMinutes(3)),
-            'progress' => 0
-        );
-
-        $jobs[] = array(
-            'id' => AddDeploymentScriptOnForgeJob::dispatch($customerSubscription->id)->delay(now()->addMinutes(4)),
-            'progress' => 0
-        );
-
-        $jobs[] = array(
-            'id' => AddSSLOnSiteJob::dispatch($customerSubscription->id)->delay(now()->addMinutes(5)),
-            'progress' => 0
-        );
-
-        $jobs[] = array(
-            'id' => DeploySite::dispatch($customerSubscription->id)->delay(now()->addMinutes(6)),
-            'progress' => 0
-        );
-
-        if($customerSubscription->subscription_type_id == 1){
-            $jobs[] = array(
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'php artisan key:generate --force')->delay(now()->addMinutes(7)),
-                'progress' => 0
-            );
-
-            $jobs[] = array(
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'php artisan migrate --force')->delay(now()->addMinutes(8)),
-                'progress' => 0
-            );
-
-            $jobs[] = array(
-                'id' => SendCommandToForgeJob::dispatch($customerSubscription->id,'php artisan db:seed BaseLineSeeder --force')->delay(now()->addMinutes(9)),
-                'progress' => 0
-            );
-            $jobs[] = array(
-                'id' => DeploySite::dispatch($customerSubscription->id)->delay(now()->addMinutes(10)),
-                'progress' => 0
-            );
+            return self::FAILURE;
         }
 
-        //TODO: DATABASE ENV not working, need to fix it.
-        //TODO: APP_KEY missing, need to fix it.
-        //TODO: SECURE_TOKEN missing, need to fix it.
+        try {
+            $siteDeploymentScheduler->schedule($customerSubscription, (bool) $this->option('force'));
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
 
+            return self::FAILURE;
+        }
+        $this->info("Scheduled site deployment for customer subscription {$id}.");
+
+        return self::SUCCESS;
     }
 }

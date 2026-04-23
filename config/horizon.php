@@ -70,7 +70,7 @@ return [
     |
     */
 
-    'middleware' => ['web','auth'],
+    'middleware' => ['web', 'auth'],
 
     /*
     |--------------------------------------------------------------------------
@@ -189,8 +189,8 @@ return [
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
-            'tries' => 1,
-            'timeout' => 60,
+            'tries' => 3,
+            'timeout' => 300,
             'nice' => 0,
         ],
     ],

@@ -3,37 +3,57 @@
 namespace App\Jobs\SiteDeployment;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class DeploySite implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use LogsSiteDeploymentFailure;
 
+    public int $tries = 3;
 
-    public $customerSubscriptionId;
     /**
-     * Create a new job instance.
+     * @return list<int>
      */
-    public function __construct($customerSubscriptionId)
+    public function backoff(): array
     {
-        $this->customerSubscriptionId = $customerSubscriptionId;
+        return [30, 60, 90];
     }
 
-    /**
-     * Execute the job.
-     */
+    public int $timeout = 300;
+
+    public function __construct(
+        public int $customerSubscriptionId
+    ) {}
+
     public function handle(): void
     {
-        $customerSubscription = CustomerSubscription::find($this->customerSubscriptionId);
-        $forgeApi = new ForgeApi();
+        $customerSubscription = CustomerSubscription::query()
+            ->with('subscriptionType')
+            ->find($this->customerSubscriptionId);
+        if (! $customerSubscription) {
+            Log::warning('site_deployment.deploy_site.missing_subscription', [
+                'customer_subscription_id' => $this->customerSubscriptionId,
+            ]);
+
+            return;
+        }
+
+        $forgeApi = new ForgeApi;
+        $customerSubscription = $forgeApi->assertForgeSiteReady($customerSubscription);
+        Log::info('site_deployment.deploy_site', [
+            'customer_subscription_id' => $this->customerSubscriptionId,
+        ]);
         $customerSubscription->deployed_at = now();
-        $customerSubscription->deployed_version = $customerSubscription->subscriptionType->master_version;
+        $customerSubscription->deployed_version = $customerSubscription->subscriptionType?->master_version;
         $customerSubscription->save();
-        $forgeApi->deploySite($customerSubscription->server_id,$customerSubscription->forge_site_id);
+        $forgeApi->deploySite($customerSubscription->server_id, $customerSubscription->forge_site_id);
     }
 }
