@@ -7,6 +7,8 @@ namespace App\Services;
  */
 final class SiteDeploymentJobName
 {
+    public const PROVISION_FORGE_SERVER_DATABASE = 'provision_forge_server_database';
+
     public const CREATE_SITE = 'create_site';
 
     public const ENSURE_FORGE_SITE = 'ensure_forge_site';

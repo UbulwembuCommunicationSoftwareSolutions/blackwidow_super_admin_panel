@@ -32,9 +32,13 @@ class SiteDeploymentScheduler
         $cid = $customerSubscription->id;
         $customerId = (int) $customerSubscription->customer_id;
 
+        $customerSubscription->loadMissing('subscriptionType');
+        $needsServerDatabase = $customerSubscription->isPhpSubscriptionWithDatabase();
         $build = [];
-
-        $build[] = [SiteDeploymentJobName::CREATE_SITE, []];
+        if ($needsServerDatabase) {
+            $build[] = [SiteDeploymentJobName::PROVISION_FORGE_SERVER_DATABASE, []];
+        }
+        $build[] = [SiteDeploymentJobName::CREATE_SITE, $needsServerDatabase ? ['skip_database_provision' => true] : []];
         $build[] = [SiteDeploymentJobName::ENSURE_FORGE_SITE, []];
         $build[] = [SiteDeploymentJobName::SYNC_FORGE, []];
         $build[] = [SiteDeploymentJobName::ADD_GIT_REPO, []];

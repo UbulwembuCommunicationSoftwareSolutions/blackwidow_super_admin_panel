@@ -10,6 +10,7 @@ use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Jobs\SiteDeployment\EnsureForgeSiteIdJob;
+use App\Jobs\SiteDeployment\ProvisionForgeServerDatabaseJob;
 use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
@@ -65,6 +66,7 @@ class DeploymentStepDispatcher
         $params = $row->parameters ?? [];
 
         match ($row->job_name) {
+            SiteDeploymentJobName::PROVISION_FORGE_SERVER_DATABASE => ProvisionForgeServerDatabaseJob::dispatch($cid, $id),
             SiteDeploymentJobName::CREATE_SITE => CreateSiteOnForgeJob::dispatch($cid, $id),
             SiteDeploymentJobName::ENSURE_FORGE_SITE => EnsureForgeSiteIdJob::dispatch($cid, $id),
             SiteDeploymentJobName::SYNC_FORGE => SyncForgeJob::dispatch($cid, $id),

@@ -6,7 +6,6 @@ use App\Helpers\ForgeApi;
 use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
-use App\Models\CustomerSubscriptionDeploymentJob;
 use App\Services\DeploymentStepDispatcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,7 +14,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class CreateSiteOnForgeJob implements ShouldQueue
+class ProvisionForgeServerDatabaseJob implements ShouldQueue
 {
     use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
@@ -27,7 +26,7 @@ class CreateSiteOnForgeJob implements ShouldQueue
      */
     public function backoff(): array
     {
-        return [30, 60, 120];
+        return [20, 60, 120];
     }
 
     public int $timeout = 300;
@@ -39,12 +38,12 @@ class CreateSiteOnForgeJob implements ShouldQueue
 
     public function handle(): void
     {
-        Log::info('site_deployment.create_site_job', [
+        Log::info('site_deployment.provision_forge_server_database', [
             'customer_subscription_id' => $this->customerSubscriptionId,
         ]);
         $customerSubscription = CustomerSubscription::query()->find($this->customerSubscriptionId);
         if (! $customerSubscription) {
-            Log::warning('site_deployment.create_site.missing_subscription', [
+            Log::warning('site_deployment.provision_forge_server_db.missing_subscription', [
                 'customer_subscription_id' => $this->customerSubscriptionId,
             ]);
             if ($this->deploymentJobId !== null) {
@@ -56,21 +55,13 @@ class CreateSiteOnForgeJob implements ShouldQueue
 
             return;
         }
-        $skipDatabaseProvisioning = false;
-        if ($this->deploymentJobId !== null) {
-            $deploymentRow = CustomerSubscriptionDeploymentJob::query()->find($this->deploymentJobId);
-            if ($deploymentRow && ! empty($deploymentRow->parameters['skip_database_provision'])) {
-                $skipDatabaseProvisioning = (bool) $deploymentRow->parameters['skip_database_provision'];
-            }
+        if (! (new ForgeApi)->needsForgeServerDatabase($customerSubscription)) {
+            $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
+
+            return;
         }
-        $forgeApi = new ForgeApi;
-        $forgeApi->createSite($customerSubscription->server_id, $customerSubscription, $skipDatabaseProvisioning);
-        $customerSubscription->refresh();
-        if (blank($customerSubscription->forge_site_id)) {
-            $message = 'forge_site_id was not set after creating the site on Forge; deployment will not continue.';
-            Log::error('site_deployment.create_site.missing_forge_site_id', [
-                'customer_subscription_id' => $this->customerSubscriptionId,
-            ]);
+        if (! $customerSubscription->server_id) {
+            $message = 'server_id is required to provision a Forge MySQL database.';
             if ($this->deploymentJobId !== null) {
                 app(DeploymentStepDispatcher::class)->markStepFailed(
                     $this->deploymentJobId,
@@ -79,6 +70,7 @@ class CreateSiteOnForgeJob implements ShouldQueue
             }
             throw new \RuntimeException($message);
         }
+        (new ForgeApi)->prepareForgeServerDatabaseForSite($customerSubscription->server_id, $customerSubscription);
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

@@ -217,18 +217,33 @@ class ForgeApi
         ]);
     }
 
-    public function createSite($server_id, CustomerSubscription $customerSubscription)
+    /**
+     * Ensure MySQL user, password, and server database on Forge (php + DB subscriptions only).
+     */
+    public function prepareForgeServerDatabaseForSite(int $server_id, CustomerSubscription $customerSubscription): void
+    {
+        if (! $this->needsForgeServerDatabase($customerSubscription)) {
+            return;
+        }
+        $customerSubscription->loadMissing('subscriptionType');
+        $customerSubscription->ensureDatabaseUserForForge();
+        $customerSubscription->ensureDatabasePasswordForForge();
+        $customerSubscription->refresh();
+        $this->provisionForgeServerDatabase($server_id, $customerSubscription);
+    }
+
+    /**
+     * @param  bool  $skipDatabaseProvisioning  Set true when {@see prepareForgeServerDatabaseForSite} already ran in the same deployment batch.
+     */
+    public function createSite($server_id, CustomerSubscription $customerSubscription, bool $skipDatabaseProvisioning = false)
     {
         $customerSubscription->loadMissing('subscriptionType');
 
         $this->addMissingEnv($customerSubscription);
         $customerSubscription->refresh();
 
-        if ($this->needsForgeServerDatabase($customerSubscription)) {
-            $customerSubscription->ensureDatabaseUserForForge();
-            $customerSubscription->ensureDatabasePasswordForForge();
-            $customerSubscription->refresh();
-            $this->provisionForgeServerDatabase($server_id, $customerSubscription);
+        if (! $skipDatabaseProvisioning) {
+            $this->prepareForgeServerDatabaseForSite($server_id, $customerSubscription);
         }
 
         $useForgeSiteDatabase = $this->needsForgeServerDatabase($customerSubscription);

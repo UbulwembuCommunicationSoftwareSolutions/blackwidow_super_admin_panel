@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptions\Pages;
 
 use App\Filament\Resources\CustomerSubscriptions\CustomerSubscriptionResource;
+use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
@@ -22,10 +23,39 @@ class EditCustomerSubscription extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('recreateSiteOnForge')
+                ->label('Re-create site on Forge')
+                ->icon('heroicon-o-plus-circle')
+                ->visible(
+                    fn (CustomerSubscription $record): bool => blank($record->forge_site_id) && filled($record->server_id)
+                )
+                ->requiresConfirmation()
+                ->modalHeading('Create site on Forge')
+                ->modalDescription('This will queue a job to create the site on your Forge server. Ensure the server is correct. Continue?')
+                ->modalSubmitActionLabel('Queue create site job')
+                ->action(function (CustomerSubscription $record) {
+                    try {
+                        CreateSiteOnForgeJob::dispatch($record->id);
+                        Notification::make()
+                            ->title('Create site job queued')
+                            ->success()
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to queue create site on Forge', [
+                            'customer_subscription_id' => $record->id,
+                            'exception' => $e,
+                        ]);
+                        Notification::make()
+                            ->title('Could not queue create site job')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
             Action::make('generateAppLogos')
                 ->label('Generate App Logos')
                 ->icon('heroicon-o-photo')
-                ->action(fn($record) => CustomerSubscriptionService::generatePWALogos($record->id))
+                ->action(fn ($record) => CustomerSubscriptionService::generatePWALogos($record->id))
                 ->requiresConfirmation()
                 ->modalHeading('Generate PWA Logos')
                 ->modalDescription('This will generate PWA icons from the uploaded logo. Continue?')
@@ -81,7 +111,7 @@ class EditCustomerSubscription extends EditRecord
                 ->form([
                     Select::make('server_id')
                         ->label('Forge Server')
-                        ->options(fn() => ForgeServer::pluck('name','forge_server_id'))
+                        ->options(fn () => ForgeServer::pluck('name', 'forge_server_id'))
                         ->required(),
                 ])
                 ->fillForm(fn (CustomerSubscription $record): array => [
