@@ -442,6 +442,8 @@ class ForgeApi
                 'database_id' => $databaseId,
                 'mysql_user' => $user,
             ]);
+            $customerSubscription->refresh();
+            $this->syncMysqlEnvFromSubscription($customerSubscription);
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
             if ($this->forgeDatabaseUserNameExistsOnServer($server_id, $user)
@@ -455,6 +457,8 @@ class ForgeApi
                     'validation_message' => $validationMessage,
                     'forge_validation_errors' => $e->errors(),
                 ]);
+                $customerSubscription->refresh();
+                $this->syncMysqlEnvFromSubscription($customerSubscription);
 
                 return;
             }
@@ -522,9 +526,10 @@ class ForgeApi
     }
 
     /**
-     * Sync DB_DATABASE, DB_USERNAME, and DB_PASSWORD from the subscription for Forge MySQL (php) sites.
+     * Sync DB_DATABASE, DB_USERNAME, and DB_PASSWORD in {@see EnvVariables} from the subscription (php + MySQL).
+     * Creates or updates rows so they match {@see CustomerSubscription::forgeMysqlIdentifier} and {@see CustomerSubscription::forgeMysqlUser}.
      */
-    protected function applyForgeMysqlParamsToEnv(CustomerSubscription $customerSubscription): void
+    public function syncMysqlEnvFromSubscription(CustomerSubscription $customerSubscription): void
     {
         if (! $customerSubscription->isPhpSubscriptionWithDatabase()) {
             return;
@@ -547,13 +552,13 @@ class ForgeApi
         ];
 
         foreach ($values as $key => $value) {
-            $row = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
-                ->where('key', $key)
-                ->first();
-            if ($row) {
-                $row->value = $value;
-                $row->save();
-            }
+            EnvVariables::updateOrCreate(
+                [
+                    'key' => $key,
+                    'customer_subscription_id' => $customerSubscription->id,
+                ],
+                ['value' => $value]
+            );
         }
     }
 
@@ -586,7 +591,7 @@ class ForgeApi
                 }
             }
 
-            $this->applyForgeMysqlParamsToEnv($customerSubscription);
+            $this->syncMysqlEnvFromSubscription($customerSubscription);
 
             $cmsUrl = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
                 ->where('key', 'VUE_APP_API_BASE_URL')

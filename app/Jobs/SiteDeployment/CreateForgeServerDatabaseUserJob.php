@@ -70,7 +70,10 @@ class CreateForgeServerDatabaseUserJob implements ShouldQueue
             }
             throw new \RuntimeException($message);
         }
-        (new ForgeApi)->provisionForgeServerDatabaseUser($customerSubscription->server_id, $customerSubscription);
+        $forgeApi = new ForgeApi;
+        $forgeApi->provisionForgeServerDatabaseUser($customerSubscription->server_id, $customerSubscription);
+        $customerSubscription->refresh();
+        $forgeApi->syncMysqlEnvFromSubscription($customerSubscription);
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }
