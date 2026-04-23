@@ -3,8 +3,10 @@
 namespace App\Jobs\SiteDeployment;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
+use App\Services\DeploymentStepDispatcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 class AddGitRepoOnForgeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
 
     public int $tries = 4;
@@ -30,7 +32,8 @@ class AddGitRepoOnForgeJob implements ShouldQueue
     public int $timeout = 300;
 
     public function __construct(
-        public int $customerSubscriptionId
+        public int $customerSubscriptionId,
+        public ?int $deploymentJobId = null
     ) {}
 
     public function handle(): void
@@ -40,6 +43,12 @@ class AddGitRepoOnForgeJob implements ShouldQueue
             Log::warning('site_deployment.add_git.missing_subscription', [
                 'customer_subscription_id' => $this->customerSubscriptionId,
             ]);
+            if ($this->deploymentJobId !== null) {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    'Customer subscription not found.'
+                );
+            }
 
             return;
         }
@@ -49,5 +58,6 @@ class AddGitRepoOnForgeJob implements ShouldQueue
         ]);
         $forgeApi = new ForgeApi;
         $forgeApi->sendGitRepository($customerSubscription);
+        $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncForgeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
 
     public int $tries = 3;
@@ -32,7 +33,8 @@ class SyncForgeJob implements ShouldQueue
      * @param  int|null  $customerSubscriptionId  Used for failure logging when this job is part of a deployment pipeline.
      */
     public function __construct(
-        public ?int $customerSubscriptionId = null
+        public ?int $customerSubscriptionId = null,
+        public ?int $deploymentJobId = null
     ) {}
 
     public function handle(): void
@@ -42,5 +44,6 @@ class SyncForgeJob implements ShouldQueue
         Log::info('site_deployment.sync_forge_completed', [
             'customer_subscription_id' => $this->customerSubscriptionId,
         ]);
+        $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

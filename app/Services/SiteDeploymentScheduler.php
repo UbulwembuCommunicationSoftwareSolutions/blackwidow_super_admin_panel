@@ -2,29 +2,19 @@
 
 namespace App\Services;
 
-use App\Jobs\SendCommandToForgeJob;
-use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
-use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
-use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
-use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
-use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
-use App\Jobs\SiteDeployment\DeploySite;
-use App\Jobs\SiteDeployment\EnsureForgeSiteIdJob;
-use App\Jobs\SiteDeployment\SendSystemConfigJob;
-use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;
+use App\Models\CustomerSubscriptionDeploymentJob;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SiteDeploymentScheduler
 {
     public const QUEUE_STEP_DELAY_SECONDS = 30;
 
     /**
-     * Queue the standard Forge site deployment pipeline and persist a trackable manifest on the subscription.
-     *
      * @throws \RuntimeException When a deployment is already in progress and force is false.
      */
-    public function schedule(CustomerSubscription $customerSubscription, bool $force = false): void
+    public function schedule(CustomerSubscription $customerSubscription, bool $force = false): string
     {
         if (! $force && $customerSubscription->site_deployment_queue_started_at !== null) {
             throw new \RuntimeException(
@@ -38,90 +28,59 @@ class SiteDeploymentScheduler
         $customerSubscription->last_deployment_error_at = null;
         $customerSubscription->save();
 
-        $manifest = [
-            'customer_subscription_id' => $customerSubscription->id,
-            'started_at' => now()->toIso8601String(),
-            'steps' => [],
-        ];
-
+        $batchId = (string) Str::uuid();
         $cid = $customerSubscription->id;
-        $delay = 0;
+        $customerId = (int) $customerSubscription->customer_id;
 
-        $this->pushStep($manifest, CreateSiteOnForgeJob::class, $delay);
-        CreateSiteOnForgeJob::dispatch($cid)->delay(now()->addSeconds($delay));
+        $build = [];
 
-        $delay = 20;
-        $this->pushStep($manifest, EnsureForgeSiteIdJob::class, $delay);
-        EnsureForgeSiteIdJob::dispatch($cid)->delay(now()->addSeconds($delay));
-
-        $delay = self::QUEUE_STEP_DELAY_SECONDS;
-        $this->pushStep($manifest, SyncForgeJob::class, $delay);
-        SyncForgeJob::dispatch($cid)->delay(now()->addSeconds($delay));
-
-        $delay += self::QUEUE_STEP_DELAY_SECONDS;
-        $this->pushStep($manifest, AddGitRepoOnForgeJob::class, $delay);
-        AddGitRepoOnForgeJob::dispatch($cid)->delay(now()->addSeconds($delay));
-
-        $delay += self::QUEUE_STEP_DELAY_SECONDS;
-        $this->pushStep($manifest, AddEnvVariablesOnForgeJob::class, $delay);
-        AddEnvVariablesOnForgeJob::dispatch($cid)->delay(now()->addSeconds($delay));
-
-        $delay += self::QUEUE_STEP_DELAY_SECONDS;
-        $this->pushStep($manifest, AddDeploymentScriptOnForgeJob::class, $delay);
-        AddDeploymentScriptOnForgeJob::dispatch($cid)->delay(now()->addSeconds($delay));
-
-        $delay += self::QUEUE_STEP_DELAY_SECONDS;
-        $this->pushStep($manifest, AddSSLOnSiteJob::class, $delay);
-        AddSSLOnSiteJob::dispatch($cid)->delay(now()->addSeconds($delay));
-
-        $delay += self::QUEUE_STEP_DELAY_SECONDS;
-        $this->pushStep($manifest, DeploySite::class, $delay);
-        DeploySite::dispatch($cid)->delay(now()->addSeconds($delay));
+        $build[] = [SiteDeploymentJobName::CREATE_SITE, []];
+        $build[] = [SiteDeploymentJobName::ENSURE_FORGE_SITE, []];
+        $build[] = [SiteDeploymentJobName::SYNC_FORGE, []];
+        $build[] = [SiteDeploymentJobName::ADD_GIT_REPO, []];
+        $build[] = [SiteDeploymentJobName::ADD_ENV, []];
+        $build[] = [SiteDeploymentJobName::ADD_DEPLOYMENT_SCRIPT, []];
+        $build[] = [SiteDeploymentJobName::ADD_SSL, []];
+        $build[] = [SiteDeploymentJobName::DEPLOY_SITE, []];
 
         if (in_array($customerSubscription->subscription_type_id, [1, 2, 9, 10, 11], true)) {
-            $delay += self::QUEUE_STEP_DELAY_SECONDS;
-            $this->pushStep($manifest, SendCommandToForgeJob::class.'#key:generate', $delay);
-            SendCommandToForgeJob::dispatch($cid, 'php artisan key:generate --force')->delay(now()->addSeconds($delay));
-
-            $delay += self::QUEUE_STEP_DELAY_SECONDS;
-            $this->pushStep($manifest, SendCommandToForgeJob::class.'#migrate', $delay);
-            SendCommandToForgeJob::dispatch($cid, 'php artisan migrate --force')->delay(now()->addSeconds($delay));
-
-            $delay += self::QUEUE_STEP_DELAY_SECONDS;
-            $this->pushStep($manifest, SendCommandToForgeJob::class.'#db:seed', $delay);
-            SendCommandToForgeJob::dispatch($cid, 'php artisan db:seed BaseLineSeeder --force')->delay(now()->addSeconds($delay));
-
-            $delay += self::QUEUE_STEP_DELAY_SECONDS;
-            $this->pushStep($manifest, DeploySite::class.'#post-seed', $delay);
-            DeploySite::dispatch($cid)->delay(now()->addSeconds($delay));
-
-            $delay += self::QUEUE_STEP_DELAY_SECONDS;
-            $this->pushStep($manifest, SendSystemConfigJob::class, $delay);
-            SendSystemConfigJob::dispatch($customerSubscription->customer_id)->delay(now()->addSeconds($delay));
-
-            $delay += self::QUEUE_STEP_DELAY_SECONDS;
-            $this->pushStep($manifest, SendCommandToForgeJob::class.'#storage:link', $delay);
-            SendCommandToForgeJob::dispatch($cid, 'php artisan storage:link')->delay(now()->addSeconds($delay));
+            $build[] = [SiteDeploymentJobName::SEND_FORGE_COMMAND, ['command' => 'php artisan key:generate --force']];
+            $build[] = [SiteDeploymentJobName::SEND_FORGE_COMMAND, ['command' => 'php artisan migrate --force']];
+            $build[] = [SiteDeploymentJobName::SEND_FORGE_COMMAND, ['command' => 'php artisan db:seed BaseLineSeeder --force']];
+            $build[] = [SiteDeploymentJobName::DEPLOY_SITE, []];
+            $build[] = [SiteDeploymentJobName::SEND_SYSTEM_CONFIG, ['customer_id' => $customerId]];
+            $build[] = [SiteDeploymentJobName::SEND_FORGE_COMMAND, ['command' => 'php artisan storage:link']];
         }
 
-        $customerSubscription->jobs = json_encode($manifest);
-        $customerSubscription->save();
+        foreach ($build as $position => $item) {
+            [$jobName, $params] = $item;
+            CustomerSubscriptionDeploymentJob::query()->create([
+                'customer_subscription_id' => $cid,
+                'batch_id' => $batchId,
+                'position' => $position,
+                'job_name' => $jobName,
+                'parameters' => $params === [] ? null : $params,
+                'status' => CustomerSubscriptionDeploymentJob::STATUS_PENDING,
+            ]);
+        }
+
+        $first = CustomerSubscriptionDeploymentJob::query()
+            ->where('batch_id', $batchId)
+            ->orderBy('position')
+            ->first();
+
+        if (! $first) {
+            throw new \RuntimeException('No deployment steps were created for customer subscription '.$cid.'.');
+        }
+
+        app(DeploymentStepDispatcher::class)->dispatchForRow($first);
 
         Log::info('site_deployment.scheduled', [
             'customer_subscription_id' => $cid,
-            'step_count' => count($manifest['steps']),
+            'batch_id' => $batchId,
+            'step_count' => count($build),
         ]);
-    }
 
-    /**
-     * @param  array{customer_subscription_id: int, started_at: string, steps: list<array{job: string, delay_from_start_seconds: int, status: string}>}  $manifest
-     */
-    private function pushStep(array &$manifest, string $job, int $delayFromStart): void
-    {
-        $manifest['steps'][] = [
-            'job' => $job,
-            'delay_from_start_seconds' => $delayFromStart,
-            'status' => 'queued',
-        ];
+        return $batchId;
     }
 }

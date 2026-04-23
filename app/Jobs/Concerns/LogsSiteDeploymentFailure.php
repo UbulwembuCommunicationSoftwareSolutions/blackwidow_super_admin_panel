@@ -3,6 +3,7 @@
 namespace App\Jobs\Concerns;
 
 use App\Models\CustomerSubscription;
+use App\Services\DeploymentStepDispatcher;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -10,6 +11,13 @@ trait LogsSiteDeploymentFailure
 {
     public function failed(?Throwable $exception): void
     {
+        if (property_exists($this, 'deploymentJobId') && $this->deploymentJobId !== null) {
+            app(DeploymentStepDispatcher::class)->markStepFailed(
+                (int) $this->deploymentJobId,
+                $exception?->getMessage() ?? 'Unknown job failure'
+            );
+        }
+
         if (! property_exists($this, 'customerSubscriptionId') || $this->customerSubscriptionId === null) {
             if ($exception) {
                 Log::error('site_deployment.job_failed', [

@@ -2,9 +2,11 @@
 
 namespace App\Jobs\SiteDeployment;
 
+use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Services\CMSService;
+use App\Services\DeploymentStepDispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +14,7 @@ use Throwable;
 
 class SendSystemConfigJob implements ShouldQueue
 {
-    use Queueable;
+    use AdvancesDeploymentPipeline, Queueable;
 
     public int $tries = 2;
 
@@ -27,7 +29,9 @@ class SendSystemConfigJob implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(
-        public int $customerId
+        public int $customerId,
+        public ?int $customerSubscriptionId = null,
+        public ?int $deploymentJobId = null
     ) {}
 
     public function handle(): void
@@ -37,6 +41,12 @@ class SendSystemConfigJob implements ShouldQueue
             Log::warning('site_deployment.send_system_config.missing_customer', [
                 'customer_id' => $this->customerId,
             ]);
+            if ($this->deploymentJobId !== null) {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    'Customer not found.'
+                );
+            }
 
             return;
         }
@@ -52,10 +62,25 @@ class SendSystemConfigJob implements ShouldQueue
             ]);
             $cmsService->setConsoleSystemConfigs($console);
         }
+        $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 
     public function failed(?Throwable $e): void
     {
+        if ($this->deploymentJobId !== null) {
+            app(DeploymentStepDispatcher::class)->markStepFailed(
+                $this->deploymentJobId,
+                $e?->getMessage() ?? 'SendSystemConfigJob failed'
+            );
+        }
+        if ($this->customerSubscriptionId !== null && $this->customerSubscriptionId > 0) {
+            $subscription = CustomerSubscription::query()->find($this->customerSubscriptionId);
+            if ($subscription) {
+                $subscription->last_deployment_error = $e?->getMessage() ?? 'SendSystemConfigJob failed';
+                $subscription->last_deployment_error_at = now();
+                $subscription->save();
+            }
+        }
         Log::error('site_deployment.send_system_config_failed', [
             'customer_id' => $this->customerId,
             'message' => $e?->getMessage(),

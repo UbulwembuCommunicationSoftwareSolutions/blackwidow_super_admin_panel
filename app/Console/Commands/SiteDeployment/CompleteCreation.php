@@ -33,13 +33,13 @@ class CompleteCreation extends Command
         }
 
         try {
-            $siteDeploymentScheduler->schedule($customerSubscription, (bool) $this->option('force'));
+            $batchId = $siteDeploymentScheduler->schedule($customerSubscription, (bool) $this->option('force'));
         } catch (\RuntimeException $e) {
             $this->error($e->getMessage());
 
             return self::FAILURE;
         }
-        $this->info("Scheduled site deployment for customer subscription {$id}.");
+        $this->info("Scheduled site deployment for customer subscription {$id} (batch {$batchId}).");
 
         return self::SUCCESS;
     }

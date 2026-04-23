@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class SendCommandToForgeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
 
     public int $tries = 3;
@@ -30,7 +31,8 @@ class SendCommandToForgeJob implements ShouldQueue
 
     public function __construct(
         public int $customerSubscriptionId,
-        public string $command
+        public string $command,
+        public ?int $deploymentJobId = null
     ) {}
 
     public function handle(): void
@@ -40,5 +42,6 @@ class SendCommandToForgeJob implements ShouldQueue
         ]);
         $forgeApi = new ForgeApi;
         $forgeApi->sendCommand($this->customerSubscriptionId, $this->command);
+        $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

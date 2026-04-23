@@ -3,10 +3,12 @@
 namespace App\Jobs\SiteDeployment;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
 use App\Models\DeploymentTemplate;
+use App\Services\DeploymentStepDispatcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Log;
 
 class AddDeploymentScriptOnForgeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
 
     public int $tries = 3;
@@ -32,7 +34,8 @@ class AddDeploymentScriptOnForgeJob implements ShouldQueue
     public int $timeout = 300;
 
     public function __construct(
-        public int $customerSubscriptionId
+        public int $customerSubscriptionId,
+        public ?int $deploymentJobId = null
     ) {}
 
     public function handle(): void
@@ -42,6 +45,12 @@ class AddDeploymentScriptOnForgeJob implements ShouldQueue
             Log::warning('site_deployment.add_deploy_script.missing_subscription', [
                 'customer_subscription_id' => $this->customerSubscriptionId,
             ]);
+            if ($this->deploymentJobId !== null) {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    'Customer subscription not found.'
+                );
+            }
 
             return;
         }
@@ -72,5 +81,6 @@ class AddDeploymentScriptOnForgeJob implements ShouldQueue
         if ($script) {
             $forgeApi->sendDeploymentScript($customerSubscription);
         }
+        $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

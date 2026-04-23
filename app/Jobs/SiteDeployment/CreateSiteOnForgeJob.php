@@ -3,8 +3,10 @@
 namespace App\Jobs\SiteDeployment;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
+use App\Services\DeploymentStepDispatcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 class CreateSiteOnForgeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
 
     public int $tries = 3;
@@ -30,7 +32,8 @@ class CreateSiteOnForgeJob implements ShouldQueue
     public int $timeout = 300;
 
     public function __construct(
-        public int $customerSubscriptionId
+        public int $customerSubscriptionId,
+        public ?int $deploymentJobId = null
     ) {}
 
     public function handle(): void
@@ -43,10 +46,17 @@ class CreateSiteOnForgeJob implements ShouldQueue
             Log::warning('site_deployment.create_site.missing_subscription', [
                 'customer_subscription_id' => $this->customerSubscriptionId,
             ]);
+            if ($this->deploymentJobId !== null) {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    'Customer subscription not found.'
+                );
+            }
 
             return;
         }
         $forgeApi = new ForgeApi;
         $forgeApi->createSite($customerSubscription->server_id, $customerSubscription);
+        $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

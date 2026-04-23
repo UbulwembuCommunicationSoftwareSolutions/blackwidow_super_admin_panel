@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class CustomerSubscription extends Model
@@ -84,6 +85,11 @@ class CustomerSubscription extends Model
     public function deploymentScript()
     {
         return $this->hasMany(DeploymentScript::class);
+    }
+
+    public function deploymentJobs(): HasMany
+    {
+        return $this->hasMany(CustomerSubscriptionDeploymentJob::class);
     }
 
     public static function createMissingEnv()
