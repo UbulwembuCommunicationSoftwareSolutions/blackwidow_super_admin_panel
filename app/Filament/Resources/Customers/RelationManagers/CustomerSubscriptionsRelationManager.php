@@ -310,6 +310,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                             ]);
                         }
 
+                        $cleanDb = $this->cleanDatabaseName($data['database_name']);
                         $customerSubscription = CustomerSubscription::create([
                             'customer_id' => $this->ownerRecord->id,
                             'subscription_type_id' => $data['subscription_type_id'],
@@ -317,7 +318,8 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                             'server_id' => $data['server_id'],
                             'url' => 'https://'.$domain,
                             'app_name' => $data['app_name'],
-                            'database_name' => $this->cleanDatabaseName($data['database_name']),
+                            'database_name' => $cleanDb,
+                            'database_user' => $cleanDb,
                         ]);
 
                         app(SiteDeploymentScheduler::class)->schedule($customerSubscription);
@@ -356,40 +358,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
     private function cleanDatabaseName($databaseName): string
     {
-        $databaseName = str_replace(' ', '_', $databaseName);
-        $databaseName = str_replace('-', '_', $databaseName);
-        $databaseName = str_replace('.', '_', $databaseName);
-        $databaseName = str_replace('/', '_', $databaseName);
-        $databaseName = str_replace('\\', '_', $databaseName);
-        $databaseName = str_replace('|', '_', $databaseName);
-        $databaseName = str_replace(';', '_', $databaseName);
-        $databaseName = str_replace(':', '_', $databaseName);
-        $databaseName = str_replace('"', '_', $databaseName);
-        $databaseName = str_replace('\'', '_', $databaseName);
-        $databaseName = str_replace('`', '_', $databaseName);
-        $databaseName = str_replace('~', '_', $databaseName);
-        $databaseName = str_replace('!', '_', $databaseName);
-        $databaseName = str_replace('@', '_', $databaseName);
-        $databaseName = str_replace('#', '_', $databaseName);
-        $databaseName = str_replace('$', '_', $databaseName);
-        $databaseName = str_replace('%', '_', $databaseName);
-        $databaseName = str_replace('^', '_', $databaseName);
-        $databaseName = str_replace('&', '_', $databaseName);
-        $databaseName = str_replace('*', '_', $databaseName);
-        $databaseName = str_replace('(', '_', $databaseName);
-        $databaseName = str_replace(')', '_', $databaseName);
-        $databaseName = str_replace('=', '_', $databaseName);
-        $databaseName = str_replace('+', '_', $databaseName);
-        $databaseName = str_replace('[', '_', $databaseName);
-        $databaseName = str_replace(']', '_', $databaseName);
-        $databaseName = str_replace('{', '_', $databaseName);
-        $databaseName = str_replace('}', '_', $databaseName);
-        $databaseName = str_replace('<', '_', $databaseName);
-        $databaseName = str_replace('>', '_', $databaseName);
-        $databaseName = str_replace(',', '_', $databaseName);
-        $databaseName = str_replace('?', '_', $databaseName);
-
-        return $databaseName;
+        return CustomerSubscription::normalizeDatabaseIdentifier($databaseName);
     }
 
     private function domainResolvesToIp($domain, $set = null, $get = null): bool

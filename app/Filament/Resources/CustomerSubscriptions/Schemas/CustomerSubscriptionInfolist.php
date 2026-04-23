@@ -46,6 +46,9 @@ class CustomerSubscriptionInfolist
                 TextEntry::make('app_name')
                     ->placeholder('-'),
                 TextEntry::make('database_name'),
+                TextEntry::make('database_user')
+                    ->label('Database user')
+                    ->placeholder('-'),
                 TextEntry::make('site_created_at')
                     ->dateTime()
                     ->placeholder('-'),

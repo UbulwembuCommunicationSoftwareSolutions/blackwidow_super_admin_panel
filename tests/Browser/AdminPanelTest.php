@@ -153,7 +153,7 @@ it('can create a subscription type through browser', function () {
         ->type('name', 'Laravel App')
         ->type('github_repo', 'laravel/laravel')
         ->type('branch', 'main')
-        ->type('project_type', 'Laravel')
+        ->type('project_type', 'php')
         ->type('master_version', '10.0.0')
         ->press('Create')
         ->assertSee('Subscription type created successfully')
@@ -163,7 +163,7 @@ it('can create a subscription type through browser', function () {
         'name' => 'Laravel App',
         'github_repo' => 'laravel/laravel',
         'branch' => 'main',
-        'project_type' => 'Laravel',
+        'project_type' => 'php',
         'master_version' => '10.0.0',
     ]);
 });
@@ -204,7 +204,7 @@ it('can upload logo files through browser', function () {
         ->type('app_name', 'Test App')
         ->select('customer_id', $customer->id)
         ->select('subscription_type_id', $subscriptionType->id)
-        ->attach('logo_1', __DIR__ . '/../../fixtures/test-logo.jpg')
+        ->attach('logo_1', __DIR__.'/../../fixtures/test-logo.jpg')
         ->press('Create')
         ->assertSee('Customer subscription created successfully')
         ->assertNoJavascriptErrors();

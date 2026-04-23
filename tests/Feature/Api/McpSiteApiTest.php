@@ -81,7 +81,8 @@ it('lists customer subscriptions without env blob for a sanctum user', function 
     $res = $this->getJson("/api/mcp/customer-subscriptions?per_page=5&customer_id={$sub->customer_id}")
         ->assertOk();
     $first = collect($res->json('data'))->firstWhere('id', $sub->id);
-    expect($first)->not->toHaveKey('env');
+    expect($first)->not->toHaveKey('env')
+        ->and($first)->not->toHaveKey('database_password');
 });
 
 it('can create and delete a template env variable', function () {
@@ -137,7 +138,8 @@ it('can create a customer subscription', function () {
         'subscription_type_id' => $st->id,
         'customer_id' => $cust->id,
     ])->assertCreated();
-    expect($r->json('data'))->not->toHaveKey('env');
+    expect($r->json('data'))->not->toHaveKey('env')
+        ->not->toHaveKey('database_password');
     $id = $r->json('data.id');
     $this->putJson("/api/mcp/customer-subscriptions/{$id}", ['app_name' => 'MCP App'])->assertOk();
     $this->deleteJson("/api/mcp/customer-subscriptions/{$id}")->assertOk();

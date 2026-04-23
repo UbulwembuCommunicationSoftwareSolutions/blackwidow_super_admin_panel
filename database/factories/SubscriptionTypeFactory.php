@@ -16,6 +16,7 @@ class SubscriptionTypeFactory extends Factory
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
             'name' => $this->faker->name(),
+            'project_type' => 'php',
         ];
     }
 }

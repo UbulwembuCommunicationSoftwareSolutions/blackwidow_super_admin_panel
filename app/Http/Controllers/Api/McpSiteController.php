@@ -254,7 +254,7 @@ class McpSiteController extends Controller
         $paginator = $query->paginate($validated['per_page']);
 
         $paginator->getCollection()->each(
-            fn (CustomerSubscription $s) => $s->makeHidden('env')
+            fn (CustomerSubscription $s) => $s->makeHidden(['env', 'database_password'])
         );
 
         return response()->json($paginator);
@@ -266,6 +266,7 @@ class McpSiteController extends Controller
             ->with(['subscriptionType:id,name', 'customer:id,company_name'])
             ->findOrFail($id);
 
+        $row->makeHidden('database_password');
         if (! $request->boolean('include_env')) {
             $row->makeHidden('env');
         }
@@ -281,6 +282,7 @@ class McpSiteController extends Controller
         unset($validated['trigger_site_deployment'], $validated['force_site_deployment']);
 
         $row = CustomerSubscription::query()->create($validated);
+        $row->makeHidden('database_password');
         if (! $request->boolean('include_env')) {
             $row->makeHidden('env');
         }
@@ -290,6 +292,8 @@ class McpSiteController extends Controller
             try {
                 app(SiteDeploymentScheduler::class)->schedule($row, $forceSiteDeployment);
             } catch (\RuntimeException $e) {
+                $row->makeHidden('database_password');
+
                 return response()->json([
                     'message' => $e->getMessage(),
                     'data' => $row,
@@ -297,7 +301,13 @@ class McpSiteController extends Controller
             }
         }
 
-        return response()->json(['data' => $row->fresh()->load(['subscriptionType:id,name', 'customer:id,company_name'])], 201);
+        $data = $row->fresh()->load(['subscriptionType:id,name', 'customer:id,company_name']);
+        $data->makeHidden('database_password');
+        if (! $request->boolean('include_env')) {
+            $data->makeHidden('env');
+        }
+
+        return response()->json(['data' => $data], 201);
     }
 
     public function updateCustomerSubscription(Request $request, int $id): JsonResponse
@@ -308,11 +318,14 @@ class McpSiteController extends Controller
             $row->update($validated);
         }
         $row->load(['subscriptionType:id,name', 'customer:id,company_name']);
+
+        $data = $row->fresh();
+        $data->makeHidden('database_password');
         if (! $request->boolean('include_env')) {
-            $row->makeHidden('env');
+            $data->makeHidden('env');
         }
 
-        return response()->json(['data' => $row->fresh()]);
+        return response()->json(['data' => $data]);
     }
 
     public function destroyCustomerSubscription(int $id): JsonResponse
@@ -376,6 +389,7 @@ class McpSiteController extends Controller
             'url' => ['required', 'string', 'max:2048'],
             'domain' => ['required', 'string', 'max:255'],
             'database_name' => ['required', 'string', 'max:255'],
+            'database_user' => ['nullable', 'string', 'max:255'],
             'subscription_type_id' => ['required', 'integer', 'exists:subscription_types,id'],
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'server_id' => ['nullable', 'integer'],

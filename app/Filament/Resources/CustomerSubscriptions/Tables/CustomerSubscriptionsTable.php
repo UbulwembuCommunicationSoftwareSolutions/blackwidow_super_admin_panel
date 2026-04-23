@@ -48,6 +48,10 @@ class CustomerSubscriptionsTable
                     ->searchable(),
                 TextColumn::make('database_name')
                     ->searchable(),
+                TextColumn::make('database_user')
+                    ->label('DB user')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('site_created_at')
                     ->dateTime()
                     ->sortable(),

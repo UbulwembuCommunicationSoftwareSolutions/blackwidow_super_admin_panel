@@ -122,6 +122,9 @@ class CustomerSubscriptionForm
                     ->nullable()
                     ->rules(['nullable', 'file', 'max:10240']),
                 TextInput::make('database_name'),
+                TextInput::make('database_user')
+                    ->label('Database user (MySQL)')
+                    ->helperText('Used for Forge DB user and DB_USERNAME. Leave blank to match the database name.'),
                 TextInput::make('forge_site_id'),
                 Toggle::make('panic_button_enabled')
                     ->label('Panic Button'),

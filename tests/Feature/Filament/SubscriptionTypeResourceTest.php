@@ -4,9 +4,8 @@ use App\Filament\Resources\SubscriptionTypes\SubscriptionTypeResource;
 use App\Models\SubscriptionType;
 use App\Models\User;
 use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Actions\ForceDeleteAction;
+use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Filters\TrashedFilter;
 
 beforeEach(function () {
@@ -148,13 +147,13 @@ it('can search subscription types by github repo', function () {
 });
 
 it('can filter subscription types by project type', function () {
-    $laravelType = SubscriptionType::factory()->create(['project_type' => 'Laravel']);
-    $reactType = SubscriptionType::factory()->create(['project_type' => 'React']);
+    $phpType = SubscriptionType::factory()->create(['project_type' => 'php']);
+    $htmlType = SubscriptionType::factory()->create(['project_type' => 'html']);
 
     Livewire::test(SubscriptionTypeResource\Pages\ListSubscriptionTypes::class)
-        ->filterTable('project_type', 'Laravel')
-        ->assertCanSeeTableRecords([$laravelType])
-        ->assertCanNotSeeTableRecords([$reactType]);
+        ->filterTable('project_type', 'php')
+        ->assertCanSeeTableRecords([$phpType])
+        ->assertCanNotSeeTableRecords([$htmlType]);
 });
 
 it('can filter subscription types by trashed status', function () {
@@ -199,7 +198,7 @@ it('validates unique subscription type name', function () {
             'name' => 'Unique Type',
             'github_repo' => 'test/repo',
             'branch' => 'main',
-            'project_type' => 'Laravel',
+            'project_type' => 'php',
             'master_version' => '1.0.0',
         ])
         ->call('create')

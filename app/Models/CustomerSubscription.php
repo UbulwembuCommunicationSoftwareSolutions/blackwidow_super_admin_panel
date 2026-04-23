@@ -5,10 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class CustomerSubscription extends Model
 {
     use HasFactory;
+
+    protected $hidden = [
+        'database_password',
+    ];
 
     protected $fillable = [
         'url',
@@ -27,6 +32,7 @@ class CustomerSubscription extends Model
         'created_at',
         'updated_at',
         'database_name',
+        'database_user',
         'app_name',
         'env',
         'site_created_at',
@@ -38,6 +44,30 @@ class CustomerSubscription extends Model
         'panic_button_enabled',
         'deployed_version',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (CustomerSubscription $model): void {
+            $type = $model->relationLoaded('subscriptionType')
+                ? $model->subscriptionType
+                : SubscriptionType::query()->find($model->subscription_type_id);
+            if (! $type) {
+                return;
+            }
+            if (strtolower((string) $type->project_type) !== 'php') {
+                return;
+            }
+            if (! filled($model->database_name)) {
+                return;
+            }
+            if (blank($model->database_password)) {
+                $model->database_password = Str::password(32);
+            }
+            if (blank($model->database_user)) {
+                $model->database_user = self::normalizeDatabaseIdentifier((string) $model->database_name);
+            }
+        });
+    }
 
     protected $casts = [
         'site_deployment_queue_started_at' => 'datetime',
@@ -118,5 +148,103 @@ class CustomerSubscription extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /**
+     * Same rules as Filament customer subscription form (MySQL database / user naming).
+     */
+    public static function normalizeDatabaseIdentifier(string $databaseName): string
+    {
+        $databaseName = str_replace(' ', '_', $databaseName);
+        $databaseName = str_replace('-', '_', $databaseName);
+        $databaseName = str_replace('.', '_', $databaseName);
+        $databaseName = str_replace('/', '_', $databaseName);
+        $databaseName = str_replace('\\', '_', $databaseName);
+        $databaseName = str_replace('|', '_', $databaseName);
+        $databaseName = str_replace(';', '_', $databaseName);
+        $databaseName = str_replace(':', '_', $databaseName);
+        $databaseName = str_replace('"', '_', $databaseName);
+        $databaseName = str_replace('\'', '_', $databaseName);
+        $databaseName = str_replace('`', '_', $databaseName);
+        $databaseName = str_replace('~', '_', $databaseName);
+        $databaseName = str_replace('!', '_', $databaseName);
+        $databaseName = str_replace('@', '_', $databaseName);
+        $databaseName = str_replace('#', '_', $databaseName);
+        $databaseName = str_replace('$', '_', $databaseName);
+        $databaseName = str_replace('%', '_', $databaseName);
+        $databaseName = str_replace('^', '_', $databaseName);
+        $databaseName = str_replace('&', '_', $databaseName);
+        $databaseName = str_replace('*', '_', $databaseName);
+        $databaseName = str_replace('(', '_', $databaseName);
+        $databaseName = str_replace(')', '_', $databaseName);
+        $databaseName = str_replace('=', '_', $databaseName);
+        $databaseName = str_replace('+', '_', $databaseName);
+        $databaseName = str_replace('[', '_', $databaseName);
+        $databaseName = str_replace(']', '_', $databaseName);
+        $databaseName = str_replace('{', '_', $databaseName);
+        $databaseName = str_replace('}', '_', $databaseName);
+        $databaseName = str_replace('<', '_', $databaseName);
+        $databaseName = str_replace('>', '_', $databaseName);
+        $databaseName = str_replace(',', '_', $databaseName);
+        $databaseName = str_replace('?', '_', $databaseName);
+
+        return $databaseName;
+    }
+
+    public function forgeMysqlIdentifier(): string
+    {
+        return self::normalizeDatabaseIdentifier((string) $this->database_name);
+    }
+
+    /**
+     * MySQL user for Forge + DB_USERNAME. Defaults to the normalized database name when not set.
+     */
+    public function forgeMysqlUser(): string
+    {
+        if (filled($this->database_user)) {
+            return self::normalizeDatabaseIdentifier((string) $this->database_user);
+        }
+
+        return $this->forgeMysqlIdentifier();
+    }
+
+    public function isPhpSubscriptionWithDatabase(): bool
+    {
+        if (! filled($this->database_name)) {
+            return false;
+        }
+        $type = $this->relationLoaded('subscriptionType')
+            ? $this->subscriptionType
+            : SubscriptionType::query()->find($this->subscription_type_id);
+
+        return $type && strtolower((string) $type->project_type) === 'php';
+    }
+
+    /**
+     * Ensure a stored password exists for Forge MySQL user creation and env sync (legacy rows).
+     */
+    public function ensureDatabasePasswordForForge(): void
+    {
+        if (! $this->isPhpSubscriptionWithDatabase()) {
+            return;
+        }
+        if (filled($this->database_password)) {
+            return;
+        }
+        $this->forceFill(['database_password' => Str::password(32)])->save();
+    }
+
+    /**
+     * Backfill MySQL user for older rows (matches default: same as database name, normalized).
+     */
+    public function ensureDatabaseUserForForge(): void
+    {
+        if (! $this->isPhpSubscriptionWithDatabase()) {
+            return;
+        }
+        if (filled($this->database_user)) {
+            return;
+        }
+        $this->forceFill(['database_user' => $this->forgeMysqlIdentifier()])->save();
     }
 }

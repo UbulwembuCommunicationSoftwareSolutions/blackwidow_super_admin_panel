@@ -9,6 +9,7 @@ use App\Models\EnvVariables;
 use App\Models\ForgeServer;
 use App\Models\TemplateEnvVariables;
 use Exception;
+use Laravel\Forge\Exceptions\ValidationException;
 use Laravel\Forge\Forge;
 use Log;
 
@@ -218,14 +219,22 @@ class ForgeApi
 
     public function createSite($server_id, CustomerSubscription $customerSubscription)
     {
+        $customerSubscription->loadMissing('subscriptionType');
+
         $this->addMissingEnv($customerSubscription);
-        $template = null;
-        if (in_array($customerSubscription->subscription_type_id, [1, 2, 9, 10, 11], true)) {
-            $database = $customerSubscription->database_name;
-        } else {
-            $database = null;
+        $customerSubscription->refresh();
+
+        if ($this->needsForgeServerDatabase($customerSubscription)) {
+            $customerSubscription->ensureDatabaseUserForForge();
+            $customerSubscription->ensureDatabasePasswordForForge();
+            $customerSubscription->refresh();
+            $this->provisionForgeServerDatabase($server_id, $customerSubscription);
         }
-        if ($database) {
+
+        $useForgeSiteDatabase = $this->needsForgeServerDatabase($customerSubscription);
+        $databaseName = $useForgeSiteDatabase ? $customerSubscription->forgeMysqlIdentifier() : null;
+
+        if ($databaseName) {
             $payload = [
                 'domain' => $customerSubscription->domain,
                 'project_type' => $customerSubscription->subscriptionType->project_type,
@@ -234,8 +243,7 @@ class ForgeApi
                 'repository' => $customerSubscription->subscriptionType->github_repo,
                 'repository_provider' => 'github',
                 'repository_branch' => $customerSubscription->subscriptionType->branch,
-                'database' => $customerSubscription->database_name,
-                //            'env' => $this->collectEnv($customerSubscription)
+                'database' => $databaseName,
             ];
         } else {
             $payload = [
@@ -247,7 +255,6 @@ class ForgeApi
                 'repository' => $customerSubscription->subscriptionType->github_repo,
                 'repository_provider' => 'github',
                 'repository_branch' => $customerSubscription->subscriptionType->branch,
-                //            'env' => $this->collectEnv($customerSubscription)
             ];
         }
 
@@ -268,9 +275,110 @@ class ForgeApi
         $this->syncForge();
     }
 
+    public function needsForgeServerDatabase(CustomerSubscription $customerSubscription): bool
+    {
+        $customerSubscription->loadMissing('subscriptionType');
+
+        return $customerSubscription->isPhpSubscriptionWithDatabase();
+    }
+
+    public function provisionForgeServerDatabase(int $server_id, CustomerSubscription $customerSubscription): void
+    {
+        $customerSubscription->ensureDatabaseUserForForge();
+        $customerSubscription->refresh();
+
+        $name = $customerSubscription->forgeMysqlIdentifier();
+        $user = $customerSubscription->forgeMysqlUser();
+        $password = (string) $customerSubscription->database_password;
+        if ($password === '') {
+            $customerSubscription->ensureDatabasePasswordForForge();
+            $customerSubscription->refresh();
+            $password = (string) $customerSubscription->database_password;
+        }
+        if ($name === '' || $user === '' || $password === '') {
+            return;
+        }
+
+        $payload = [
+            'name' => $name,
+            'user' => $user,
+            'password' => $password,
+        ];
+
+        try {
+            $this->forge->createDatabase($server_id, $payload);
+            Log::info('forge.database_created', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+                'mysql_user' => $user,
+            ]);
+        } catch (ValidationException $e) {
+            if ($this->forgeDatabaseExistsOnServer($server_id, $name)) {
+                Log::info('forge.create_database.skip_exists', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'server_id' => $server_id,
+                    'database' => $name,
+                ]);
+
+                return;
+            }
+            throw $e;
+        }
+    }
+
+    protected function forgeDatabaseExistsOnServer(int $server_id, string $name): bool
+    {
+        foreach ($this->forge->databases($server_id) as $db) {
+            if (($db->name ?? null) === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Sync DB_DATABASE, DB_USERNAME, and DB_PASSWORD from the subscription for Forge MySQL (php) sites.
+     */
+    protected function applyForgeMysqlParamsToEnv(CustomerSubscription $customerSubscription): void
+    {
+        if (! $customerSubscription->isPhpSubscriptionWithDatabase()) {
+            return;
+        }
+
+        $customerSubscription->ensureDatabaseUserForForge();
+        $customerSubscription->ensureDatabasePasswordForForge();
+        $customerSubscription->refresh();
+
+        if (! filled($customerSubscription->database_password)) {
+            return;
+        }
+
+        $identifier = $customerSubscription->forgeMysqlIdentifier();
+        $user = $customerSubscription->forgeMysqlUser();
+        $values = [
+            'DB_DATABASE' => $identifier,
+            'DB_USERNAME' => $user,
+            'DB_PASSWORD' => (string) $customerSubscription->database_password,
+        ];
+
+        foreach ($values as $key => $value) {
+            $row = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
+                ->where('key', $key)
+                ->first();
+            if ($row) {
+                $row->value = $value;
+                $row->save();
+            }
+        }
+    }
+
     public function addMissingEnv(CustomerSubscription $customerSubscription)
     {
         if ($customerSubscription->customer) {
+            $customerSubscription->loadMissing('subscriptionType');
+
             $addedEnv = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->pluck('key');
             $missing = TemplateEnvVariables::where('subscription_type_id', $customerSubscription->subscription_type_id)
                 ->whereNotIn('key', $addedEnv)
@@ -284,13 +392,18 @@ class ForgeApi
                     'value' => $env->initialEnvValue(),
                 ]);
             }
-            $database = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
-                ->where('key', 'DB_DATABASE')
-                ->first();
-            if ($database) {
-                $database->value = $customerSubscription->database_name;
-                $database->save();
+
+            if (! $customerSubscription->isPhpSubscriptionWithDatabase()) {
+                $database = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
+                    ->where('key', 'DB_DATABASE')
+                    ->first();
+                if ($database && filled($customerSubscription->database_name)) {
+                    $database->value = $customerSubscription->database_name;
+                    $database->save();
+                }
             }
+
+            $this->applyForgeMysqlParamsToEnv($customerSubscription);
 
             $cmsUrl = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
                 ->where('key', 'VUE_APP_API_BASE_URL')
