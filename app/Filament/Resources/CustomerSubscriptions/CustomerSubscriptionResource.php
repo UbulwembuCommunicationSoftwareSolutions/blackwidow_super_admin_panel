@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerSubscriptions;
 
 use App\Filament\Resources\CustomerSubscriptions\Pages\CreateCustomerSubscription;
+use App\Filament\Resources\CustomerSubscriptions\Pages\DeploymentPipelineSteps;
 use App\Filament\Resources\CustomerSubscriptions\Pages\EditCustomerSubscription;
 use App\Filament\Resources\CustomerSubscriptions\Pages\ListCustomerSubscriptions;
 use App\Filament\Resources\CustomerSubscriptions\Pages\ViewCustomerSubscription;
@@ -59,6 +60,7 @@ class CustomerSubscriptionResource extends Resource
             'create' => CreateCustomerSubscription::route('/create'),
             'view' => ViewCustomerSubscription::route('/{record}'),
             'edit' => EditCustomerSubscription::route('/{record}/edit'),
+            'deployment-pipeline-steps' => DeploymentPipelineSteps::route('/{record}/deployment-pipeline-steps'),
         ];
     }
 

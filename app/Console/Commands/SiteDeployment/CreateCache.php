@@ -8,7 +8,6 @@ use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
 use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
 use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
 use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
-use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Jobs\SyncForgeJob;
 use App\Models\CustomerSubscription;

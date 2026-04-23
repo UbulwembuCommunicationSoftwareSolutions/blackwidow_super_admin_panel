@@ -95,3 +95,77 @@ it('dispatches provision forge server database before create site when subscript
     Queue::assertPushed(CreateSiteOnForgeJob::class, 1);
     Queue::assertPushed(ProvisionForgeServerDatabaseJob::class, 1);
 });
+
+it('schedule site creation only persists one or two steps and does not run full pipeline', function () {
+    Queue::fake();
+
+    $type = SubscriptionType::factory()->create(['project_type' => 'static']);
+    $customer = Customer::factory()->create();
+    $subscription = CustomerSubscription::factory()->create([
+        'subscription_type_id' => $type->id,
+        'customer_id' => $customer->id,
+        'site_deployment_queue_started_at' => null,
+        'server_id' => 1,
+    ]);
+
+    $batchId = app(SiteDeploymentScheduler::class)->scheduleSiteCreationOnly($subscription, true);
+
+    expect($batchId)->not->toBeEmpty();
+    expect(CustomerSubscriptionDeploymentJob::query()->where('batch_id', $batchId)->count())->toBe(1);
+
+    Queue::assertPushed(CreateSiteOnForgeJob::class, 1);
+    Queue::assertNotPushed(ProvisionForgeServerDatabaseJob::class);
+    Queue::assertNotPushed(EnsureForgeSiteIdJob::class);
+});
+
+it('schedule site creation only prepends provision when subscription needs forge mysql', function () {
+    Queue::fake();
+
+    $type = SubscriptionType::factory()->create(['project_type' => 'php']);
+    $customer = Customer::factory()->create();
+    $subscription = CustomerSubscription::factory()->create([
+        'subscription_type_id' => $type->id,
+        'customer_id' => $customer->id,
+        'site_deployment_queue_started_at' => null,
+        'server_id' => 1,
+        'database_name' => 'app_db',
+    ]);
+
+    $batchId = app(SiteDeploymentScheduler::class)->scheduleSiteCreationOnly($subscription, true);
+
+    expect(CustomerSubscriptionDeploymentJob::query()->where('batch_id', $batchId)->count())->toBe(2);
+
+    Queue::assertPushed(ProvisionForgeServerDatabaseJob::class, 1);
+    Queue::assertNotPushed(CreateSiteOnForgeJob::class);
+
+    $first = CustomerSubscriptionDeploymentJob::query()
+        ->where('batch_id', $batchId)
+        ->where('position', 0)
+        ->firstOrFail();
+
+    app(DeploymentStepDispatcher::class)->completeAndDispatchNext($first->id);
+
+    Queue::assertPushed(CreateSiteOnForgeJob::class, 1);
+});
+
+it('queue single template step creates one deployment job row and dispatches that job', function () {
+    Queue::fake();
+
+    $type = SubscriptionType::factory()->create(['project_type' => 'static']);
+    $customer = Customer::factory()->create();
+    $subscription = CustomerSubscription::factory()->create([
+        'subscription_type_id' => $type->id,
+        'customer_id' => $customer->id,
+        'server_id' => 1,
+    ]);
+
+    $scheduler = app(SiteDeploymentScheduler::class);
+    $template = $scheduler->getCompleteCreationPipelineTemplate($subscription);
+    expect($template)->toBeArray()->not->toBeEmpty();
+
+    $batchId = $scheduler->queueSingleTemplateStep($subscription, 0);
+    expect($batchId)->not->toBeEmpty();
+    expect(CustomerSubscriptionDeploymentJob::query()->where('batch_id', $batchId)->count())->toBe(1);
+
+    Queue::assertPushed(CreateSiteOnForgeJob::class, 1);
+});

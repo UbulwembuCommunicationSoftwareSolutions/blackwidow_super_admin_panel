@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands\SiteDeployment;
 
-use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Models\CustomerSubscription;
+use App\Services\SiteDeploymentScheduler;
 use Illuminate\Console\Command;
 
 class CreateSiteOnForge extends Command
@@ -25,9 +25,18 @@ class CreateSiteOnForge extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(SiteDeploymentScheduler $siteDeploymentScheduler): int
     {
-        $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
-        CreateSiteOnForgeJob::dispatch($customerSubscription->id);
+        $id = (int) $this->argument('customer-subscription-id');
+        $customerSubscription = CustomerSubscription::query()->find($id);
+        if (! $customerSubscription) {
+            $this->error('Customer subscription not found: '.$id);
+
+            return self::FAILURE;
+        }
+        $batchId = $siteDeploymentScheduler->scheduleSiteCreationOnly($customerSubscription, true);
+        $this->info('Site creation batch scheduled: '.$batchId);
+
+        return self::SUCCESS;
     }
 }

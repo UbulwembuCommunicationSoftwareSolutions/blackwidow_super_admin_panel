@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\CustomerSubscriptions\Pages;
 
 use App\Filament\Resources\CustomerSubscriptions\CustomerSubscriptionResource;
-use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use App\Services\CustomerSubscriptionService;
 use App\Services\ForgeService;
+use App\Services\SiteDeploymentScheduler;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
@@ -23,6 +23,10 @@ class EditCustomerSubscription extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('deploymentPipelineSteps')
+                ->label('Deployment pipeline steps')
+                ->icon('heroicon-o-queue-list')
+                ->url(fn (CustomerSubscription $record): string => CustomerSubscriptionResource::getUrl('deployment-pipeline-steps', ['record' => $record])),
             Action::make('recreateSiteOnForge')
                 ->label('Re-create site on Forge')
                 ->icon('heroicon-o-plus-circle')
@@ -35,18 +39,19 @@ class EditCustomerSubscription extends EditRecord
                 ->modalSubmitActionLabel('Queue create site job')
                 ->action(function (CustomerSubscription $record) {
                     try {
-                        CreateSiteOnForgeJob::dispatch($record->id);
+                        $batchId = app(SiteDeploymentScheduler::class)->scheduleSiteCreationOnly($record, true);
                         Notification::make()
-                            ->title('Create site job queued')
+                            ->title('Site creation queued')
+                            ->body('Batch '.$batchId.' — first step will run on the queue. Check Site deployment jobs below.')
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {
-                        Log::error('Failed to queue create site on Forge', [
+                        Log::error('Failed to schedule site creation on Forge', [
                             'customer_subscription_id' => $record->id,
                             'exception' => $e,
                         ]);
                         Notification::make()
-                            ->title('Could not queue create site job')
+                            ->title('Could not schedule site creation')
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
