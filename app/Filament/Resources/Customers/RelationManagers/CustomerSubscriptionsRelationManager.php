@@ -319,7 +319,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                             'url' => 'https://'.$domain,
                             'app_name' => $data['app_name'],
                             'database_name' => $cleanDb,
-                            'database_user' => $cleanDb,
+                            'database_user' => CustomerSubscription::limitMysqlUserName($cleanDb),
                         ]);
 
                         app(SiteDeploymentScheduler::class)->schedule($customerSubscription);

@@ -389,7 +389,7 @@ class McpSiteController extends Controller
             'url' => ['required', 'string', 'max:2048'],
             'domain' => ['required', 'string', 'max:255'],
             'database_name' => ['required', 'string', 'max:255'],
-            'database_user' => ['nullable', 'string', 'max:255'],
+            'database_user' => ['nullable', 'string', 'max:32'],
             'subscription_type_id' => ['required', 'integer', 'exists:subscription_types,id'],
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'server_id' => ['nullable', 'integer'],

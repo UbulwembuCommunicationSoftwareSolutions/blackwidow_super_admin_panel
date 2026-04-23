@@ -12,6 +12,11 @@ class CustomerSubscription extends Model
 {
     use HasFactory;
 
+    /**
+     * MySQL account names (user part) are limited to 32 characters. Forge enforces the same.
+     */
+    public const MYSQL_USER_NAME_MAX_LENGTH = 32;
+
     protected $hidden = [
         'database_password',
     ];
@@ -65,7 +70,9 @@ class CustomerSubscription extends Model
                 $model->database_password = Str::password(32);
             }
             if (blank($model->database_user)) {
-                $model->database_user = self::normalizeDatabaseIdentifier((string) $model->database_name);
+                $model->database_user = self::limitMysqlUserName(
+                    self::normalizeDatabaseIdentifier((string) $model->database_name)
+                );
             }
         });
     }
@@ -203,15 +210,30 @@ class CustomerSubscription extends Model
     }
 
     /**
+     * Truncate a MySQL user name to {@see MYSQL_USER_NAME_MAX_LENGTH} (MySQL + Forge limit).
+     */
+    public static function limitMysqlUserName(string $name): string
+    {
+        if ($name === '') {
+            return $name;
+        }
+        if (mb_strlen($name) <= self::MYSQL_USER_NAME_MAX_LENGTH) {
+            return $name;
+        }
+
+        return mb_substr($name, 0, self::MYSQL_USER_NAME_MAX_LENGTH);
+    }
+
+    /**
      * MySQL user for Forge + DB_USERNAME. Defaults to the normalized database name when not set.
      */
     public function forgeMysqlUser(): string
     {
         if (filled($this->database_user)) {
-            return self::normalizeDatabaseIdentifier((string) $this->database_user);
+            return self::limitMysqlUserName(self::normalizeDatabaseIdentifier((string) $this->database_user));
         }
 
-        return $this->forgeMysqlIdentifier();
+        return self::limitMysqlUserName($this->forgeMysqlIdentifier());
     }
 
     public function isPhpSubscriptionWithDatabase(): bool
@@ -248,9 +270,14 @@ class CustomerSubscription extends Model
         if (! $this->isPhpSubscriptionWithDatabase()) {
             return;
         }
-        if (filled($this->database_user)) {
+        if (! filled($this->database_user)) {
+            $this->forceFill(['database_user' => self::limitMysqlUserName($this->forgeMysqlIdentifier())])->save();
+
             return;
         }
-        $this->forceFill(['database_user' => $this->forgeMysqlIdentifier()])->save();
+        $limited = self::limitMysqlUserName(self::normalizeDatabaseIdentifier((string) $this->database_user));
+        if ((string) $this->database_user !== $limited) {
+            $this->forceFill(['database_user' => $limited])->save();
+        }
     }
 }

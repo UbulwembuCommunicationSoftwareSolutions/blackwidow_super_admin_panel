@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomerSubscriptions\Schemas;
 
+use App\Models\CustomerSubscription;
 use App\Services\CustomerSubscriptionService;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -124,7 +125,8 @@ class CustomerSubscriptionForm
                 TextInput::make('database_name'),
                 TextInput::make('database_user')
                     ->label('Database user (MySQL)')
-                    ->helperText('Used for Forge DB user and DB_USERNAME. Leave blank to match the database name.'),
+                    ->maxLength(CustomerSubscription::MYSQL_USER_NAME_MAX_LENGTH)
+                    ->helperText('Used for Forge DB user and DB_USERNAME. Max '.(string) CustomerSubscription::MYSQL_USER_NAME_MAX_LENGTH.' characters (MySQL limit). Leave blank to match the database name (truncated if needed).'),
                 TextInput::make('forge_site_id'),
                 Toggle::make('panic_button_enabled')
                     ->label('Panic Button'),

@@ -355,6 +355,7 @@ class ForgeApi
                     'database' => $name,
                     'database_id' => $databaseId,
                     'validation_message' => $validationMessage,
+                    'forge_validation_errors' => $e->errors(),
                 ]);
             } else {
                 Log::warning('forge.create_database.validation_not_recovered', [
@@ -362,6 +363,7 @@ class ForgeApi
                     'server_id' => $server_id,
                     'database' => $name,
                     'validation_message' => $validationMessage,
+                    'forge_validation_errors' => $e->errors(),
                 ]);
                 throw $e;
             }
@@ -427,6 +429,7 @@ class ForgeApi
             'database' => $name,
             'database_id' => $databaseId,
             'mysql_user' => $user,
+            'mysql_user_length' => strlen($user),
             'password_length' => strlen($password),
         ]);
 
@@ -450,6 +453,7 @@ class ForgeApi
                     'database_id' => $databaseId,
                     'mysql_user' => $user,
                     'validation_message' => $validationMessage,
+                    'forge_validation_errors' => $e->errors(),
                 ]);
 
                 return;
@@ -462,6 +466,7 @@ class ForgeApi
                 'database_id' => $databaseId,
                 'mysql_user' => $user,
                 'validation_message' => $validationMessage,
+                'forge_validation_errors' => $e->errors(),
             ]);
             throw $e;
         } catch (Throwable $e) {
