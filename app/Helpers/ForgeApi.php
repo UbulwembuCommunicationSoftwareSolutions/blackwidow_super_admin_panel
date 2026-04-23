@@ -207,14 +207,37 @@ class ForgeApi
         $this->forge->deploySite($server_id, $site_id);
     }
 
-    public function letsEncryptCertificate(CustomerSubscription $customerSubscription)
+    /**
+     * Request a Let's Encrypt certificate on Forge. By default the Forge API is called with
+     * wait=false (request accepted, installation may still be in progress) to avoid job timeouts
+     * and queue retries that re-trigger LE and hit rate limits.
+     *
+     * @param  bool  $waitUntilInstalled  When true, blocks until the SDK reports the certificate is installed.
+     */
+    public function letsEncryptCertificate(CustomerSubscription $customerSubscription, bool $waitUntilInstalled = false)
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $domain = str_replace('http://', '', $customerSubscription->url);
         $domain = str_replace('https://', '', $domain);
-        $this->forge->obtainLetsEncryptCertificate($customerSubscription->server_id, $customerSubscription->forge_site_id, [
-            'domains' => [$domain],
-            'wildcard' => false,
+        $this->forge->obtainLetsEncryptCertificate(
+            $customerSubscription->server_id,
+            $customerSubscription->forge_site_id,
+            [
+                'domains' => [$domain],
+                'wildcard' => false,
+            ],
+            $waitUntilInstalled
+        );
+
+        Log::info('forge.letsencrypt_requested', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'server_id' => $customerSubscription->server_id,
+            'forge_site_id' => $customerSubscription->forge_site_id,
+            'domain' => $domain,
+            'wait_until_installed' => $waitUntilInstalled,
+            'note' => $waitUntilInstalled
+                ? null
+                : 'Certificate may still be installing on Forge; check Forge if HTTPS is not live yet.',
         ]);
     }
 

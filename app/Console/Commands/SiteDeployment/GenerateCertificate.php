@@ -29,6 +29,6 @@ class GenerateCertificate extends Command
     {
         $customerSubscription = CustomerSubscription::find($this->argument('customer-subscription-id'));
         $forgeApi = new ForgeApi();
-        $forgeApi->letsEncryptCertificate($customerSubscription);
+        $forgeApi->letsEncryptCertificate($customerSubscription, waitUntilInstalled: true);
     }
 }

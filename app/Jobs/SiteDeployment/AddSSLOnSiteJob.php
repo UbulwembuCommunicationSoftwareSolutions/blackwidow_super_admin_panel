@@ -19,15 +19,10 @@ class AddSSLOnSiteJob implements ShouldQueue
     use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
 
-    public int $tries = 3;
-
     /**
-     * @return list<int>
+     * Do not repeat LE order attempts: Forge wait=false is the main success path; retries could hit LE rate limits.
      */
-    public function backoff(): array
-    {
-        return [45, 90, 120];
-    }
+    public int $tries = 1;
 
     public int $timeout = 300;
 
@@ -55,6 +50,7 @@ class AddSSLOnSiteJob implements ShouldQueue
 
         Log::info('site_deployment.add_ssl', [
             'customer_subscription_id' => $this->customerSubscriptionId,
+            'note' => 'LE order accepted on success; cert may still be installing on Forge.',
         ]);
         $forgeApi = new ForgeApi;
         $forgeApi->letsEncryptCertificate($customerSubscription);
