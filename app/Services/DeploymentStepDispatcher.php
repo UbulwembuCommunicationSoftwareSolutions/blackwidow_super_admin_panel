@@ -7,6 +7,7 @@ use App\Jobs\SiteDeployment\AddDeploymentScriptOnForgeJob;
 use App\Jobs\SiteDeployment\AddEnvVariablesOnForgeJob;
 use App\Jobs\SiteDeployment\AddGitRepoOnForgeJob;
 use App\Jobs\SiteDeployment\AddSSLOnSiteJob;
+use App\Jobs\SiteDeployment\CreateForgeServerDatabaseUserJob;
 use App\Jobs\SiteDeployment\CreateSiteOnForgeJob;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Jobs\SiteDeployment\EnsureForgeSiteIdJob;
@@ -67,6 +68,7 @@ class DeploymentStepDispatcher
 
         match ($row->job_name) {
             SiteDeploymentJobName::PROVISION_FORGE_SERVER_DATABASE => ProvisionForgeServerDatabaseJob::dispatch($cid, $id),
+            SiteDeploymentJobName::CREATE_FORGE_SERVER_DATABASE_USER => CreateForgeServerDatabaseUserJob::dispatch($cid, $id),
             SiteDeploymentJobName::CREATE_SITE => CreateSiteOnForgeJob::dispatch($cid, $id),
             SiteDeploymentJobName::ENSURE_FORGE_SITE => EnsureForgeSiteIdJob::dispatch($cid, $id),
             SiteDeploymentJobName::SYNC_FORGE => SyncForgeJob::dispatch($cid, $id),

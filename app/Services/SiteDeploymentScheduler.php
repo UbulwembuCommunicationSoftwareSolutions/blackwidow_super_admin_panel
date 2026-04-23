@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\CustomerSubscription;
 use App\Models\CustomerSubscriptionDeploymentJob;
-use InvalidArgumentException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class SiteDeploymentScheduler
 {
@@ -138,6 +138,7 @@ class SiteDeploymentScheduler
         $build = [];
         if ($needsServerDatabase) {
             $build[] = [SiteDeploymentJobName::PROVISION_FORGE_SERVER_DATABASE, []];
+            $build[] = [SiteDeploymentJobName::CREATE_FORGE_SERVER_DATABASE_USER, []];
         }
         $build[] = [SiteDeploymentJobName::CREATE_SITE, $needsServerDatabase ? ['skip_database_provision' => true] : []];
 

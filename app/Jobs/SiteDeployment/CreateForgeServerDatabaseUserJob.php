@@ -14,7 +14,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class ProvisionForgeServerDatabaseJob implements ShouldQueue
+class CreateForgeServerDatabaseUserJob implements ShouldQueue
 {
     use AdvancesDeploymentPipeline, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use LogsSiteDeploymentFailure;
@@ -38,12 +38,12 @@ class ProvisionForgeServerDatabaseJob implements ShouldQueue
 
     public function handle(): void
     {
-        Log::info('site_deployment.provision_forge_server_database', [
+        Log::info('site_deployment.create_forge_server_database_user', [
             'customer_subscription_id' => $this->customerSubscriptionId,
         ]);
         $customerSubscription = CustomerSubscription::query()->find($this->customerSubscriptionId);
         if (! $customerSubscription) {
-            Log::warning('site_deployment.provision_forge_server_db.missing_subscription', [
+            Log::warning('site_deployment.create_forge_server_database_user.missing_subscription', [
                 'customer_subscription_id' => $this->customerSubscriptionId,
             ]);
             if ($this->deploymentJobId !== null) {
@@ -61,7 +61,7 @@ class ProvisionForgeServerDatabaseJob implements ShouldQueue
             return;
         }
         if (! $customerSubscription->server_id) {
-            $message = 'server_id is required to provision a Forge MySQL database.';
+            $message = 'server_id is required to create a Forge MySQL database user.';
             if ($this->deploymentJobId !== null) {
                 app(DeploymentStepDispatcher::class)->markStepFailed(
                     $this->deploymentJobId,
@@ -70,7 +70,7 @@ class ProvisionForgeServerDatabaseJob implements ShouldQueue
             }
             throw new \RuntimeException($message);
         }
-        (new ForgeApi)->provisionForgeServerDatabase($customerSubscription->server_id, $customerSubscription);
+        (new ForgeApi)->provisionForgeServerDatabaseUser($customerSubscription->server_id, $customerSubscription);
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

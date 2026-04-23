@@ -227,10 +227,22 @@ class ForgeApi
             return;
         }
         $customerSubscription->loadMissing('subscriptionType');
+        $this->provisionForgeServerDatabase($server_id, $customerSubscription);
+        $this->provisionForgeServerDatabaseUser($server_id, $customerSubscription);
+    }
+
+    /**
+     * Ensure MySQL user name + password are set; used before {@see provisionForgeServerDatabaseUser}.
+     */
+    public function prepareForgeServerDatabaseUserCredentials(CustomerSubscription $customerSubscription): void
+    {
+        if (! $this->needsForgeServerDatabase($customerSubscription)) {
+            return;
+        }
+        $customerSubscription->loadMissing('subscriptionType');
         $customerSubscription->ensureDatabaseUserForForge();
         $customerSubscription->ensureDatabasePasswordForForge();
         $customerSubscription->refresh();
-        $this->provisionForgeServerDatabase($server_id, $customerSubscription);
     }
 
     /**
@@ -298,26 +310,17 @@ class ForgeApi
         return $customerSubscription->isPhpSubscriptionWithDatabase();
     }
 
+    /**
+     * Create the MySQL database on Forge (no user). {@see provisionForgeServerDatabaseUser} for the database user.
+     */
     public function provisionForgeServerDatabase(int $server_id, CustomerSubscription $customerSubscription): void
     {
-        $customerSubscription->ensureDatabaseUserForForge();
-        $customerSubscription->refresh();
-
         $name = $customerSubscription->forgeMysqlIdentifier();
-        $user = $customerSubscription->forgeMysqlUser();
-        $password = (string) $customerSubscription->database_password;
-        if ($password === '') {
-            $customerSubscription->ensureDatabasePasswordForForge();
-            $customerSubscription->refresh();
-            $password = (string) $customerSubscription->database_password;
-        }
-        if ($name === '' || $user === '' || $password === '') {
+        if ($name === '') {
             Log::warning('forge.create_database.skip_missing_prereq', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
-                'database_empty' => $name === '',
-                'user_empty' => $user === '',
-                'password_empty' => $password === '',
+                'database_empty' => true,
             ]);
 
             return;
@@ -332,8 +335,6 @@ class ForgeApi
             'server_id' => $server_id,
             'database' => $name,
         ]);
-
-        $databaseId = null;
 
         try {
             $createdDatabase = $this->forge->createDatabase($server_id, $databasePayload);
@@ -373,6 +374,45 @@ class ForgeApi
                 'message' => $e->getMessage(),
             ]);
             throw $e;
+        }
+    }
+
+    /**
+     * Create the MySQL user on Forge and grant access to the subscription database.
+     */
+    public function provisionForgeServerDatabaseUser(int $server_id, CustomerSubscription $customerSubscription): void
+    {
+        $this->prepareForgeServerDatabaseUserCredentials($customerSubscription);
+
+        $name = $customerSubscription->forgeMysqlIdentifier();
+        $user = $customerSubscription->forgeMysqlUser();
+        $password = (string) $customerSubscription->database_password;
+        if ($password === '') {
+            $customerSubscription->ensureDatabasePasswordForForge();
+            $customerSubscription->refresh();
+            $password = (string) $customerSubscription->database_password;
+        }
+        if ($name === '' || $user === '' || $password === '') {
+            Log::warning('forge.create_database_user.skip_missing_prereq', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database_empty' => $name === '',
+                'user_empty' => $user === '',
+                'password_empty' => $password === '',
+            ]);
+
+            return;
+        }
+
+        $databaseId = $this->resolveForgeDatabaseId($server_id, $name);
+        if ($databaseId === null) {
+            $message = 'Forge MySQL database "'.$name.'" was not found on the server. Create the database step must succeed first.';
+            Log::error('forge.create_database_user.missing_database', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+            ]);
+            throw new \RuntimeException($message);
         }
 
         $userPayload = [

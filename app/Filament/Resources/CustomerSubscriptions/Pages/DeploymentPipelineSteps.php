@@ -24,7 +24,7 @@ class DeploymentPipelineSteps extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
 
@@ -105,6 +105,14 @@ class DeploymentPipelineSteps extends Page
     protected function labelForPipelineStep(string $jobName, array $params, int $index): string
     {
         $prefix = $index.'. ';
+
+        if ($jobName === SiteDeploymentJobName::PROVISION_FORGE_SERVER_DATABASE) {
+            return $prefix.'Create Forge server database';
+        }
+
+        if ($jobName === SiteDeploymentJobName::CREATE_FORGE_SERVER_DATABASE_USER) {
+            return $prefix.'Create Forge database user';
+        }
 
         if ($jobName === SiteDeploymentJobName::SEND_FORGE_COMMAND && isset($params['command'])) {
             return $prefix.'Forge command: '.$params['command'];
