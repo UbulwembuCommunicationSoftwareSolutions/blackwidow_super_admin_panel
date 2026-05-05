@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class CustomerSubscriptionsTable
@@ -76,7 +77,11 @@ class CustomerSubscriptionsTable
                     ->boolean(),
             ])
             ->filters([
-                //
+                SelectFilter::make('subscription_type_id')
+                    ->label('Subscription type')
+                    ->relationship('subscriptionType', 'name')
+                    ->searchable()
+                    ->preload(),
             ])
             ->recordActions([
                 EditAction::make(),
