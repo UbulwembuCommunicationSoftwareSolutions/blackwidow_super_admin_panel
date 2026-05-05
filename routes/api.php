@@ -16,6 +16,7 @@ Route::post('get-user', 'App\Http\Controllers\CustomerUserController@getSingleUs
 Route::post('update-password', 'App\Http\Controllers\CustomerUserController@updatePasswordFromCMS');
 Route::get('customer/app-functions', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getAppFunctions']);
 Route::get('customer/responder-functions', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getResponderAppFunctions']);
+Route::get('customer_cms_url', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getCmsUrl']);
 Route::get('app_manifest', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getManifest']);
 Route::post('user-password', 'App\Http\Controllers\CustomerUserController@updatePassword');
 Route::post('deactivate-user', 'App\Http\Controllers\CustomerUserController@deactivateUser');

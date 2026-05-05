@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Auth;
-use Log;
 use App\Helpers\ForgeApi;
 use App\Http\Requests\CustomerSubscriptionRequest;
 use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
+use Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Log;
 
 class CustomerSubscriptionController extends Controller
 {
@@ -26,22 +27,25 @@ class CustomerSubscriptionController extends Controller
     public function checkLoggedIn(Request $request)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             Log::info('User is not logged in');
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'User is not logged in'
+                'message' => 'User is not logged in',
             ], 401);
-        }else{
+        } else {
             Log::info('User is logged in');
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'User is logged in',
                 'user' => $user,
-                'token' => $request->bearerToken()
+                'token' => $request->bearerToken(),
             ]);
         }
     }
+
     public function getManifest(Request $request)
     {
         // Get the referer URL
@@ -50,9 +54,9 @@ class CustomerSubscriptionController extends Controller
         $originHost = $parsedUrl['host'] ?? 'unknown';
 
         // Find the customer's subscription based on the domain
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->first();
 
-        if (!$customerSubscription) {
+        if (! $customerSubscription) {
             return response()->json(['error' => 'Subscription not found'], 404);
         }
 
@@ -62,7 +66,7 @@ class CustomerSubscriptionController extends Controller
 
         // Retrieve all files inside the icons directory
         $iconFiles = Storage::disk('public')->files($relativeBasePath);
-        Log::info("Icon Path: ".($relativeBasePath));
+        Log::info('Icon Path: '.($relativeBasePath));
         Log::info(json_encode($iconFiles));
         $icons = [];
 
@@ -85,61 +89,105 @@ class CustomerSubscriptionController extends Controller
 
             // Construct the icon entry
             $icons[] = [
-                "src" => asset(Storage::url($file)),
-                "sizes" => $size,
-                "type" => $fileType,
-                "purpose" => $purpose
+                'src' => asset(Storage::url($file)),
+                'sizes' => $size,
+                'type' => $fileType,
+                'purpose' => $purpose,
             ];
         }
 
         // Construct the manifest array
         $manifest = [
-            "name" => $customerSubscription->app_name,
-            "short_name" => $customerSubscription->app_name,
-            "start_url" => $customerSubscription->url,
-            "display" => "standalone",
-            "background_color" => "#000000",
-            "theme_color" => "#000000",
-            "icons" => $icons
+            'name' => $customerSubscription->app_name,
+            'short_name' => $customerSubscription->app_name,
+            'start_url' => $customerSubscription->url,
+            'display' => 'standalone',
+            'background_color' => '#000000',
+            'theme_color' => '#000000',
+            'icons' => $icons,
         ];
 
         return response()->json($manifest, 200, ['Content-Type' => 'application/manifest+json']);
     }
 
-
     public function getLogos(Request $request)
     {
-        if($request->has('customer_url')){
+        if ($request->has('customer_url')) {
             $url = $request->customer_url;
             Log::info('URL: '.$url);
             $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            if($customerSubscription){
+            if ($customerSubscription) {
                 return response()->json([
-                    "logo_1" => $customerSubscription->logo_1,
-                    "logo_2" => $customerSubscription->logo_2,
-                    "logo_3" => $customerSubscription->logo_3,
-                    "logo_4" => $customerSubscription->logo_4,
-                    "logo_5" => $customerSubscription->logo_5,
+                    'logo_1' => $customerSubscription->logo_1,
+                    'logo_2' => $customerSubscription->logo_2,
+                    'logo_3' => $customerSubscription->logo_3,
+                    'logo_4' => $customerSubscription->logo_4,
+                    'logo_5' => $customerSubscription->logo_5,
                 ]);
-            }else{
+            } else {
                 return response()->json($logos = []);
             }
 
-        }else{
+        } else {
             return response()->json($logos = []);
         }
     }
+
+    public function getCmsUrl(Request $request): JsonResponse
+    {
+        $customerUrl = $request->query('customer_api_url');
+        if (! filled($customerUrl)) {
+            return response()->json([
+                'error' => 'customer_api_url parameter is required',
+            ], 422);
+        }
+
+        $originHost = parse_url((string) $customerUrl, PHP_URL_HOST);
+        if (! $originHost) {
+            return response()->json([
+                'error' => 'Could not determine host from customer_api_url',
+            ], 422);
+        }
+
+        Log::info('getCmsUrl origin host: '.$originHost);
+
+        $customerApiSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')
+            ->first();
+
+        if (! $customerApiSubscription) {
+            return response()->json([
+                'error' => 'No subscription found for this host',
+            ], 404);
+        }
+
+        $cmsSubscription = CustomerSubscription::where('customer_id', $customerApiSubscription->customer_id)
+            ->where('subscription_type_id', 1)
+            ->first();
+
+        if (! $cmsSubscription) {
+            return response()->json([
+                'error' => 'No CMS subscription found for this customer',
+            ], 404);
+        }
+
+        $cmsUrl = rtrim((string) $cmsSubscription->url, '/');
+
+        return response()->json([
+            'cms_url' => $cmsUrl,
+        ]);
+    }
+
     public function getResponderAppFunctions(Request $request)
     {
         $customerUrl = $request->get('customer_api_url');
         Log::info('URL: '.$customerUrl);
         $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
         $originHost = $parsedUrl;
-        Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+        Log::info('Query: '.CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->toRawSql());
         Log::info('Origin Host: '.$originHost);
-        $customerApiSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+        $customerApiSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')
             ->first();
-        $customerSubscription = CustomerSubscription::where('subscription_type_id',3)
+        $customerSubscription = CustomerSubscription::where('subscription_type_id', 3)
             ->where('customer_id', $customerApiSubscription->customer_id)
             ->first();
         if ($customerSubscription) {
@@ -153,16 +201,18 @@ class CustomerSubscriptionController extends Controller
         } else {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No app functions found for this customer'
+                'message' => 'No app functions found for this customer',
             ], 404);
         }
     }
-    public function getAppFunctions(Request $request){
+
+    public function getAppFunctions(Request $request)
+    {
         $referer = $request->headers->get('referer');
         $parsedUrl = parse_url($referer);
         $originHost = $parsedUrl['host'] ?? 'unknown';
         Log::info('Referer: '.$originHost);
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->first();
         if ($customerSubscription) {
             return response()->json([
                 'status' => 'success',
@@ -174,7 +224,7 @@ class CustomerSubscriptionController extends Controller
         } else {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No app functions found for this customer'
+                'message' => 'No app functions found for this customer',
             ], 404);
         }
     }
@@ -186,30 +236,32 @@ class CustomerSubscriptionController extends Controller
         // Optionally, you can parse the referer to extract the host or domain
         $parsedUrl = parse_url($referer);
         $originHost = $parsedUrl['host'] ?? 'unknown';
-        Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+        Log::info('Query: '.CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->toRawSql());
         Log::info('Referer: '.$originHost);
-        $customerSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->first();
+        $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->first();
         if ($customerSubscription) {
             $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
             Log::info('Logo Path: '.$logoPath);
+
             return redirect($logoPath);
-        }else{
+        } else {
             Log::info('No subscription found for this URL: '.$originHost);
-            Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+            Log::info('Query: '.CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->toRawSql());
+
             return response()->json([
                 'status' => 'ERROR',
-                'message' => 'No logo found for this customer'
+                'message' => 'No logo found for this customer',
             ], 404);
         }
     }
 
-
-    public function getSubscriptionLogo(Request $request){
-        if($request->has('subscription_id')){
-            Log::info("RECEIVED SUBSCRIPTION ID: ".$request->subscription_id);
+    public function getSubscriptionLogo(Request $request)
+    {
+        if ($request->has('subscription_id')) {
+            Log::info('RECEIVED SUBSCRIPTION ID: '.$request->subscription_id);
             $customerSubscription = CustomerSubscription::where('customer_subscriptions.uuid', $request->subscription_id)->first();
         }
-        if($request->has('logo_id')){
+        if ($request->has('logo_id')) {
             $logoId = $request->logo_id;
         }
         switch ($logoId) {
@@ -233,23 +285,25 @@ class CustomerSubscriptionController extends Controller
                 break;
         }
         $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->$logoField);
+
         return response()->json(['logo' => $logoPath]);
 
     }
+
     public function getSingleLogo(Request $request)
     {
-        if($request->has('subscription_id')){
-            Log::info("RECEIVED SUBSCRIPTION ID: ".$request->subscription_id);
+        if ($request->has('subscription_id')) {
+            Log::info('RECEIVED SUBSCRIPTION ID: '.$request->subscription_id);
             $customerSubscription = CustomerSubscription::where('customer_subscriptions.uuid', $request->subscription_id)->first();
         }
-        if(!$customerSubscription) {
+        if (! $customerSubscription) {
             $customerUrl = $request->get('customer_api_url');
-            Log::info('URL: ' . $customerUrl);
+            Log::info('URL: '.$customerUrl);
             $parsedUrl = parse_url($customerUrl, PHP_URL_HOST);
             $originHost = $parsedUrl;
-            Log::info("Query: " . CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
-            Log::info('Origin Host: ' . $originHost);
-            $customerApiSubscription = CustomerSubscription::where('url', 'like', '%' . $originHost . '%')
+            Log::info('Query: '.CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->toRawSql());
+            Log::info('Origin Host: '.$originHost);
+            $customerApiSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')
                 ->first();
             $customerSubscription = CustomerSubscription::where('subscription_type_id', 3)
                 ->where('customer_id', $customerApiSubscription->customer_id)
@@ -257,17 +311,18 @@ class CustomerSubscriptionController extends Controller
         }
         if ($customerSubscription) {
             $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
+
             return response()->json(['logo' => $logoPath]);
-        }else{
+        } else {
             Log::info('No subscription found for this URL: '.$originHost);
-            Log::info("Query: ".CustomerSubscription::where('url', 'like', '%' . $originHost . '%')->toRawSql());
+            Log::info('Query: '.CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->toRawSql());
+
             return response()->json([
                 'status' => 'ERROR',
-                'message' => 'No logo found for this customer'
+                'message' => 'No logo found for this customer',
             ], 404);
         }
     }
-
 
     public function store(CustomerSubscriptionRequest $request)
     {
@@ -278,7 +333,7 @@ class CustomerSubscriptionController extends Controller
 
     public function show(CustomerSubscription $customerSubscription)
     {
-        $forgeApi =  new ForgeApi();
+        $forgeApi = new ForgeApi;
         dd($forgeApi);
     }
 
