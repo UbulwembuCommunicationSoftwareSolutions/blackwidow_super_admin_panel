@@ -110,27 +110,53 @@ class CustomerSubscriptionController extends Controller
         return response()->json($manifest, 200, ['Content-Type' => 'application/manifest+json']);
     }
 
-    public function getLogos(Request $request)
+    public function getLogos(Request $request): JsonResponse
     {
-        if ($request->has('customer_url')) {
-            $url = $request->customer_url;
-            Log::info('URL: '.$url);
-            $customerSubscription = CustomerSubscription::where('url', $request->customer_url)->first();
-            if ($customerSubscription) {
-                return response()->json([
-                    'logo_1' => $customerSubscription->logo_1,
-                    'logo_2' => $customerSubscription->logo_2,
-                    'logo_3' => $customerSubscription->logo_3,
-                    'logo_4' => $customerSubscription->logo_4,
-                    'logo_5' => $customerSubscription->logo_5,
-                ]);
-            } else {
-                return response()->json($logos = []);
+        $customerSubscription = null;
+
+        if ($request->filled('customer_api_url')) {
+            $originHost = parse_url((string) $request->query('customer_api_url'), PHP_URL_HOST);
+            if (! $originHost) {
+                return response()->json(new \stdClass);
             }
 
-        } else {
-            return response()->json($logos = []);
+            Log::info('getLogos customer_api_url host: '.$originHost);
+            $customerSubscription = $this->findSubscriptionForLogosByHost((string) $originHost);
+        } elseif ($request->filled('customer_url')) {
+            $rawUrl = (string) $request->query('customer_url');
+            Log::info('getLogos customer_url: '.$rawUrl);
+            $normalized = rtrim($rawUrl, '/');
+
+            $customerSubscription = CustomerSubscription::query()
+                ->where(function ($q) use ($rawUrl, $normalized) {
+                    $q->where('url', $rawUrl)
+                        ->orWhere('url', $normalized)
+                        ->orWhere('url', $normalized.'/');
+                })
+                ->first();
+
+            if (! $customerSubscription) {
+                $host = parse_url($normalized, PHP_URL_HOST);
+                if (! $host && $normalized !== '') {
+                    $host = parse_url('https://'.$normalized, PHP_URL_HOST);
+                }
+                if ($host) {
+                    $customerSubscription = $this->findSubscriptionForLogosByHost($host);
+                }
+            }
         }
+
+        if (! $customerSubscription) {
+            return response()->json(new \stdClass);
+        }
+
+        return response()->json([
+            'logo_1' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_1),
+            'logo_2' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_2),
+            'logo_3' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_3),
+            'logo_4' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_4),
+            'logo_5' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_5),
+        ]);
     }
 
     public function getCmsUrl(Request $request): JsonResponse
@@ -240,7 +266,7 @@ class CustomerSubscriptionController extends Controller
         Log::info('Referer: '.$originHost);
         $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->first();
         if ($customerSubscription) {
-            $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
+            $logoPath = $this->absolutePublicStorageUrl($customerSubscription->logo_1);
             Log::info('Logo Path: '.$logoPath);
 
             return redirect($logoPath);
@@ -284,7 +310,7 @@ class CustomerSubscriptionController extends Controller
                 $logoField = 'logo_1';
                 break;
         }
-        $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->$logoField);
+        $logoPath = $this->absolutePublicStorageUrl($customerSubscription->$logoField);
 
         return response()->json(['logo' => $logoPath]);
 
@@ -310,7 +336,7 @@ class CustomerSubscriptionController extends Controller
                 ->first();
         }
         if ($customerSubscription) {
-            $logoPath = 'https://superadmin.blackwidow.org.za/'.Storage::url($customerSubscription->logo_1);
+            $logoPath = $this->absolutePublicStorageUrl($customerSubscription->logo_1);
 
             return response()->json(['logo' => $logoPath]);
         } else {
@@ -353,5 +379,33 @@ class CustomerSubscriptionController extends Controller
         $customerSubscription->delete();
 
         return response()->json();
+    }
+
+    /**
+     * Join APP_URL with Storage::url() without a double slash (Storage::url returns /storage/...).
+     */
+    private function absolutePublicStorageUrl(?string $relativePath): string
+    {
+        return rtrim(config('app.url'), '/').Storage::url($relativePath);
+    }
+
+    /**
+     * Prefer Responder app subscription (type 3) when multiple rows match the same host.
+     */
+    private function findSubscriptionForLogosByHost(string $host): ?CustomerSubscription
+    {
+        return CustomerSubscription::query()
+            ->where('url', 'like', '%'.$host.'%')
+            ->orderByRaw('(subscription_type_id = ?) DESC', [3])
+            ->first();
+    }
+
+    private function logoPathToAbsoluteUrl(?string $relativePath): ?string
+    {
+        if ($relativePath === null || $relativePath === '') {
+            return null;
+        }
+
+        return $this->absolutePublicStorageUrl($relativePath);
     }
 }
