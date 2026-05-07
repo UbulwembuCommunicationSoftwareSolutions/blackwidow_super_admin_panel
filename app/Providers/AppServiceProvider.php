@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Observers\CustomerSubscriptionObserver;
 use App\Observers\UserSyncObserver;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register the UserSyncObserver
+        CustomerSubscription::observe(CustomerSubscriptionObserver::class);
         CustomerUser::observe(UserSyncObserver::class);
     }
 }
