@@ -86,76 +86,79 @@ class CustomerUserController extends Controller
         ]);
     }
 
-    public function login(Request $request){
+    public function login(Request $request)
+    {
         $input = $request->all();
         Log::info("Login request: " . json_encode($input));
-        if($request->has('email')){
+        if ($request->has('email')) {
             $email = $request->get('email');
-        }else{
+        } else {
             $email = null;
         }
-        if($request->has('cellphone')){
+        if ($request->has('cellphone')) {
             $cellphone = $request->get('cellphone');
-        }else{
+        } else {
             $cellphone = null;
         }
         $password = $request->get('password');
         $url = $request->get('app_url');
         //IF URL IS HTTP, REPLACE WITH HTTPS
-        if(strpos($url, 'http://') === 0){
+        if (strpos($url, 'http://') === 0) {
             $url = str_replace('http://', 'https://', $url);
         }
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
-        if(!$customerSubscription){
+        if (!$customerSubscription) {
             Log::info(CustomerSubscription::where('url', $url)->toRawSql());
             Log::info("Customer Subscription not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
         Log::info('Customer Subscription Found: ' . $customerSubscription->url);
         $customerUser = null;
-        if($email){
-            $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('email_address', $email)->first();
+        if ($email) {
+            $customerUser = CustomerUser::where('customer_id', $customerSubscription->customer_id)->where('email_address', $email)->first();
         }
-        if($cellphone){
-            $customerUser = CustomerUser::where('customer_id',$customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
+        if ($cellphone) {
+            $customerUser = CustomerUser::where('customer_id', $customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
         }
-        if (!$customerUser){
+        if (!$customerUser) {
             Log::info("Customer User not found");
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-        if($customerUser){
-            if(!$this->checkAccess($customerUser,$customerSubscription)){
-                Log::info("Access Denied for user: ".$customerUser->email_address);
+        if ($customerUser) {
+            if (!$this->checkAccess($customerUser, $customerSubscription)) {
+                Log::info("Access Denied for user: " . $customerUser->email_address);
                 return response()->json(
                     [
                         'message' => 'Access Denied',
                         'customer_user' => $customerUser,
-                    ], 401
+                    ],
+                    401
                 );
             }
         }
         Log::info('Stored hash: ' . $customerUser->password);
         Log::info('Entered password: ' . $request->password);
         Log::info('Hash Check: ' . (Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
-        if(!\Hash::check($request->password, $customerUser->password)) {
+        if (!\Hash::check($request->password, $customerUser->password)) {
             return response()->json(
                 [
-                    'debug' => $request->password. ' is not equal to '.$customerUser->password,
+                    'debug' => $request->password . ' is not equal to ' . $customerUser->password,
                     'message' => 'Invalid credentials',
                     'customer_user' => $customerUser,
-                ], 401
+                ],
+                401
             );
         }
 
 
-//        if(!$this->checkAccess($customerUser,$customerSubscription)){
-//            return response()->json(
-//                [
-//                    'message' => 'Access Denied',
-//                    'customer_user' => $customerUser,
-//                ], 401
-//            );
-//        }
+        //        if(!$this->checkAccess($customerUser,$customerSubscription)){
+        //            return response()->json(
+        //                [
+        //                    'message' => 'Access Denied',
+        //                    'customer_user' => $customerUser,
+        //                ], 401
+        //            );
+        //        }
 
         // Create a new Sanctum token
         $token = $customerUser->createToken('customer-user-token')->plainTextToken;
@@ -167,81 +170,82 @@ class CustomerUserController extends Controller
             'user' => $customerUser,
             'token' => $token,
         ]);
-
     }
 
-    public function checkAccess(CustomerUser $user,CustomerSubscription $subscription){
-        Log::info("Checking if user ".$user->cellphone." has access to subscription ".$subscription->url);
-        if((int)$subscription->subscription_type_id == 1){
-            if($user->console_access){
+    public function checkAccess(CustomerUser $user, CustomerSubscription $subscription)
+    {
+        Log::info("Checking if user " . $user->cellphone . " has access to subscription " . $subscription->url);
+        if ((int)$subscription->subscription_type_id == 1) {
+            if ($user->console_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 2){
-            if($user->firearm_access){
+        if ((int)$subscription->subscription_type_id == 2) {
+            if ($user->firearm_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 3){
-            if($user->responder_access){
+        if ((int)$subscription->subscription_type_id == 3) {
+            if ($user->responder_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 4){
-            if($user->reporter_access){
+        if ((int)$subscription->subscription_type_id == 4) {
+            if ($user->reporter_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 5){
-            if($user->security_access){
+        if ((int)$subscription->subscription_type_id == 5) {
+            if ($user->security_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 6){
-            if($user->driver_access){
+        if ((int)$subscription->subscription_type_id == 6) {
+            if ($user->driver_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 7){
-            if($user->survey_access){
+        if ((int)$subscription->subscription_type_id == 7) {
+            if ($user->survey_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 9){
-            if($user->time_and_attendance_access){
+        if ((int)$subscription->subscription_type_id == 9) {
+            if ($user->time_and_attendance_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-        if((int)$subscription->subscription_type_id == 10){
-            if($user->stock_access){
+        if ((int)$subscription->subscription_type_id == 10) {
+            if ($user->stock_access) {
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
         return false;
     }
 
-    public function setAccess(CustomerUser $user, CustomerSubscription $subscription){
-        Log::info("Setting access for user ".$user->cellphone." to subscription ".$subscription->url);
+    public function setAccess(CustomerUser $user, CustomerSubscription $subscription)
+    {
+        Log::info("Setting access for user " . $user->cellphone . " to subscription " . $subscription->url);
 
-        switch((int)$subscription->subscription_type_id) {
+        switch ((int)$subscription->subscription_type_id) {
             case 1:
                 $user->console_access = true;
                 break;
@@ -441,51 +445,53 @@ class CustomerUserController extends Controller
         return response()->json();
     }
 
-    public function updatePassword(Request $request){
+    public function updatePassword(Request $request)
+    {
         $id = $request->super_admin_user_id;
-        if($request->has('cellphone')){
+        if ($request->has('cellphone')) {
             $cellphone = $request->cellphone;
-        }else{
+        } else {
             $cellphone = null;
         }
-        if($request->has('email')){
+        if ($request->has('email')) {
             $email = $request->email;
-        }else{
+        } else {
             $email = null;
         }
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         Log::info('Password update for Customer: ' . $request->app_url);
         $customer = $customerSub->customer;
-        if($customer){
+        if ($customer) {
             Log::info('Customer Found: ' . $customer->company_name);
         }
-        Log::info("Received ".$request->password);
+        Log::info("Received " . $request->password);
         $customerUser = CustomerUser::where('id', $id)
             ->where('customer_id', $customer->id)
             ->first();
-        Log::info('User found: '.$customerUser->id);
+        Log::info('User found: ' . $customerUser->id);
         Log::info('Old password hash: ' . $customerUser->password);
         $password = $request->password;
-        if($password){
+        if ($password) {
             $customerUser->password = $password;
         }
-        if($email){
+        if ($email) {
             $customerUser->email_address = $email;
         }
-        if($cellphone){
+        if ($cellphone) {
             $customerUser->cellphone = $cellphone;
         }
         $customerUser->save();
         Log::info('New password hash: ' . $customerUser->password);
         Log::info('Password updated for user: ' . $email);
-        return response()->json(['message' => 'Password updated successfully to '.$request->password]);
+        return response()->json(['message' => 'Password updated successfully to ' . $request->password]);
     }
 
-    public function deactivateUser(Request $request){
+    public function deactivateUser(Request $request)
+    {
         $email = $request->email;
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         $customer = $customerSub->customer;
-        if($customer){
+        if ($customer) {
             Log::info('Customer Found: ' . $customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
@@ -499,11 +505,12 @@ class CustomerUserController extends Controller
         return response()->json(['message' => 'User Deactivated Successfully']);
     }
 
-    public function activateUser(Request $request){
+    public function activateUser(Request $request)
+    {
         $email = $request->email;
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         $customer = $customerSub->customer;
-        if($customer){
+        if ($customer) {
             Log::info('Customer Found: ' . $customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
@@ -790,5 +797,4 @@ class CustomerUserController extends Controller
             ]
         ]);
     }
-
 }

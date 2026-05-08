@@ -26,7 +26,7 @@ class SuperAdminService
     public function importUsers(): array
     {
         $response = Http::withToken($this->apiToken)
-            ->post($this->apiUrl.'/api/user-import');
+            ->post($this->apiUrl . '/api/user-import');
 
         if (! $response->successful()) {
             Log::error('Failed to import users from SuperAdmin', [
@@ -104,7 +104,7 @@ class SuperAdminService
             'first_name' => $remoteData['first_name'],
             'last_name' => $remoteData['last_name'],
             'email_address' => $remoteData['email'],
-            'password' => Hash::make('temporary_password_'.uniqid()),
+            'password' => Hash::make('temporary_password_' . uniqid()),
             'cellphone' => $remoteData['cellphone'] ?? null,
             'console_access' => $remoteData['console_access'] ?? false,
             'firearm_access' => $remoteData['firearm_access'] ?? false,
@@ -190,10 +190,10 @@ class SuperAdminService
         ];
 
         $response = Http::withToken($this->apiToken)
-            ->post($this->apiUrl.'/api/update-user', $userData);
+            ->post($this->apiUrl . '/api/update-user', $userData);
 
         if (! $response->successful()) {
-            throw new \Exception('Failed to update user on SuperAdmin: '.$response->body());
+            throw new \Exception('Failed to update user on SuperAdmin: ' . $response->body());
         }
 
         return $response->json();
@@ -205,7 +205,7 @@ class SuperAdminService
     public function fetchUser(string $superAdminUserId): ?array
     {
         $response = Http::withToken($this->apiToken)
-            ->get($this->apiUrl.'/api/user/'.$superAdminUserId);
+            ->get($this->apiUrl . '/api/user/' . $superAdminUserId);
 
         if (! $response->successful()) {
             return null;

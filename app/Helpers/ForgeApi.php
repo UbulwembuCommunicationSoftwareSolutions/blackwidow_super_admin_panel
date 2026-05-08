@@ -712,6 +712,10 @@ class ForgeApi
         $envFileStr = '';
         $envVariables = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->orderBy('key')->get();
         foreach ($envVariables as $env) {
+            Log::info('forge.update_site_environment_file.env', [
+                'key' => $env->key,
+                'value' => $env->value,
+            ]);
             $value = $env->value ?? '';
             $envFileStr .= $env->key . '=' . $value . "\r";
         }
