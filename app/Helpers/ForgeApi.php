@@ -703,7 +703,14 @@ class ForgeApi
             'forge_site_id' => $customerSubscription->forge_site_id,
         ]);
         Log::info(json_encode($env));
-        $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
+        try {
+            $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
+        } catch (ValidationException $e) {
+            Log::error('forge.env.validation_failed', [
+                'errors' => $e->errors(),
+            ]);
+            throw $e;
+        }
     }
 
     public function collectEnv($customerSubscription)
