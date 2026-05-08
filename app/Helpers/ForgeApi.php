@@ -290,9 +290,6 @@ class ForgeApi
                 'project_type' => $customerSubscription->subscriptionType->project_type,
                 'directory' => $customerSubscription->subscriptionType->public_dir,
                 'php_version' => 'php83',
-                'repository' => $customerSubscription->subscriptionType->github_repo,
-                'repository_provider' => 'github',
-                'repository_branch' => $customerSubscription->subscriptionType->branch,
                 'database' => $databaseName,
             ];
         } else {
