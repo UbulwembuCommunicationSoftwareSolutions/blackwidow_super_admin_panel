@@ -702,7 +702,7 @@ class ForgeApi
             'server_id' => $customerSubscription->server_id,
             'forge_site_id' => $customerSubscription->forge_site_id,
         ]);
-        Log::info($env);
+        Log::info(json_encode($env));
         $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
     }
 
