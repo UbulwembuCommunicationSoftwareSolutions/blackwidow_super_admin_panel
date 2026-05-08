@@ -697,6 +697,12 @@ class ForgeApi
         }
 
         $env = $this->collectEnv($customerSubscription);
+        Log::info('forge.update_site_environment_file', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'server_id' => $customerSubscription->server_id,
+            'forge_site_id' => $customerSubscription->forge_site_id,
+        ]);
+        Log::info('forge.update_site_environment_file.env', $env);
         $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
     }
 
