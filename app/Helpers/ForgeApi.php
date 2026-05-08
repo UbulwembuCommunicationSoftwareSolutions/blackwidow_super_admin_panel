@@ -39,7 +39,7 @@ class ForgeApi
     {
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
         if (! $customerSubscription) {
-            throw new \InvalidArgumentException('Customer subscription not found: '.$customerSubscriptionId);
+            throw new \InvalidArgumentException('Customer subscription not found: ' . $customerSubscriptionId);
         }
         $this->assertForgeSiteReady($customerSubscription);
         $commands_array['command'] = $command;
@@ -52,10 +52,9 @@ class ForgeApi
     public function horizonCreator($customerSubscription)
     {
         $data = [
-            'command' => 'php /home/forge/'.$customerSubscription->domain.'/artisan horizon',
+            'command' => 'php /home/forge/' . $customerSubscription->domain . '/artisan horizon',
         ];
-        $this->forge->
-        $this->forge->createDaemon($customerSubscription->server_id, $data);
+        $this->forge->$this->forge->createDaemon($customerSubscription->server_id, $data);
     }
 
     public function sendDeploymentScript(CustomerSubscription $customerSubscription)
@@ -82,7 +81,7 @@ class ForgeApi
     {
         $servers = ForgeServer::get();
         foreach ($servers as $server) {
-            echo 'Syncing Server: '.$server->name.' with ID of : '.$server->forge_server_id." \n";
+            echo 'Syncing Server: ' . $server->name . ' with ID of : ' . $server->forge_server_id . " \n";
             GetSitesForServerJob::dispatch($server->forge_server_id);
         }
     }
@@ -98,7 +97,7 @@ class ForgeApi
                 ->where('server_id', $serverId)
                 ->where(function ($q) use ($site) {
                     $q->where('domain', $site->name)
-                        ->orWhere('url', 'like', '%://'.$site->name.'%');
+                        ->orWhere('url', 'like', '%://' . $site->name . '%');
                 })
                 ->first();
             if ($customerSubscription) {
@@ -137,7 +136,7 @@ class ForgeApi
         $fresh = $customerSubscription->fresh() ?? $customerSubscription;
         if (! $fresh->server_id || ! $fresh->forge_site_id) {
             throw new \RuntimeException(
-                'Subscription '.$fresh->id.' is not ready for Forge API calls (missing server_id or forge_site_id).'
+                'Subscription ' . $fresh->id . ' is not ready for Forge API calls (missing server_id or forge_site_id).'
             );
         }
 
@@ -149,7 +148,7 @@ class ForgeApi
         $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
         foreach ($customerSubscriptions as $customerSubscription) {
             if ($customerSubscription->server_id == null || $customerSubscription->forge_site_id == null) {
-                Log::error('Server ID or Site ID not found for Subscription ID: '.$customerSubscription->id);
+                Log::error('Server ID or Site ID not found for Subscription ID: ' . $customerSubscription->id);
             } else {
                 TriggerForgeDeployment::dispatch($customerSubscription->server_id, $customerSubscription->forge_site_id);
             }
@@ -309,10 +308,8 @@ class ForgeApi
             ];
         }
 
-        Log::info('forge.create_site', [
-            'customer_subscription_id' => $customerSubscription->id,
-            'domain' => $customerSubscription->domain,
-        ]);
+        Log::info('forge.create_site', $payload);
+
         $site = $this->forge->createSite($server_id, $payload);
         $customerSubscription->forge_site_id = (string) $site->id;
         if (! $customerSubscription->site_created_at) {
@@ -431,7 +428,7 @@ class ForgeApi
 
         $databaseId = $this->resolveForgeDatabaseId($server_id, $name);
         if ($databaseId === null) {
-            $message = 'Forge MySQL database "'.$name.'" was not found on the server. Create the database step must succeed first.';
+            $message = 'Forge MySQL database "' . $name . '" was not found on the server. Create the database step must succeed first.';
             Log::error('forge.create_database_user.missing_database', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
@@ -469,8 +466,10 @@ class ForgeApi
             $this->syncMysqlEnvFromSubscription($customerSubscription);
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
-            if ($this->forgeDatabaseUserNameExistsOnServer($server_id, $user)
-                || $this->isLikelyDuplicateDatabaseUserMessage($validationMessage)) {
+            if (
+                $this->forgeDatabaseUserNameExistsOnServer($server_id, $user)
+                || $this->isLikelyDuplicateDatabaseUserMessage($validationMessage)
+            ) {
                 Log::warning('forge.create_database_user.skip_exists', [
                     'customer_subscription_id' => $customerSubscription->id,
                     'server_id' => $server_id,
@@ -714,10 +713,9 @@ class ForgeApi
         $envVariables = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->orderBy('key')->get();
         foreach ($envVariables as $env) {
             $value = $env->value ?? '';
-            $envFileStr .= $env->key.'='.$value."\r";
+            $envFileStr .= $env->key . '=' . $value . "\r";
         }
 
         return $envFileStr;
-
     }
 }
