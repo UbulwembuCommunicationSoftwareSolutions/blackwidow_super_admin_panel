@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\McpSiteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -58,4 +59,21 @@ Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
     Route::post('/customer-subscriptions', [McpSiteController::class, 'storeCustomerSubscription']);
     Route::put('/customer-subscriptions/{id}', [McpSiteController::class, 'updateCustomerSubscription'])->whereNumber('id');
     Route::delete('/customer-subscriptions/{id}', [McpSiteController::class, 'destroyCustomerSubscription'])->whereNumber('id');
+});
+
+// CRM: Sanctum bearer token with the `crm` ability (create via php artisan crm:create-token).
+// customer-subscription POST: optional trigger_site_deployment, force_site_deployment to queue the Forge site pipeline.
+Route::middleware(['auth:sanctum', 'abilities:crm'])->prefix('crm')->group(function () {
+    Route::get('/health', [CrmController::class, 'health']);
+    Route::get('/subscription-types', [CrmController::class, 'subscriptionTypes']);
+    Route::get('/customers', [CrmController::class, 'customers']);
+    Route::get('/customers/{id}', [CrmController::class, 'showCustomer'])->whereNumber('id');
+    Route::post('/customers', [CrmController::class, 'storeCustomer']);
+    Route::put('/customers/{id}', [CrmController::class, 'updateCustomer'])->whereNumber('id');
+    Route::delete('/customers/{id}', [CrmController::class, 'destroyCustomer'])->whereNumber('id');
+    Route::get('/customer-subscriptions', [CrmController::class, 'customerSubscriptions']);
+    Route::get('/customer-subscriptions/{id}', [CrmController::class, 'showCustomerSubscription'])->whereNumber('id');
+    Route::post('/customer-subscriptions', [CrmController::class, 'storeCustomerSubscription']);
+    Route::put('/customer-subscriptions/{id}', [CrmController::class, 'updateCustomerSubscription'])->whereNumber('id');
+    Route::delete('/customer-subscriptions/{id}', [CrmController::class, 'destroyCustomerSubscription'])->whereNumber('id');
 });
