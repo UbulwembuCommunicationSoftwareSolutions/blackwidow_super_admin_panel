@@ -147,6 +147,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->options([
                                     'blackwidow.org.za' => 'blackwidow.org.za',
                                     'aims.work' => 'aims.work',
+                                    'aims.world' => 'aims.world',
                                     'bvigilant.co.za' => 'bvigilant.co.za',
                                     'siyaleader.org.za' => 'siyaleader.org.za',
                                 ])
@@ -155,6 +156,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     $verticalMap = [
                                         'blackwidow.org.za' => 'blackwidow',
                                         'aims.work' => 'aims_work',
+                                        'aims.world' => 'aims_world',
                                         'bvigilant.co.za' => 'bvigilant',
                                         'siyaleader.org.za' => 'siyaleader',
                                     ];
