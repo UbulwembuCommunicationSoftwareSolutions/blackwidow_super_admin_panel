@@ -33,6 +33,13 @@ return [
         'http://*.heartbeatnetworks.com',
         'https://*.bvigilant.co.za',
         'http://*.bvigilant.co.za',
+
+        /*
+        | Vue admin SPA (Reseller Console). Listed as an exact origin on
+        | purpose — on-forge.com is shared across all Forge customers, so
+        | https://*.on-forge.com would open this API to every site on it.
+        */
+        'https://super_admin_frontend-eumaqzrf.on-forge.com',
     ],
 
     'allowed_origins_patterns' => [
