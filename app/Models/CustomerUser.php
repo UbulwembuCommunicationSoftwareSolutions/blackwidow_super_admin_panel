@@ -47,6 +47,15 @@ class CustomerUser extends Authenticatable
         'is_system_admin' => 'boolean',
         'skip_sync' => 'boolean',
         'last_synced_at' => 'datetime',
+        'console_access' => 'boolean',
+        'firearm_access' => 'boolean',
+        'responder_access' => 'boolean',
+        'reporter_access' => 'boolean',
+        'security_access' => 'boolean',
+        'driver_access' => 'boolean',
+        'survey_access' => 'boolean',
+        'time_and_attendance_access' => 'boolean',
+        'stock_access' => 'boolean',
     ];
 
     public function checkAccess($subscription_type_id): bool
@@ -253,9 +262,10 @@ class CustomerUser extends Authenticatable
         });
 
         static::deleted(function ($model) {
-            // Your logic here
             $user = CustomerUser::withTrashed()->where('id', $model->id)->first();
-            CMSService::syncUsers($user->customer_id);
+            if ($user) {
+                CMSService::syncUsers($user->customer_id);
+            }
         });
     }
 

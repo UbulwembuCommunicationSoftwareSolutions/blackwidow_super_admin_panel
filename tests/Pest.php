@@ -70,3 +70,70 @@ function createCustomerWithSubscriptions(int $count = 1): \App\Models\Customer
 
     return $customer;
 }
+
+function backendShieldPermissions(): array
+{
+    $resources = [
+        'Customer',
+        'CustomerSubscription',
+        'CustomerUser',
+        'User',
+        'UserCustomer',
+        'DeploymentScript',
+        'DeploymentTemplate',
+        'EnvVariables',
+        'TemplateEnvVariables',
+        'ForgeServer',
+        'NginxTemplate',
+        'SubscriptionType',
+        'Role',
+    ];
+    $actions = [
+        'ViewAny',
+        'View',
+        'Create',
+        'Update',
+        'Delete',
+        'Restore',
+        'ForceDelete',
+        'RestoreAny',
+        'ForceDeleteAny',
+    ];
+
+    $permissions = [];
+    foreach ($resources as $resource) {
+        foreach ($actions as $action) {
+            $permissions[] = $action.':'.$resource;
+        }
+    }
+
+    return $permissions;
+}
+
+function grantBackendPermissions(\App\Models\User $user, ?array $permissions = null): \App\Models\User
+{
+    $permissions ??= backendShieldPermissions();
+    foreach ($permissions as $permission) {
+        \Spatie\Permission\Models\Permission::findOrCreate($permission, 'web');
+    }
+    $user->givePermissionTo($permissions);
+    $user->forgetCachedPermissions();
+
+    return $user;
+}
+
+function actingAsBackendUser(?array $permissions = null): \App\Models\User
+{
+    $user = grantBackendPermissions(\App\Models\User::factory()->create(), $permissions);
+    \Laravel\Sanctum\Sanctum::actingAs($user, ['backend']);
+
+    return $user;
+}
+
+function actingAsBackendForbidden(): \App\Models\User
+{
+    $user = \App\Models\User::factory()->create();
+    \Laravel\Sanctum\Sanctum::actingAs($user, ['backend']);
+
+    return $user;
+}
