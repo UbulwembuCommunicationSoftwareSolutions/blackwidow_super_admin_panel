@@ -154,10 +154,19 @@ Password hashes are never returned.
 
 - `GET /roles` — `{ "data": [{ "id": 1, "name": "super_admin" }] }`, ordered by name
 
-Unpaginated role picker for the admin user form. Gated on `ViewAny:Role` against
-`Spatie\Permission\Models\Role`, using the existing `app/Policies/RolePolicy.php`.
-Roles are still assigned through the `roles` field on `POST`/`PUT /users`; this
-endpoint is read-only.
+Unpaginated role picker for the admin user form. Roles are still assigned
+through the `roles` field on `POST`/`PUT /users`; this endpoint is read-only.
+
+Gated on **`ViewAny:User`**, with `ViewAny:Role` also honoured if granted.
+Shield generates permissions for the twelve resource models only, so no
+environment actually has a `*:Role` permission — a `super_admin` returns false
+for `ViewAny:Role` — and gating solely on it left the picker dead everywhere.
+Note also that Shield's `super_admin` gate bypass is registered by the Filament
+panel, so it does not apply to `/api/backend` requests; API authorisation always
+comes down to explicitly granted permissions.
+
+This exposes nothing new, since `GET /users` already returns each user's roles
+by name.
 
 ### Global search
 

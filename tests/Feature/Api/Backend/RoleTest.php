@@ -12,6 +12,14 @@ it('forbids roles without Shield permissions', function () {
     $this->getJson('/api/backend/roles')->assertForbidden();
 });
 
+it('allows the picker for anyone who can list admin users', function () {
+    // Shield generates no *:Role permission, so ViewAny:User is what actually
+    // gates this in every real environment.
+    actingAsBackendUser(['ViewAny:User']);
+
+    $this->getJson('/api/backend/roles')->assertOk();
+});
+
 it('returns roles as id and name pairs for the picker', function () {
     actingAsBackendUser();
 
