@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->whereNumber('id');
 
     Route::post('/customer-subscriptions/{id}/recreate-site', [CustomerSubscriptionController::class, 'recreateSite'])->whereNumber('id');
+    Route::post('/customer-subscriptions/{id}/logos', [CustomerSubscriptionController::class, 'uploadLogos'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/generate-logos', [CustomerSubscriptionController::class, 'generateLogos'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/deploy', [CustomerSubscriptionController::class, 'deploy'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/pull-env', [CustomerSubscriptionController::class, 'pullEnv'])->whereNumber('id');

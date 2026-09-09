@@ -124,6 +124,32 @@ Custom actions (same services/jobs as Filament):
 
 Env row edits live on `/env-variables`.
 
+#### Logos
+
+`logo_1`–`logo_5` hold paths on the `public` disk. Every subscription payload
+also carries a read-only `logo_urls` map of the filled slots, so a client on
+another host does not have to know the disk layout:
+
+```json
+{ "logo_urls": { "logo_1": "https://superadmin.example/storage/abc.png" } }
+```
+
+Files are uploaded through a dedicated multipart endpoint, since the JSON
+`PUT /customer-subscriptions/{id}` only sets paths:
+
+- `POST /customer-subscriptions/{id}/logos` — multipart, gated on `Update:CustomerSubscription`
+
+Send any subset of `logo_1`–`logo_5` as files, and/or `clear[]` with the slot
+names to empty. Files accept `jpg,jpeg,png,gif,webp,svg` up to 10 MB, matching
+the Filament form. Replacing or clearing a slot deletes the previous file once
+the new one is safely stored. Uploading and clearing the same slot in one
+request is a 422, as is a request that does neither. Responds with the updated
+subscription.
+
+`GET /subscription-types` (and `show`) expose `logo_descriptions`: a five-entry
+list naming what each slot means for that product, with unused slots as `null`
+so clients can label the upload fields without duplicating the mapping.
+
 ### Customer users (`CustomerUser`, soft deletes)
 
 - `GET/POST /customer-users`

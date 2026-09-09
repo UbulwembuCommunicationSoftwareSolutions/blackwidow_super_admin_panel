@@ -9,6 +9,9 @@ use App\Services\ForgeService;
 use App\Services\SiteDeploymentScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Throwable;
 
@@ -165,6 +168,69 @@ class CustomerSubscriptionController extends Controller
             'ok' => true,
             'data' => ['batch_id' => $batchId],
         ]);
+    }
+
+    /**
+     * Replace or clear individual logo slots. Uploads have to be their own
+     * endpoint because update() takes JSON, and a slot can only be filled once
+     * the record exists and we know which subscription to attach the file to.
+     */
+    public function uploadLogos(Request $request, int $id): JsonResponse
+    {
+        $row = CustomerSubscription::query()->findOrFail($id);
+        $this->authorize('update', $row);
+
+        $slots = CustomerSubscription::LOGO_SLOTS;
+
+        $rules = [
+            'clear' => ['sometimes', 'array'],
+            'clear.*' => ['string', Rule::in($slots)],
+        ];
+        foreach ($slots as $slot) {
+            // Matches the Filament form: public disk, 10 MB ceiling.
+            $rules[$slot] = ['sometimes', 'file', 'mimes:jpg,jpeg,png,gif,webp,svg', 'max:10240'];
+        }
+
+        $validated = $request->validate($rules);
+        $clear = array_values(array_unique($validated['clear'] ?? []));
+        $uploaded = array_values(array_filter($slots, fn (string $slot) => $request->hasFile($slot)));
+
+        if ($uploaded === [] && $clear === []) {
+            return response()->json(['message' => 'Provide at least one logo file or slot to clear.'], 422);
+        }
+
+        $conflicts = array_intersect($uploaded, $clear);
+        if ($conflicts !== []) {
+            throw ValidationException::withMessages([
+                'clear' => 'Cannot upload and clear the same slot: ' . implode(', ', $conflicts) . '.',
+            ]);
+        }
+
+        $disk = Storage::disk('public');
+        $changes = [];
+
+        foreach ($uploaded as $slot) {
+            $changes[$slot] = $request->file($slot)->store('/', 'public');
+        }
+        foreach ($clear as $slot) {
+            $changes[$slot] = null;
+        }
+
+        // Only drop the previous file once the replacement is safely on disk.
+        $replaced = array_filter(array_map(
+            fn (string $slot) => $row->getAttribute($slot),
+            array_keys($changes),
+        ), 'filled');
+
+        $row->update($changes);
+
+        foreach ($replaced as $path) {
+            $disk->delete($path);
+        }
+
+        $data = $row->fresh()->load(['subscriptionType:id,name', 'customer:id,company_name']);
+
+        return response()->json(['data' => $this->present($data, $request)]);
     }
 
     public function generateLogos(int $id): JsonResponse

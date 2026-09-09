@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use stdClass;
 
 class CustomerSubscription extends Model
 {
@@ -17,9 +20,36 @@ class CustomerSubscription extends Model
      */
     public const MYSQL_USER_NAME_MAX_LENGTH = 32;
 
+    /** Subscription logo slots, in the order the form shows them. */
+    public const LOGO_SLOTS = ['logo_1', 'logo_2', 'logo_3', 'logo_4', 'logo_5'];
+
     protected $hidden = [
         'database_password',
     ];
+
+    /**
+     * Public URLs for whichever logo slots are filled. The columns store disk
+     * paths, which are useless to an API client on another host. Cast to an
+     * object so the JSON shape stays a map even when nothing is uploaded.
+     *
+     * @return Attribute<stdClass, never>
+     */
+    protected function logoUrls(): Attribute
+    {
+        return Attribute::make(get: function (): stdClass {
+            $disk = Storage::disk('public');
+            $urls = [];
+
+            foreach (self::LOGO_SLOTS as $slot) {
+                $path = $this->getAttribute($slot);
+                if (filled($path)) {
+                    $urls[$slot] = $disk->url($path);
+                }
+            }
+
+            return (object) $urls;
+        });
+    }
 
     protected $fillable = [
         'url',
@@ -82,7 +112,7 @@ class CustomerSubscription extends Model
         'last_deployment_error_at' => 'datetime',
     ];
 
-    public $appends = ['null_variable_count'];
+    public $appends = ['null_variable_count', 'logo_urls'];
 
     public function subscriptionType(): BelongsTo
     {
