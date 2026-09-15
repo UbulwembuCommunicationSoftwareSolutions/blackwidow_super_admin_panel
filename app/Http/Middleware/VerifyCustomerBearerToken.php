@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\CustomerSubscription;
+use App\Support\UserSync\TenantResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,17 +42,8 @@ class VerifyCustomerBearerToken
         return $next($request);
     }
 
-    private function cleanAppUrl(string $appUrl): string
-    {
-        $cleaned = preg_replace('/^https?:\/\//', '', $appUrl);
-
-        return rtrim((string) $cleaned, '/');
-    }
-
     private function findCustomerSubscriptionByUrl(string $appUrl): ?CustomerSubscription
     {
-        $cleanedUrl = $this->cleanAppUrl($appUrl);
-
-        return CustomerSubscription::where('url', 'LIKE', '%'.$cleanedUrl.'%')->first();
+        return TenantResolver::resolveSubscription($appUrl);
     }
 }

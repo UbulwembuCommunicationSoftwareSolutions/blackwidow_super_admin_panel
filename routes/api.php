@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\McpSiteController;
+use App\Http\Controllers\Api\V1\UserSyncController;
 use App\Http\Controllers\CustomerSubscriptionController;
 use App\Http\Controllers\GooglePlacesProxyController;
-use App\Http\Controllers\UserSyncController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +18,19 @@ Route::get('customer/responder-functions', [CustomerSubscriptionController::clas
 Route::get('customer_cms_url', [CustomerSubscriptionController::class, 'getCmsUrl']);
 Route::get('app_manifest', [CustomerSubscriptionController::class, 'getManifest']);
 Route::middleware('auth:sanctum')->post('/token-user', [CustomerSubscriptionController::class, 'checkLoggedIn']);
+
+/*
+ * Canonical user sync contract for tenant apps (CMS, firearm, ...).
+ * The legacy single-purpose aliases below are kept for tenants that have not
+ * deployed yet; both routes run the same CustomerUserSyncService.
+ */
+Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
+    Route::get('users', [UserSyncController::class, 'index']);
+    Route::post('users', [UserSyncController::class, 'upsert']);
+    Route::post('users/archive', [UserSyncController::class, 'archive']);
+    Route::post('users/restore', [UserSyncController::class, 'restore']);
+    Route::post('users/password', [UserSyncController::class, 'password']);
+});
 
 Route::middleware('customer.bearer')->group(function () {
     Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
@@ -35,13 +48,6 @@ Route::middleware('customer.bearer')->group(function () {
 });
 
 Route::post('/google-places-proxy', [GooglePlacesProxyController::class, 'proxy']);
-
-// User Sync API endpoints
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/admin-api/trigger-user-sync', [UserSyncController::class, 'triggerSync']);
-    Route::get('/admin-api/user-sync-status/{userId}', [UserSyncController::class, 'getSyncStatus']);
-    Route::get('/admin-api/user-sync-stats', [UserSyncController::class, 'getSyncStats']);
-});
 
 // MCP / automation: JSON API (Sanctum bearer token; create via php artisan mcp:create-token).
 // customer-subscription POST: optional trigger_site_deployment, force_site_deployment to queue the Forge site pipeline.

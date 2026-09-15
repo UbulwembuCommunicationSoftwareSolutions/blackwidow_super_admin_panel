@@ -2,49 +2,46 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schedule;
-
-
 
 //
 //
-//Artisan::command('sendCommandToAllConsoles',function (){
+// Artisan::command('sendCommandToAllConsoles',function (){
 //    $command = $this->ask('Enter Command');
 //    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
 //    foreach($subscriptions as $subscription){
 //        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
 //    }
 //
-//})->purpose('Send Command To All Consoles');
+// })->purpose('Send Command To All Consoles');
 //
-//Artisan::command('sendCommandToAllResponders',function (){
+// Artisan::command('sendCommandToAllResponders',function (){
 //    $command = $this->ask('Enter Command');
 //    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 3)->get();
 //    foreach($subscriptions as $subscription){
 //        \App\Jobs\SendCommandToForge::dispatch($subscription->id,$command);
 //    }
 //
-//})->purpose('Send Command To All Consoles');
+// })->purpose('Send Command To All Consoles');
 //
-//Artisan::command('inspire', function () {
+// Artisan::command('inspire', function () {
 //    $this->comment(Inspiring::quote());
-//})->purpose('Display an inspiring quote')->hourly();
+// })->purpose('Display an inspiring quote')->hourly();
 //
 //
-//Artisan::command('syncForge', function () {
+// Artisan::command('syncForge', function () {
 //    $this->info('Syncing Forge');
 //    $forgeApi = new \App\Helpers\ForgeApi();
 //    $forgeApi->syncForge();
-//})->purpose('Sync Forge')->daily();
+// })->purpose('Sync Forge')->daily();
 //
 //
-//Artisan::command('deployAllConsoles', function () {
+// Artisan::command('deployAllConsoles', function () {
 //    $forgeApi = new \App\Helpers\ForgeApi();
 //    $forgeApi->deployAllConsoles();
 //
-//})->purpose('Deploy All Consoles')->daily();
+// })->purpose('Deploy All Consoles')->daily();
 //
-//Artisan::command('syncOneRequiredOptions', function () {
+// Artisan::command('syncOneRequiredOptions', function () {
 //    $required_options = \App\Models\TemplateEnvVariables::get();
 //    $subscription = $this->ask('Enter Subscription ID');
 //    $subscription = \App\Models\CustomerSubscription::find($subscription);
@@ -87,32 +84,26 @@ use Illuminate\Support\Facades\Schedule;
 //    $DRIVER_APP_NAME->value =  $APP_NAME->first()->value . 'Driver';
 //    $DRIVER_APP_NAME->save();
 //
-//});
+// });
 //
 //
 //
-//Artisan::command('syncAllRequiredOptionsForSubscription', function () {
+// Artisan::command('syncAllRequiredOptionsForSubscription', function () {
 //    \App\Models\CustomerSubscription::createMissingEnv();
-//})->purpose('Sync All Required Options For Subscription');
+// })->purpose('Sync All Required Options For Subscription');
 //
 //
-//Artisan::command('sendEnvToSite',function (){
+// Artisan::command('sendEnvToSite',function (){
 //    $subscription = $this->ask('Enter Subscription ID');
 //    $forgeApi = new \App\Helpers\ForgeApi();
 //    $forgeApi->sendEnv($subscription);
-//})->purpose('Send Env To Site')->daily();
+// })->purpose('Send Env To Site')->daily();
 //
-//Artisan::command('sendDeploymentToAllConsoles',function (){
+// Artisan::command('sendDeploymentToAllConsoles',function (){
 //    $subscriptions = \App\Models\CustomerSubscription::where('subscription_type_id', 1)->get();
 //    foreach($subscriptions as $subscription){
 //        $job = \App\Jobs\SendDeploymentScriptToForge::dispatch($subscription->id);
 //    }
 //
-//})->purpose('Send Deploymeny Script To All Consoles')->daily();
+// })->purpose('Send Deploymeny Script To All Consoles')->daily();
 //
-
-// Schedule the user sync command to run every 15 minutes
-Schedule::command('app:sync-users-with-super-admin')
-    ->everyFifteenMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Queue;
 beforeEach(function () {
     Queue::fake();
     Http::fake();
-    config(['services.superadmin.sync_enabled' => false]);
+    config(['user_sync.enabled' => false]);
 });
 
 it('rejects customer users without a token', function () {
@@ -86,7 +86,7 @@ it('updates a customer user password and access rights', function () {
     $user = CustomerUser::factory()->create([
         'customer_id' => $customer->id,
         'skip_sync' => true,
-        'super_admin_user_id' => null,
+        'cms_user_id' => null,
         'console_access' => false,
     ]);
 
@@ -116,7 +116,7 @@ it('dispatches a welcome email job', function () {
     $user = CustomerUser::factory()->create([
         'customer_id' => $customer->id,
         'skip_sync' => true,
-        'super_admin_user_id' => null,
+        'cms_user_id' => null,
         'console_access' => false,
     ]);
 
@@ -139,7 +139,7 @@ it('sends a login email when the user has matching access', function () {
     $user = CustomerUser::factory()->create([
         'customer_id' => $customer->id,
         'skip_sync' => true,
-        'super_admin_user_id' => null,
+        'cms_user_id' => null,
         'console_access' => false,
         'firearm_access' => true,
         'responder_access' => false,
@@ -172,7 +172,7 @@ it('rejects a login email when the user lacks access', function () {
     $user = CustomerUser::factory()->create([
         'customer_id' => $customer->id,
         'skip_sync' => true,
-        'super_admin_user_id' => null,
+        'cms_user_id' => null,
         'firearm_access' => false,
     ]);
 

@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['put', 'patch'], '/customers/{id}', [CustomerController::class, 'update'])->whereNumber('id');
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->whereNumber('id');
 
+    Route::post('/customer-subscriptions/verify-domain', [CustomerSubscriptionController::class, 'verifyDomain']);
     Route::post('/customer-subscriptions/{id}/recreate-site', [CustomerSubscriptionController::class, 'recreateSite'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/logos', [CustomerSubscriptionController::class, 'uploadLogos'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/generate-logos', [CustomerSubscriptionController::class, 'generateLogos'])->whereNumber('id');
@@ -61,7 +62,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/search', [SearchController::class, 'index']);
 
+    Route::get('/permissions', [RoleController::class, 'permissions']);
     Route::get('/roles', [RoleController::class, 'index']);
+    Route::post('/roles', [RoleController::class, 'store']);
+    Route::get('/roles/{id}', [RoleController::class, 'show'])->whereNumber('id');
+    Route::match(['put', 'patch'], '/roles/{id}', [RoleController::class, 'update'])->whereNumber('id');
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id');
 
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);

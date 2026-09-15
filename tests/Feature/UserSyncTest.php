@@ -1,158 +1,135 @@
 <?php
 
-use App\Jobs\SyncUserToSuperAdminJob;
+use App\Jobs\PushCustomerUserToTenantsJob;
+use App\Models\Customer;
+use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
-use App\Models\UserSyncLog;
-use App\Services\SuperAdminService;
-use App\Services\UserSyncService;
+use App\Models\SubscriptionType;
+use App\Services\UserSync\TenantUserPusher;
+use App\Support\UserSync\PushOperation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use Mockery;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Queue::fake();
+    Http::preventStrayRequests();
+    Http::fake(['*' => Http::response(['success' => true], 200)]);
 });
 
-afterEach(function () {
-    Mockery::close();
-});
-
-test('observer triggers sync job on user update', function () {
-    $user = CustomerUser::factory()->create([
-        'super_admin_user_id' => '123',
-        'skip_sync' => false,
-        'last_synced_at' => now()->subMinutes(5)
+function tenantCustomer(string $token = 'push-token', string $url = 'https://cms-push.example.test'): array
+{
+    $customer = Customer::factory()->create(['token' => $token]);
+    SubscriptionType::factory()->create(['id' => 1, 'name' => 'CMS']);
+    $subscription = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => 1,
+        'url' => $url,
     ]);
 
-    // Update user to trigger observer
-    $user->update(['first_name' => 'Updated Name']);
+    return compact('customer', 'subscription');
+}
 
-    // Assert sync job was dispatched
-    Queue::assertPushed(SyncUserToSuperAdminJob::class, function ($job) use ($user) {
-        return $job->customerUser->id === $user->id;
-    });
-});
+it('queues a per-record push when an admin creates a customer user', function () {
+    ['customer' => $customer] = tenantCustomer();
 
-test('skip sync flag prevents observer from triggering', function () {
-    $user = CustomerUser::factory()->create([
-        'super_admin_user_id' => '123',
-        'skip_sync' => true
-    ]);
-
-    // Update user
-    $user->update(['first_name' => 'Updated Name']);
-
-    // Assert no sync job was dispatched
-    Queue::assertNotPushed(SyncUserToSuperAdminJob::class);
-});
-
-test('cooldown period prevents spam sync jobs', function () {
-    $user = CustomerUser::factory()->create([
-        'super_admin_user_id' => '123',
-        'skip_sync' => false,
-        'last_synced_at' => now()->subSeconds(20) // Within cooldown
-    ]);
-
-    // Update user
-    $user->update(['first_name' => 'Updated Name']);
-
-    // Assert no sync job was dispatched due to cooldown
-    Queue::assertNotPushed(SyncUserToSuperAdminJob::class);
-});
-
-test('sync logs are created correctly', function () {
-    $user = CustomerUser::factory()->create();
-
-    $userSyncService = app(UserSyncService::class);
-    $userSyncService->logSync($user, 'outbound', 'success', null, ['test' => 'data']);
-
-    $log = UserSyncLog::where('customer_user_id', $user->id)->first();
-    expect($log)->not->toBeNull();
-    expect($log->direction)->toBe('outbound');
-    expect($log->status)->toBe('success');
-    expect($log->sync_data)->toBe(['test' => 'data']);
-});
-
-test('failed syncs are logged', function () {
-    $user = CustomerUser::factory()->create();
-
-    $userSyncService = app(UserSyncService::class);
-    $userSyncService->logSync($user, 'outbound', 'failed', 'API timeout');
-
-    $log = UserSyncLog::where('customer_user_id', $user->id)->first();
-    expect($log)->not->toBeNull();
-    expect($log->status)->toBe('failed');
-    expect($log->error_message)->toBe('API timeout');
-});
-
-test('import does not trigger sync loops', function () {
-    $user = CustomerUser::factory()->create([
-        'super_admin_user_id' => '123',
-        'skip_sync' => true // Set skip_sync from the start
-    ]);
-
-    // Update user during import
-    $user->update(['first_name' => 'Imported Name']);
-
-    // Assert no sync job was dispatched
-    Queue::assertNotPushed(SyncUserToSuperAdminJob::class);
-});
-
-// test('conflict resolution during import', function () {
-//     // This test is skipped because it triggers HTTP calls in the CustomerUser boot method
-//     // The conflict resolution logic is tested in the unit tests
-// });
-
-test('users needing sync are identified correctly', function () {
-    // Create users with different sync states
-    $user1 = CustomerUser::factory()->create([
-        'super_admin_user_id' => '123',
-        'last_synced_at' => null
-    ]);
-
-    $user2 = CustomerUser::factory()->create([
-        'super_admin_user_id' => '456',
-        'last_synced_at' => now()->subMinutes(10)
-    ]);
-
-    $user3 = CustomerUser::factory()->create([
-        'super_admin_user_id' => '789',
-        'last_synced_at' => now()->subMinutes(2)
-    ]);
-
-    $user4 = CustomerUser::factory()->create([
-        'super_admin_user_id' => null
-    ]);
-
-    $userSyncService = app(UserSyncService::class);
-    $usersNeedingSync = $userSyncService->getUsersNeedingSync();
-
-    expect($usersNeedingSync)->toHaveCount(2);
-    expect($usersNeedingSync->pluck('id')->toArray())->toContain($user1->id, $user2->id);
-});
-
-test('sync command can be executed', function () {
-    // Disable sync for this test
-    $this->app['config']->set('services.superadmin.sync_enabled', false);
-    
-    $this->artisan('app:sync-users-with-super-admin')
-        ->expectsOutput('User sync is disabled. Set SUPERADMIN_SYNC_ENABLED=true in your .env file.')
-        ->assertExitCode(1);
-});
-
-test('sync command with specific user', function () {
-    // Disable sync for this test
-    $this->app['config']->set('services.superadmin.sync_enabled', false);
-    
-    $customer = \App\Models\Customer::factory()->create();
     $user = CustomerUser::factory()->create([
         'customer_id' => $customer->id,
-        'super_admin_user_id' => '123'
+        'skip_sync' => false,
     ]);
 
-    $this->artisan('app:sync-users-with-super-admin', ['--user-id' => $user->id])
-        ->expectsOutput('User sync is disabled. Set SUPERADMIN_SYNC_ENABLED=true in your .env file.')
-        ->assertExitCode(1);
+    Queue::assertPushed(
+        PushCustomerUserToTenantsJob::class,
+        fn (PushCustomerUserToTenantsJob $job) => $job->customerUserId === $user->id
+            && $job->operation === PushOperation::Upsert
+    );
+});
+
+it('queues a per-record push when an admin updates a customer user', function () {
+    ['customer' => $customer] = tenantCustomer();
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'skip_sync' => true,
+    ]);
+
+    Queue::fake();
+
+    $user->skip_sync = false;
+    $user->update(['first_name' => 'Updated Name']);
+
+    Queue::assertPushed(
+        PushCustomerUserToTenantsJob::class,
+        fn (PushCustomerUserToTenantsJob $job) => $job->customerUserId === $user->id
+    );
+});
+
+it('does not push when the change arrived from a tenant', function () {
+    ['customer' => $customer] = tenantCustomer();
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'skip_sync' => true,
+    ]);
+
+    Queue::fake();
+
+    $user->update(['first_name' => 'Updated Name']);
+
+    Queue::assertNotPushed(PushCustomerUserToTenantsJob::class);
+});
+
+it('queues an archive push when a customer user is soft deleted', function () {
+    ['customer' => $customer] = tenantCustomer();
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'skip_sync' => false,
+    ]);
+
+    Queue::fake();
+
+    $user->scheduleDelete();
+
+    Queue::assertPushed(
+        PushCustomerUserToTenantsJob::class,
+        fn (PushCustomerUserToTenantsJob $job) => $job->customerUserId === $user->id
+            && $job->operation === PushOperation::Archive
+    );
+});
+
+it('queues a restore push when a tombstoned customer user is brought back', function () {
+    ['customer' => $customer] = tenantCustomer();
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'skip_sync' => false,
+    ]);
+    $user->scheduleDelete();
+
+    Queue::fake();
+
+    CustomerUser::withTrashed()->find($user->id)->clearDeleteSchedule();
+
+    Queue::assertPushed(
+        PushCustomerUserToTenantsJob::class,
+        fn (PushCustomerUserToTenantsJob $job) => $job->operation === PushOperation::Restore
+    );
+});
+
+it('does not push anything while sync is disabled', function () {
+    config(['user_sync.enabled' => false]);
+
+    ['customer' => $customer] = tenantCustomer();
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'skip_sync' => false,
+    ]);
+
+    app(TenantUserPusher::class)->upsert($user);
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/admin-api/v1/sync/'));
 });

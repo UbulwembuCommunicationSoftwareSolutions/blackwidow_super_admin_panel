@@ -6,9 +6,11 @@ use App\Models\CustomerSubscription;
 use App\Models\CustomerSubscriptionDeploymentJob;
 use App\Models\ForgeServer;
 use App\Models\SubscriptionType;
+use App\Services\DomainDnsService;
 use App\Services\SiteDeploymentScheduler;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 
 beforeEach(function () {
     Http::fake();
@@ -184,4 +186,64 @@ it('lists deployment jobs for a subscription', function () {
     $this->getJson("/api/backend/customer-subscriptions/{$sub->id}/deployment-jobs")
         ->assertOk()
         ->assertJsonPath('data.0.job_name', 'create_site');
+});
+
+it('verifies a domain via DomainDnsService', function () {
+    $user = actingAsBackendUser();
+    RateLimiter::clear('verify-domain:'.$user->id);
+
+    $this->mock(DomainDnsService::class, function ($mock) {
+        $mock->shouldReceive('lookup')
+            ->once()
+            ->with('example.blackwidow.test')
+            ->andReturn([
+                'resolves' => true,
+                'ips' => ['203.0.113.10', '203.0.113.11'],
+            ]);
+    });
+
+    $this->postJson('/api/backend/customer-subscriptions/verify-domain', [
+        'domain' => 'example.blackwidow.test',
+    ])->assertOk()
+        ->assertJsonPath('data.domain', 'example.blackwidow.test')
+        ->assertJsonPath('data.resolves', true)
+        ->assertJsonPath('data.ips.0', '203.0.113.10')
+        ->assertJsonPath('data.ips.1', '203.0.113.11');
+});
+
+it('returns resolves false when DomainDnsService finds no records', function () {
+    $user = actingAsBackendUser();
+    RateLimiter::clear('verify-domain:'.$user->id);
+
+    $this->mock(DomainDnsService::class, function ($mock) {
+        $mock->shouldReceive('lookup')
+            ->once()
+            ->with('missing.example')
+            ->andReturn([
+                'resolves' => false,
+                'ips' => [],
+            ]);
+    });
+
+    $this->postJson('/api/backend/customer-subscriptions/verify-domain', [
+        'domain' => 'missing.example',
+    ])->assertOk()
+        ->assertJsonPath('data.resolves', false)
+        ->assertJsonPath('data.ips', []);
+});
+
+it('validates verify-domain requires a domain', function () {
+    actingAsBackendUser();
+
+    $this->postJson('/api/backend/customer-subscriptions/verify-domain', [])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['domain']);
+});
+
+it('forbids verify-domain without Create:CustomerSubscription', function () {
+    actingAsBackendForbidden();
+
+    $this->postJson('/api/backend/customer-subscriptions/verify-domain', [
+        'domain' => 'example.com',
+    ])->assertForbidden();
 });

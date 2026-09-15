@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use App\Jobs\PushCustomerUserToTenantsJob;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
-use App\Jobs\StartUserSyncJob;
-use App\Services\CMSService;
-use Hash;
+use App\Support\UserSync\PushOperation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 
 class CustomerUser extends Authenticatable
@@ -21,7 +21,7 @@ class CustomerUser extends Authenticatable
 
     public $fillable = [
         'customer_id',
-        'super_admin_user_id',
+        'cms_user_id',
         'first_name',
         'last_name',
         'email_address',
@@ -45,6 +45,7 @@ class CustomerUser extends Authenticatable
     ];
 
     public $casts = [
+        'cms_user_id' => 'integer',
         'is_system_admin' => 'boolean',
         'skip_sync' => 'boolean',
         'last_synced_at' => 'datetime',
@@ -81,8 +82,8 @@ class CustomerUser extends Authenticatable
 
         if (! $this->trashed()) {
             $this->delete();
-        } elseif (! $this->skip_sync) {
-            CMSService::syncUsers($this->customer_id);
+        } else {
+            $this->queueTenantPush(PushOperation::Archive);
         }
     }
 
@@ -100,9 +101,7 @@ class CustomerUser extends Authenticatable
         if ($this->delete_scheduled !== null) {
             $this->delete_scheduled = null;
             $this->saveQuietly();
-            if (! $this->skip_sync) {
-                CMSService::syncUsers($this->customer_id);
-            }
+            $this->queueTenantPush(PushOperation::Restore);
         }
     }
 
@@ -135,10 +134,7 @@ class CustomerUser extends Authenticatable
         parent::boot();
 
         static::created(function ($model) {
-            // Push new user to CMS (skip when created from inbound sync e.g. createUserFromRemoteData)
-            if (! $model->skip_sync) {
-                StartUserSyncJob::dispatch($model->customer_id);
-            }
+            $model->queueTenantPush(PushOperation::Upsert);
 
             if ($model->console_access) {
                 SendWelcomeEmailJob::dispatch($model);
@@ -211,16 +207,10 @@ class CustomerUser extends Authenticatable
 
         // Handle 'updated' event
         static::updated(function ($model) {
-            if (! $model->skip_sync) {
-                CMSService::syncUsers($model->customer_id);
-            }
+            $model->queueTenantPush(PushOperation::Upsert);
 
-            if ($model->wasChanged('console_access')) {
-                if ($model->console_access) {
-                    SendWelcomeEmailJob::dispatch($model);
-                } else {
-                    CMSService::suspendService($model);
-                }
+            if ($model->wasChanged('console_access') && $model->console_access) {
+                SendWelcomeEmailJob::dispatch($model);
             }
             if ($model->wasChanged('firearm_access')) {
                 if ($model->firearm_access) {
@@ -321,7 +311,8 @@ class CustomerUser extends Authenticatable
                 $user->saveQuietly();
             }
 
-            CMSService::syncUsers($user->customer_id);
+            $user->skip_sync = $model->skip_sync;
+            $user->queueTenantPush(PushOperation::Archive);
         });
 
         static::restored(function ($model) {
@@ -330,8 +321,20 @@ class CustomerUser extends Authenticatable
                 $model->saveQuietly();
             }
 
-            CMSService::syncUsers($model->customer_id);
+            $model->queueTenantPush(PushOperation::Restore);
         });
+    }
+
+    /**
+     * Hand this record's change to the tenant apps, unless it arrived from one.
+     */
+    public function queueTenantPush(PushOperation $operation): void
+    {
+        if ($this->skip_sync) {
+            return;
+        }
+
+        PushCustomerUserToTenantsJob::dispatch($this->id, $operation);
     }
 
     public function customer(): BelongsTo

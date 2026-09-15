@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\CustomerUser;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CustomerUser>
+ * @extends Factory<CustomerUser>
  */
 class CustomerUserFactory extends Factory
 {
@@ -18,7 +19,7 @@ class CustomerUserFactory extends Factory
     {
         return [
             'customer_id' => 1,
-            'super_admin_user_id' => $this->faker->unique()->uuid(),
+            'cms_user_id' => null,
             'first_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),
             'email_address' => $this->faker->unique()->safeEmail(),

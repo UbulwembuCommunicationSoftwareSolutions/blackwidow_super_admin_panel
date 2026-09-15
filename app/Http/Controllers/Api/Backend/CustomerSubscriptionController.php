@@ -6,11 +6,13 @@ use App\Jobs\SiteDeployment\DeploySite;
 use App\Jobs\SyncLogosToCmsJob;
 use App\Models\CustomerSubscription;
 use App\Services\CustomerSubscriptionService;
+use App\Services\DomainDnsService;
 use App\Services\ForgeService;
 use App\Services\LogoSyncService;
 use App\Services\SiteDeploymentScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -94,6 +96,31 @@ class CustomerSubscriptionController extends Controller
         $this->authorize('view', $row);
 
         return response()->json(['data' => $this->present($row, $request)]);
+    }
+
+    public function verifyDomain(Request $request, DomainDnsService $dns): JsonResponse
+    {
+        $this->authorize('create', CustomerSubscription::class);
+
+        $validated = $request->validate([
+            'domain' => ['required', 'string', 'max:255'],
+        ]);
+
+        $key = 'verify-domain:'.($request->user()?->id ?? $request->ip());
+        if (RateLimiter::tooManyAttempts($key, 20)) {
+            abort(429, 'Too many DNS verification attempts. Try again shortly.');
+        }
+        RateLimiter::hit($key, 60);
+
+        $result = $dns->lookup($validated['domain']);
+
+        return response()->json([
+            'data' => [
+                'domain' => $validated['domain'],
+                'resolves' => $result['resolves'],
+                'ips' => $result['ips'],
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse

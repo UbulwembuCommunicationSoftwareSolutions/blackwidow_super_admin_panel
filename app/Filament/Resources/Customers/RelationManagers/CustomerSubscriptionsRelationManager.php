@@ -2,12 +2,13 @@
 
 namespace App\Filament\Resources\Customers\RelationManagers;
 
+use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\ForgeServer;
 use App\Models\SubscriptionType;
 use App\Services\CustomerSubscriptionService;
+use App\Services\DomainDnsService;
 use App\Services\SiteDeploymentScheduler;
-use Exception;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -96,7 +97,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->live()
                                 ->afterStateUpdated(function ($get, $set, $state) {
                                     if ($state) {
-                                        $customer = \App\Models\Customer::find($state);
+                                        $customer = Customer::find($state);
                                         if ($customer) {
                                             // Auto-generate app name from customer company name
                                             $appName = $this->generateAppName($customer->company_name);
@@ -365,39 +366,25 @@ class CustomerSubscriptionsRelationManager extends RelationManager
 
     private function domainResolvesToIp($domain, $set = null, $get = null): bool
     {
-        try {
-            $dnsRecords = dns_get_record($domain, DNS_A);
-            if (! empty($dnsRecords)) {
-                foreach ($dnsRecords as $record) {
-                    if (isset($record['ip'])) {
-                        Notification::make()
-                            ->title('Domain Resolves to IP '.$domain)
-                            ->success()
-                            ->send();
-                        if ($set) {
-                            $set('urlConfirmed', true);
-                            $set('database_name', $get('url').'_'.$get('theType').'_'.$get('theVertical'));
-                        }
+        $result = app(DomainDnsService::class)->lookup((string) $domain);
 
-                        return true;
-                    }
-                }
-            } else {
-                Notification::make()
-                    ->title('Domain does not resolve to IP '.$domain)
-                    ->danger()
-                    ->send();
-
-                return false;
-            }
-        } catch (Exception $e) {
+        if ($result['resolves']) {
             Notification::make()
-                ->title('Domain does not resolve to IP '.$domain)
-                ->danger()
+                ->title('Domain Resolves to IP '.$domain)
+                ->success()
                 ->send();
+            if ($set) {
+                $set('urlConfirmed', true);
+                $set('database_name', $get('url').'_'.$get('theType').'_'.$get('theVertical'));
+            }
 
-            return false;
+            return true;
         }
+
+        Notification::make()
+            ->title('Domain does not resolve to IP '.$domain)
+            ->danger()
+            ->send();
 
         return false;
     }
