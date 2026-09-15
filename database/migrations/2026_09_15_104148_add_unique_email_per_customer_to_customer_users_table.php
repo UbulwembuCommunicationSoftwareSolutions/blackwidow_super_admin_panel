@@ -70,7 +70,8 @@ return new class extends Migration
 
         throw new RuntimeException(
             'Cannot enforce one customer user per email: live duplicates exist and need a human decision on '
-            .'which row survives. Resolve these, then re-run the migration. '.$detail
+            .'which row survives. Run "php artisan app:merge-duplicate-customer-users" to review the proposed '
+            .'survivors, then again with --apply, then re-run the migration. '.$detail
         );
     }
 
