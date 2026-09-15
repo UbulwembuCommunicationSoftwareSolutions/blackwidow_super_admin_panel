@@ -47,6 +47,20 @@ function applyUniqueEmailIndex(): void
     });
 }
 
+function uniqueEmailMigration(): object
+{
+    return require database_path(
+        'migrations/2026_09_15_104148_add_unique_email_per_customer_to_customer_users_table.php'
+    );
+}
+
+function hasUniqueEmailIndex(): bool
+{
+    return collect(Schema::getIndexes('customer_users'))
+        ->pluck('name')
+        ->contains('customer_users_customer_id_email_address_unique');
+}
+
 it('reports duplicates without touching anything until --apply', function () {
     $customer = Customer::factory()->create();
     duplicateUser($customer->id, 'shared@example.test', ['cms_user_id' => 91]);
@@ -196,6 +210,58 @@ it('says so when nothing needs merging', function () {
     $this->artisan('app:merge-duplicate-customer-users')
         ->expectsOutputToContain('No customer users share an email')
         ->assertSuccessful();
+});
+
+it('collapses the duplicates it can decide when the migration runs', function () {
+    $customer = Customer::factory()->create();
+
+    $survivor = duplicateUser($customer->id, 'shared@example.test', [
+        'last_synced_at' => now()->subHour(),
+        'console_access' => true,
+    ]);
+    duplicateUser($customer->id, 'shared@example.test', ['firearm_access' => true]);
+    duplicateUser($customer->id, 'shared@example.test', ['deleted_at' => now()]);
+    duplicateUser($customer->id, 'kept@example.test');
+
+    uniqueEmailMigration()->up();
+
+    expect(hasUniqueEmailIndex())->toBeTrue()
+        ->and(CustomerUser::withTrashed()->where('email_address', 'shared@example.test')->count())->toBe(1)
+        ->and(CustomerUser::withTrashed()->find($survivor->id)->firearm_access)->toBeTrue();
+});
+
+it('stops the migration when two rows are linked to different tenant users', function () {
+    $customer = Customer::factory()->create();
+
+    duplicateUser($customer->id, 'shared@example.test', ['cms_user_id' => 91]);
+    duplicateUser($customer->id, 'shared@example.test', ['cms_user_id' => 92]);
+    duplicateUser($customer->id, 'other@example.test');
+    duplicateUser($customer->id, 'other@example.test');
+
+    expect(fn () => uniqueEmailMigration()->up())
+        ->toThrow(RuntimeException::class, 'shared@example.test');
+
+    // The groups it could decide are still collapsed, so only the real question is left.
+    expect(hasUniqueEmailIndex())->toBeFalse()
+        ->and(CustomerUser::withTrashed()->where('email_address', 'other@example.test')->count())->toBe(1)
+        ->and(CustomerUser::withTrashed()->where('email_address', 'shared@example.test')->count())->toBe(2);
+});
+
+it('applies the index on the next run once the ambiguous group is decided', function () {
+    $customer = Customer::factory()->create();
+
+    duplicateUser($customer->id, 'shared@example.test', ['cms_user_id' => 91]);
+    $chosen = duplicateUser($customer->id, 'shared@example.test', ['cms_user_id' => 92]);
+
+    expect(fn () => uniqueEmailMigration()->up())->toThrow(RuntimeException::class);
+
+    $this->artisan('app:merge-duplicate-customer-users', ['--keep' => $chosen->id, '--apply' => true])
+        ->assertSuccessful();
+
+    uniqueEmailMigration()->up();
+
+    expect(hasUniqueEmailIndex())->toBeTrue()
+        ->and(CustomerUser::withTrashed()->where('email_address', 'shared@example.test')->count())->toBe(1);
 });
 
 it('refuses a --keep that is not part of a duplicate group', function () {
