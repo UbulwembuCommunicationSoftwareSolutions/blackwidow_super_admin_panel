@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\CustomerUserResource;
-use App\Jobs\StartUserSyncJob;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Testing\Fluent\Concerns\Has;
 use Log;
 
 class CustomerUserController extends Controller
@@ -39,7 +38,7 @@ class CustomerUserController extends Controller
     {
         $cleanedUrl = $this->cleanAppUrl($appUrl);
 
-        return CustomerSubscription::where('url', 'LIKE', '%' . $cleanedUrl . '%')->first();
+        return CustomerSubscription::where('url', 'LIKE', '%'.$cleanedUrl.'%')->first();
     }
 
     public function index(Request $request)
@@ -47,16 +46,18 @@ class CustomerUserController extends Controller
         $url = $request->get('app_url');
         $customerSubscription = $this->findCustomerSubscriptionByUrl($url);
 
-        if (!$customerSubscription) {
+        if (! $customerSubscription) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid app URL',
             ], 400);
         }
 
-        $users = CustomerUser::where('customer_id', $customerSubscription->customer_id)->get();
+        $users = CustomerUser::withTrashed()
+            ->where('customer_id', $customerSubscription->customer_id)
+            ->get();
 
-        // Return in the format expected by CMS
+        // Return in the format expected by CMS (includes tombstoned users)
         $userData = $users->map(function ($user) {
             return [
                 'id' => $user->id, // SuperAdmin user ID
@@ -75,6 +76,7 @@ class CustomerUserController extends Controller
                 'time_and_attendance_access' => $user->time_and_attendance_access ? 1 : 0,
                 'stock_access' => $user->stock_access ? 1 : 0,
                 'is_system_admin' => $user->is_system_admin ? 1 : 0,
+                'delete_scheduled' => $user->delete_scheduled?->toISOString(),
                 'created_at' => $user->created_at->toISOString(),
                 'updated_at' => $user->updated_at->toISOString(), // Critical for conflict resolution
             ];
@@ -82,14 +84,14 @@ class CustomerUserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $userData->toArray()
+            'data' => $userData->toArray(),
         ]);
     }
 
     public function login(Request $request)
     {
         $input = $request->all();
-        Log::info("Login request: " . json_encode($input));
+        Log::info('Login request: '.json_encode($input));
         if ($request->has('email')) {
             $email = $request->get('email');
         } else {
@@ -102,17 +104,18 @@ class CustomerUserController extends Controller
         }
         $password = $request->get('password');
         $url = $request->get('app_url');
-        //IF URL IS HTTP, REPLACE WITH HTTPS
+        // IF URL IS HTTP, REPLACE WITH HTTPS
         if (strpos($url, 'http://') === 0) {
             $url = str_replace('http://', 'https://', $url);
         }
         $customerSubscription = CustomerSubscription::where('url', $url)->first();
-        if (!$customerSubscription) {
+        if (! $customerSubscription) {
             Log::info(CustomerSubscription::where('url', $url)->toRawSql());
-            Log::info("Customer Subscription not found");
+            Log::info('Customer Subscription not found');
+
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-        Log::info('Customer Subscription Found: ' . $customerSubscription->url);
+        Log::info('Customer Subscription Found: '.$customerSubscription->url);
         $customerUser = null;
         if ($email) {
             $customerUser = CustomerUser::where('customer_id', $customerSubscription->customer_id)->where('email_address', $email)->first();
@@ -120,13 +123,20 @@ class CustomerUserController extends Controller
         if ($cellphone) {
             $customerUser = CustomerUser::where('customer_id', $customerSubscription->customer_id)->where('cellphone', $cellphone)->first();
         }
-        if (!$customerUser) {
-            Log::info("Customer User not found");
+        if (! $customerUser) {
+            Log::info('Customer User not found');
+
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+        if ($customerUser->isDeleteScheduled()) {
+            Log::info('Login rejected: user is scheduled for deletion: '.$customerUser->email_address);
+
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
         if ($customerUser) {
-            if (!$this->checkAccess($customerUser, $customerSubscription)) {
-                Log::info("Access Denied for user: " . $customerUser->email_address);
+            if (! $this->checkAccess($customerUser, $customerSubscription)) {
+                Log::info('Access Denied for user: '.$customerUser->email_address);
+
                 return response()->json(
                     [
                         'message' => 'Access Denied',
@@ -136,20 +146,19 @@ class CustomerUserController extends Controller
                 );
             }
         }
-        Log::info('Stored hash: ' . $customerUser->password);
-        Log::info('Entered password: ' . $request->password);
-        Log::info('Hash Check: ' . (Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
-        if (!\Hash::check($request->password, $customerUser->password)) {
+        Log::info('Stored hash: '.$customerUser->password);
+        Log::info('Entered password: '.$request->password);
+        Log::info('Hash Check: '.(Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
+        if (! \Hash::check($request->password, $customerUser->password)) {
             return response()->json(
                 [
-                    'debug' => $request->password . ' is not equal to ' . $customerUser->password,
+                    'debug' => $request->password.' is not equal to '.$customerUser->password,
                     'message' => 'Invalid credentials',
                     'customer_user' => $customerUser,
                 ],
                 401
             );
         }
-
 
         //        if(!$this->checkAccess($customerUser,$customerSubscription)){
         //            return response()->json(
@@ -174,78 +183,79 @@ class CustomerUserController extends Controller
 
     public function checkAccess(CustomerUser $user, CustomerSubscription $subscription)
     {
-        Log::info("Checking if user " . $user->cellphone . " has access to subscription " . $subscription->url);
-        if ((int)$subscription->subscription_type_id == 1) {
+        Log::info('Checking if user '.$user->cellphone.' has access to subscription '.$subscription->url);
+        if ((int) $subscription->subscription_type_id == 1) {
             if ($user->console_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 2) {
+        if ((int) $subscription->subscription_type_id == 2) {
             if ($user->firearm_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 3) {
+        if ((int) $subscription->subscription_type_id == 3) {
             if ($user->responder_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 4) {
+        if ((int) $subscription->subscription_type_id == 4) {
             if ($user->reporter_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 5) {
+        if ((int) $subscription->subscription_type_id == 5) {
             if ($user->security_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 6) {
+        if ((int) $subscription->subscription_type_id == 6) {
             if ($user->driver_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 7) {
+        if ((int) $subscription->subscription_type_id == 7) {
             if ($user->survey_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 9) {
+        if ((int) $subscription->subscription_type_id == 9) {
             if ($user->time_and_attendance_access) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ((int)$subscription->subscription_type_id == 10) {
+        if ((int) $subscription->subscription_type_id == 10) {
             if ($user->stock_access) {
                 return true;
             } else {
                 return false;
             }
         }
+
         return false;
     }
 
     public function setAccess(CustomerUser $user, CustomerSubscription $subscription)
     {
-        Log::info("Setting access for user " . $user->cellphone . " to subscription " . $subscription->url);
+        Log::info('Setting access for user '.$user->cellphone.' to subscription '.$subscription->url);
 
-        switch ((int)$subscription->subscription_type_id) {
+        switch ((int) $subscription->subscription_type_id) {
             case 1:
                 $user->console_access = true;
                 break;
@@ -274,12 +284,14 @@ class CustomerUserController extends Controller
                 $user->stock_access = true;
                 break;
             default:
-                Log::warning("Unknown subscription type ID: " . $subscription->subscription_type_id);
+                Log::warning('Unknown subscription type ID: '.$subscription->subscription_type_id);
+
                 return false;
         }
 
         $user->save();
-        Log::info("Access granted for user " . $user->email_address . " to subscription type " . $subscription->subscription_type_id);
+        Log::info('Access granted for user '.$user->email_address.' to subscription type '.$subscription->subscription_type_id);
+
         return true;
     }
 
@@ -312,15 +324,16 @@ class CustomerUserController extends Controller
 
         // Find customer subscription by app_url only
         $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
-        if (!$customerSub) {
-            Log::error('Customer subscription not found for app_url: ' . $validated['app_url']);
+        if (! $customerSub) {
+            Log::error('Customer subscription not found for app_url: '.$validated['app_url']);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid app URL',
             ], 400);
         }
 
-        Log::info('Found customer subscription: ' . $customerSub->id . ' for customer: ' . $customerSub->customer_id);
+        Log::info('Found customer subscription: '.$customerSub->id.' for customer: '.$customerSub->customer_id);
 
         $customer = Customer::find($customerSub->customer_id);
         $data = $validated;
@@ -331,58 +344,94 @@ class CustomerUserController extends Controller
         $cellphone = $data['user']['cellphone'] ?? null;
         $password = $data['password'];
 
-        // Check if user already exists
-        $existingUser = CustomerUser::where('customer_id', $customer->id)
+        // Check if user already exists (including tombstoned)
+        $existingUser = CustomerUser::withTrashed()
+            ->where('customer_id', $customer->id)
             ->where('email_address', $email)
             ->first();
 
-        if ($existingUser) {
-            Log::info('User already exists with email: ' . $email);
+        if ($existingUser && ! $existingUser->trashed() && $existingUser->delete_scheduled === null) {
+            Log::info('User already exists with email: '.$email);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Email already exists',
                 'errors' => [
-                    'email' => ['The email has already been taken.']
-                ]
+                    'email' => ['The email has already been taken.'],
+                ],
             ], 422);
         }
 
-        Log::info('Creating new user with email: ' . $email . ' for customer: ' . $customer->id);
+        Log::info('Creating new user with email: '.$email.' for customer: '.$customer->id);
 
         try {
-            $user = CustomerUser::create([
-                'customer_id' => $customer->id,
-                'first_name' => $name,
-                'last_name' => $surname,
-                'email_address' => $email,
-                'cellphone' => $cellphone,
-                'password' => $password, // Cleartext - model will hash it automatically
-                'console_access' => $data['user']['console_access'] ?? ($data['user']['active'] ?? true),
-                'firearm_access' => $data['user']['firearm_access'] ?? false,
-                'responder_access' => $data['user']['responder_access'] ?? false,
-                'reporter_access' => $data['user']['reporter_access'] ?? false,
-                'security_access' => $data['user']['security_access'] ?? false,
-                'driver_access' => $data['user']['driver_access'] ?? false,
-                'survey_access' => $data['user']['survey_access'] ?? false,
-                'time_and_attendance_access' => $data['user']['time_and_attendance_access'] ?? false,
-                'stock_access' => $data['user']['stock_access'] ?? false,
-                'is_system_admin' => $data['user']['is_system_admin'] ?? false,
-            ]);
+            if ($existingUser) {
+                // Resurrect tombstoned / soft-deleted user from CMS create
+                $existingUser->skip_sync = true;
+                $existingUser->first_name = $name;
+                $existingUser->last_name = $surname;
+                $existingUser->cellphone = $cellphone;
+                $existingUser->password = $password;
+                $existingUser->console_access = $data['user']['console_access'] ?? ($data['user']['active'] ?? true);
+                $existingUser->firearm_access = $data['user']['firearm_access'] ?? false;
+                $existingUser->responder_access = $data['user']['responder_access'] ?? false;
+                $existingUser->reporter_access = $data['user']['reporter_access'] ?? false;
+                $existingUser->security_access = $data['user']['security_access'] ?? false;
+                $existingUser->driver_access = $data['user']['driver_access'] ?? false;
+                $existingUser->survey_access = $data['user']['survey_access'] ?? false;
+                $existingUser->time_and_attendance_access = $data['user']['time_and_attendance_access'] ?? false;
+                $existingUser->stock_access = $data['user']['stock_access'] ?? false;
+                $existingUser->is_system_admin = $data['user']['is_system_admin'] ?? false;
+                $existingUser->delete_scheduled = null;
+                $existingUser->save();
 
-            Log::info('User created successfully with ID: ' . $user->id);
+                if ($existingUser->trashed()) {
+                    $existingUser->restore();
+                }
 
-            $this->setAccess($user, $customerSub);
-            $user->save();
+                $this->setAccess($existingUser, $customerSub);
+                $existingUser->skip_sync = true;
+                $existingUser->save();
+                $user = $existingUser->fresh();
 
-            Log::info('User access set and saved');
+                Log::info('Tombstoned user resurrected with ID: '.$user->id);
+            } else {
+                $user = CustomerUser::create([
+                    'customer_id' => $customer->id,
+                    'first_name' => $name,
+                    'last_name' => $surname,
+                    'email_address' => $email,
+                    'cellphone' => $cellphone,
+                    'password' => $password, // Cleartext - model will hash it automatically
+                    'console_access' => $data['user']['console_access'] ?? ($data['user']['active'] ?? true),
+                    'firearm_access' => $data['user']['firearm_access'] ?? false,
+                    'responder_access' => $data['user']['responder_access'] ?? false,
+                    'reporter_access' => $data['user']['reporter_access'] ?? false,
+                    'security_access' => $data['user']['security_access'] ?? false,
+                    'driver_access' => $data['user']['driver_access'] ?? false,
+                    'survey_access' => $data['user']['survey_access'] ?? false,
+                    'time_and_attendance_access' => $data['user']['time_and_attendance_access'] ?? false,
+                    'stock_access' => $data['user']['stock_access'] ?? false,
+                    'is_system_admin' => $data['user']['is_system_admin'] ?? false,
+                    'skip_sync' => true, // CMS inbound — do not echo StartUserSyncJob
+                ]);
 
-            // CustomerUser created event triggers StartUserSyncJob → sync-users → ImportUsersJob
+                Log::info('User created successfully with ID: '.$user->id);
 
+                $this->setAccess($user, $customerSub);
+                $user->skip_sync = true;
+                $user->save();
+
+                Log::info('User access set and saved');
+            }
+
+            // No StartUserSyncJob: CMS already has the user; scheduled sync is the safety net.
         } catch (\Exception $e) {
-            Log::error('Failed to create user: ' . $e->getMessage());
+            Log::error('Failed to create user: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create user: ' . $e->getMessage(),
+                'message' => 'Failed to create user: '.$e->getMessage(),
             ], 500);
         }
 
@@ -406,9 +455,10 @@ class CustomerUserController extends Controller
                 'time_and_attendance_access' => $user->time_and_attendance_access ? 1 : 0,
                 'stock_access' => $user->stock_access ? 1 : 0,
                 'is_system_admin' => $user->is_system_admin ? 1 : 0,
+                'delete_scheduled' => $user->delete_scheduled?->toISOString(),
                 'created_at' => $user->created_at->toISOString(),
                 'updated_at' => $user->updated_at->toISOString(),
-            ]
+            ],
         ]);
     }
 
@@ -440,9 +490,113 @@ class CustomerUserController extends Controller
     {
         $this->authorize('delete', $customerUser);
 
-        $customerUser->delete();
+        $customerUser->scheduleDelete();
 
         return response()->json();
+    }
+
+    public function archiveUser(Request $request)
+    {
+        $validated = $request->validate([
+            'app_url' => 'required|string',
+            'email' => 'nullable|email',
+            'super_admin_user_id' => 'nullable|integer',
+        ]);
+
+        if (blank($validated['email'] ?? null) && blank($validated['super_admin_user_id'] ?? null)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'email or super_admin_user_id is required',
+            ], 422);
+        }
+
+        $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
+        if (! $customerSub) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid app URL',
+            ], 400);
+        }
+
+        $query = CustomerUser::withTrashed()
+            ->where('customer_id', $customerSub->customer_id);
+
+        if (! blank($validated['super_admin_user_id'] ?? null)) {
+            $query->where('id', $validated['super_admin_user_id']);
+        } else {
+            $query->where('email_address', $validated['email']);
+        }
+
+        $customerUser = $query->first();
+        if (! $customerUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        $customerUser->skip_sync = true;
+        $customerUser->scheduleDelete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User archived successfully',
+            'delete_scheduled' => $customerUser->fresh()->delete_scheduled?->toISOString(),
+        ]);
+    }
+
+    public function restoreUser(Request $request)
+    {
+        $validated = $request->validate([
+            'app_url' => 'required|string',
+            'email' => 'nullable|email',
+            'super_admin_user_id' => 'nullable|integer',
+        ]);
+
+        if (blank($validated['email'] ?? null) && blank($validated['super_admin_user_id'] ?? null)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'email or super_admin_user_id is required',
+            ], 422);
+        }
+
+        $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
+        if (! $customerSub) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid app URL',
+            ], 400);
+        }
+
+        $query = CustomerUser::withTrashed()
+            ->where('customer_id', $customerSub->customer_id);
+
+        if (! blank($validated['super_admin_user_id'] ?? null)) {
+            $query->where('id', $validated['super_admin_user_id']);
+        } else {
+            $query->where('email_address', $validated['email']);
+        }
+
+        $customerUser = $query->first();
+        if (! $customerUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        $customerUser->skip_sync = true;
+        $customerUser->clearDeleteSchedule();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User restored successfully',
+            'user' => [
+                'id' => $customerUser->id,
+                'email_address' => $customerUser->email_address,
+                'delete_scheduled' => null,
+            ],
+        ]);
     }
 
     public function updatePassword(Request $request)
@@ -459,18 +613,19 @@ class CustomerUserController extends Controller
             $email = null;
         }
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
-        Log::info('Password update for Customer: ' . $request->app_url);
+        Log::info('Password update for Customer: '.$request->app_url);
         $customer = $customerSub->customer;
         if ($customer) {
-            Log::info('Customer Found: ' . $customer->company_name);
+            Log::info('Customer Found: '.$customer->company_name);
         }
-        Log::info("Received " . $request->password);
+        Log::info('Received '.$request->password);
         $customerUser = CustomerUser::where('id', $id)
             ->where('customer_id', $customer->id)
             ->first();
-        Log::info('User found: ' . $customerUser->id);
-        Log::info('Old password hash: ' . $customerUser->password);
+        Log::info('User found: '.$customerUser->id);
+        Log::info('Old password hash: '.$customerUser->password);
         $password = $request->password;
+        $customerUser->skip_sync = true;
         if ($password) {
             $customerUser->password = $password;
         }
@@ -481,9 +636,10 @@ class CustomerUserController extends Controller
             $customerUser->cellphone = $cellphone;
         }
         $customerUser->save();
-        Log::info('New password hash: ' . $customerUser->password);
-        Log::info('Password updated for user: ' . $email);
-        return response()->json(['message' => 'Password updated successfully to ' . $request->password]);
+        Log::info('New password hash: '.$customerUser->password);
+        Log::info('Password updated for user: '.$email);
+
+        return response()->json(['message' => 'Password updated successfully to '.$request->password]);
     }
 
     public function deactivateUser(Request $request)
@@ -492,16 +648,18 @@ class CustomerUserController extends Controller
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         $customer = $customerSub->customer;
         if ($customer) {
-            Log::info('Customer Found: ' . $customer->company_name);
+            Log::info('Customer Found: '.$customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)
             ->first();
+        $customerUser->skip_sync = true;
         $customerUser->console_access = false;
         $customerUser->firearm_access = false;
         $customerUser->responder_access = false;
         $customerUser->reporter_access = false;
         $customerUser->save();
+
         return response()->json(['message' => 'User Deactivated Successfully']);
     }
 
@@ -511,16 +669,18 @@ class CustomerUserController extends Controller
         $customerSub = $this->findCustomerSubscriptionByUrl($request->app_url);
         $customer = $customerSub->customer;
         if ($customer) {
-            Log::info('Customer Found: ' . $customer->company_name);
+            Log::info('Customer Found: '.$customer->company_name);
         }
         $customerUser = CustomerUser::where('email_address', $email)
             ->where('customer_id', $customer->id)
             ->first();
+        $customerUser->skip_sync = true;
         $customerUser->console_access = true;
         $customerUser->firearm_access = true;
         $customerUser->responder_access = true;
         $customerUser->reporter_access = true;
         $customerUser->save();
+
         return response()->json(['message' => 'User Activated Successfully']);
     }
 
@@ -529,7 +689,7 @@ class CustomerUserController extends Controller
      */
     public function updateFromCMS(Request $request)
     {
-        Log::info('Update user from CMS: ' . json_encode($request->all()));
+        Log::info('Update user from CMS: '.json_encode($request->all()));
 
         // Validate the request
         $validated = $request->validate([
@@ -556,7 +716,7 @@ class CustomerUserController extends Controller
 
         // Find the customer subscription
         $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
-        if (!$customerSub) {
+        if (! $customerSub) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid app URL',
@@ -568,22 +728,23 @@ class CustomerUserController extends Controller
             ->where('customer_id', $customerSub->customer_id)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found',
-                'error' => 'No user found with super_admin_user_id: ' . $validated['super_admin_user_id']
+                'error' => 'No user found with super_admin_user_id: '.$validated['super_admin_user_id'],
             ], 404);
         }
 
         // Conflict resolution: Check if CMS version is newer
         if (isset($validated['cms_updated_at'])) {
-            $cmsUpdatedAt = \Carbon\Carbon::parse($validated['cms_updated_at']);
+            $cmsUpdatedAt = Carbon::parse($validated['cms_updated_at']);
             $superAdminUpdatedAt = $user->updated_at;
 
             // If SuperAdmin version is newer, return SuperAdmin's data
             if ($superAdminUpdatedAt->gt($cmsUpdatedAt)) {
                 Log::info('Conflict detected: SuperAdmin version is newer. Returning SuperAdmin data.');
+
                 return response()->json([
                     'success' => true,
                     'message' => 'User updated successfully (conflict resolved - SuperAdmin version is newer)',
@@ -605,12 +766,12 @@ class CustomerUserController extends Controller
                         'stock_access' => $user->stock_access ? 1 : 0,
                         'is_system_admin' => $user->is_system_admin ? 1 : 0,
                         'updated_at' => $user->updated_at->toISOString(),
-                    ]
+                    ],
                 ]);
             }
         }
 
-        // Update the user with CMS data
+        // Update the user with CMS data (skip_sync prevents echo re-import to CMS)
         $updateData = [
             'email_address' => $validated['email'],
             'first_name' => $validated['first_name'],
@@ -626,6 +787,7 @@ class CustomerUserController extends Controller
             'time_and_attendance_access' => $validated['time_and_attendance_access'] ?? $user->time_and_attendance_access,
             'stock_access' => $validated['stock_access'] ?? $user->stock_access,
             'is_system_admin' => $validated['is_system_admin'] ?? $user->is_system_admin,
+            'skip_sync' => true,
         ];
 
         // Handle password update if provided (cleartext - model will hash it)
@@ -635,13 +797,10 @@ class CustomerUserController extends Controller
 
         $user->update($updateData);
 
-        // Trigger user import to customer subscriptions
-        StartUserSyncJob::dispatch($user->customer_id);
-
         // Refresh the user to get updated timestamps
         $user->refresh();
 
-        Log::info('User updated successfully: ' . $user->email_address);
+        Log::info('User updated successfully: '.$user->email_address);
 
         return response()->json([
             'success' => true,
@@ -664,7 +823,7 @@ class CustomerUserController extends Controller
                 'stock_access' => $user->stock_access ? 1 : 0,
                 'is_system_admin' => $user->is_system_admin ? 1 : 0,
                 'updated_at' => $user->updated_at->toISOString(),
-            ]
+            ],
         ]);
     }
 
@@ -673,7 +832,7 @@ class CustomerUserController extends Controller
      */
     public function getSingleUser(Request $request)
     {
-        Log::info('Get single user: ' . json_encode($request->all()));
+        Log::info('Get single user: '.json_encode($request->all()));
 
         // Validate the request
         $validated = $request->validate([
@@ -683,7 +842,7 @@ class CustomerUserController extends Controller
 
         // Find the customer subscription
         $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
-        if (!$customerSub) {
+        if (! $customerSub) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid app URL',
@@ -695,11 +854,11 @@ class CustomerUserController extends Controller
             ->where('customer_id', $customerSub->customer_id)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found',
-                'error' => 'No user found with super_admin_user_id: ' . $validated['super_admin_user_id']
+                'error' => 'No user found with super_admin_user_id: '.$validated['super_admin_user_id'],
             ], 404);
         }
 
@@ -724,7 +883,7 @@ class CustomerUserController extends Controller
                 'is_system_admin' => $user->is_system_admin ? 1 : 0,
                 'created_at' => $user->created_at->toISOString(),
                 'updated_at' => $user->updated_at->toISOString(),
-            ]
+            ],
         ]);
     }
 
@@ -733,7 +892,7 @@ class CustomerUserController extends Controller
      */
     public function updatePasswordFromCMS(Request $request)
     {
-        Log::info('Update password from CMS: ' . json_encode($request->all()));
+        Log::info('Update password from CMS: '.json_encode($request->all()));
 
         // Validate the request
         $validated = $request->validate([
@@ -746,7 +905,7 @@ class CustomerUserController extends Controller
 
         // Find the customer subscription
         $customerSub = $this->findCustomerSubscriptionByUrl($validated['app_url']);
-        if (!$customerSub) {
+        if (! $customerSub) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid app URL',
@@ -758,15 +917,16 @@ class CustomerUserController extends Controller
             ->where('customer_id', $customerSub->customer_id)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found',
-                'error' => 'No user found with super_admin_user_id: ' . $validated['super_admin_user_id']
+                'error' => 'No user found with super_admin_user_id: '.$validated['super_admin_user_id'],
             ], 404);
         }
 
         // Update password (will be automatically hashed by the model's setPasswordAttribute)
+        $user->skip_sync = true;
         $user->password = $validated['password']; // Plain text - model will hash it
 
         // Update other fields if provided
@@ -779,10 +939,7 @@ class CustomerUserController extends Controller
 
         $user->save();
 
-        // Trigger user import to customer subscriptions
-        StartUserSyncJob::dispatch($user->customer_id);
-
-        Log::info('Password updated successfully for user: ' . $user->email_address);
+        Log::info('Password updated successfully for user: '.$user->email_address);
 
         return response()->json([
             'success' => true,
@@ -794,7 +951,7 @@ class CustomerUserController extends Controller
                 'last_name' => $user->last_name,
                 'cellphone' => $user->cellphone,
                 'updated_at' => $user->updated_at->toISOString(),
-            ]
+            ],
         ]);
     }
 }

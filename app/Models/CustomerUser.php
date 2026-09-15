@@ -41,12 +41,14 @@ class CustomerUser extends Authenticatable
         'last_synced_at',
         'sync_hash',
         'skip_sync',
+        'delete_scheduled',
     ];
 
     public $casts = [
         'is_system_admin' => 'boolean',
         'skip_sync' => 'boolean',
         'last_synced_at' => 'datetime',
+        'delete_scheduled' => 'datetime',
         'console_access' => 'boolean',
         'firearm_access' => 'boolean',
         'responder_access' => 'boolean',
@@ -57,6 +59,52 @@ class CustomerUser extends Authenticatable
         'time_and_attendance_access' => 'boolean',
         'stock_access' => 'boolean',
     ];
+
+    public function isDeleteScheduled(): bool
+    {
+        return $this->delete_scheduled !== null;
+    }
+
+    /**
+     * Soft-delete and stamp the tombstone so tenant apps can purge the user.
+     */
+    public function scheduleDelete(): void
+    {
+        if ($this->trashed() && $this->delete_scheduled !== null) {
+            return;
+        }
+
+        if ($this->delete_scheduled === null) {
+            $this->delete_scheduled = now();
+            $this->saveQuietly();
+        }
+
+        if (! $this->trashed()) {
+            $this->delete();
+        } elseif (! $this->skip_sync) {
+            CMSService::syncUsers($this->customer_id);
+        }
+    }
+
+    /**
+     * Clear the tombstone and restore the user so tenant apps bring them back.
+     */
+    public function clearDeleteSchedule(): void
+    {
+        if ($this->trashed()) {
+            $this->restore();
+
+            return;
+        }
+
+        if ($this->delete_scheduled !== null) {
+            $this->delete_scheduled = null;
+            $this->saveQuietly();
+            if (! $this->skip_sync) {
+                CMSService::syncUsers($this->customer_id);
+            }
+        }
+    }
 
     public function checkAccess($subscription_type_id): bool
     {
@@ -163,8 +211,9 @@ class CustomerUser extends Authenticatable
 
         // Handle 'updated' event
         static::updated(function ($model) {
-            // Your logic here
-            CMSService::syncUsers($model->customer_id);
+            if (! $model->skip_sync) {
+                CMSService::syncUsers($model->customer_id);
+            }
 
             if ($model->wasChanged('console_access')) {
                 if ($model->console_access) {
@@ -263,9 +312,25 @@ class CustomerUser extends Authenticatable
 
         static::deleted(function ($model) {
             $user = CustomerUser::withTrashed()->where('id', $model->id)->first();
-            if ($user) {
-                CMSService::syncUsers($user->customer_id);
+            if (! $user) {
+                return;
             }
+
+            if ($user->delete_scheduled === null) {
+                $user->delete_scheduled = now();
+                $user->saveQuietly();
+            }
+
+            CMSService::syncUsers($user->customer_id);
+        });
+
+        static::restored(function ($model) {
+            if ($model->delete_scheduled !== null) {
+                $model->delete_scheduled = null;
+                $model->saveQuietly();
+            }
+
+            CMSService::syncUsers($model->customer_id);
         });
     }
 

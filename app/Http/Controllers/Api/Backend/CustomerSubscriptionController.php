@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Backend;
 
 use App\Jobs\SiteDeployment\DeploySite;
+use App\Jobs\SyncLogosToCmsJob;
 use App\Models\CustomerSubscription;
 use App\Services\CustomerSubscriptionService;
 use App\Services\ForgeService;
+use App\Services\LogoSyncService;
 use App\Services\SiteDeploymentScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -202,7 +204,7 @@ class CustomerSubscriptionController extends Controller
         $conflicts = array_intersect($uploaded, $clear);
         if ($conflicts !== []) {
             throw ValidationException::withMessages([
-                'clear' => 'Cannot upload and clear the same slot: ' . implode(', ', $conflicts) . '.',
+                'clear' => 'Cannot upload and clear the same slot: '.implode(', ', $conflicts).'.',
             ]);
         }
 
@@ -211,21 +213,29 @@ class CustomerSubscriptionController extends Controller
 
         foreach ($uploaded as $slot) {
             $changes[$slot] = $request->file($slot)->store('/', 'public');
+            $changes[LogoSyncService::timestampColumn($slot)] = now();
         }
         foreach ($clear as $slot) {
             $changes[$slot] = null;
+            $changes[LogoSyncService::timestampColumn($slot)] = now();
         }
 
         // Only drop the previous file once the replacement is safely on disk.
         $replaced = array_filter(array_map(
             fn (string $slot) => $row->getAttribute($slot),
-            array_keys($changes),
+            array_values(array_unique([...$uploaded, ...$clear])),
         ), 'filled');
 
         $row->update($changes);
 
         foreach ($replaced as $path) {
             $disk->delete($path);
+        }
+
+        // Timestamps were set in the same update, so the model hook skips push —
+        // dispatch explicitly for CMS (subscription type 1 only).
+        if ((int) $row->subscription_type_id === 1) {
+            SyncLogosToCmsJob::dispatch($row->id, [...$uploaded, ...$clear]);
         }
 
         $data = $row->fresh()->load(['subscriptionType:id,name', 'customer:id,company_name']);

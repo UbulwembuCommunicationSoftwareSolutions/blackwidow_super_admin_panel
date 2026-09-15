@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Middleware\VerifyCsrfToken;
+use App\Http\Middleware\VerifyCustomerBearerToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,16 +24,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(remove: [
-            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+            Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         ]);
 
         $middleware->web(append: [
-            \App\Http\Middleware\VerifyCsrfToken::class,
+            VerifyCsrfToken::class,
         ]);
 
         $middleware->alias([
-            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
-            'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
+            'abilities' => CheckAbilities::class,
+            'ability' => CheckForAnyAbility::class,
+            'customer.bearer' => VerifyCustomerBearerToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -56,6 +56,15 @@ class CustomerUsersTable
                     ->searchable(),
                 IconColumn::make('is_system_admin')
                     ->boolean(),
+                TextColumn::make('delete_scheduled')
+                    ->label('Delete scheduled')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TrashedFilter::make(),

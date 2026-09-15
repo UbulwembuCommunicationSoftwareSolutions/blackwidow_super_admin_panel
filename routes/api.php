@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\McpSiteController;
+use App\Http\Controllers\CustomerSubscriptionController;
+use App\Http\Controllers\GooglePlacesProxyController;
+use App\Http\Controllers\UserSyncController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -10,28 +13,34 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('user-login', 'App\Http\Controllers\CustomerUserController@login');
-Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
-Route::post('create-user', 'App\Http\Controllers\CustomerUserController@store');
-Route::post('update-user', 'App\Http\Controllers\CustomerUserController@updateFromCMS');
-Route::post('get-user', 'App\Http\Controllers\CustomerUserController@getSingleUser');
-Route::post('update-password', 'App\Http\Controllers\CustomerUserController@updatePasswordFromCMS');
-Route::get('customer/app-functions', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getAppFunctions']);
-Route::get('customer/responder-functions', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getResponderAppFunctions']);
-Route::get('customer_cms_url', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getCmsUrl']);
-Route::get('app_manifest', [\App\Http\Controllers\CustomerSubscriptionController::class, 'getManifest']);
-Route::post('user-password', 'App\Http\Controllers\CustomerUserController@updatePassword');
-Route::post('deactivate-user', 'App\Http\Controllers\CustomerUserController@deactivateUser');
-Route::post('activate-user', 'App\Http\Controllers\CustomerUserController@activateUser');
-Route::post('urls', 'App\Http\Controllers\CustomerController@getUrls');
-Route::middleware('auth:sanctum')->post('/token-user', [\App\Http\Controllers\CustomerSubscriptionController::class, 'checkLoggedIn']);
+Route::get('customer/app-functions', [CustomerSubscriptionController::class, 'getAppFunctions']);
+Route::get('customer/responder-functions', [CustomerSubscriptionController::class, 'getResponderAppFunctions']);
+Route::get('customer_cms_url', [CustomerSubscriptionController::class, 'getCmsUrl']);
+Route::get('app_manifest', [CustomerSubscriptionController::class, 'getManifest']);
+Route::middleware('auth:sanctum')->post('/token-user', [CustomerSubscriptionController::class, 'checkLoggedIn']);
 
-Route::post('/google-places-proxy', [\App\Http\Controllers\GooglePlacesProxyController::class, 'proxy']);
+Route::middleware('customer.bearer')->group(function () {
+    Route::post('user-import', 'App\Http\Controllers\CustomerUserController@index');
+    Route::post('create-user', 'App\Http\Controllers\CustomerUserController@store');
+    Route::post('update-user', 'App\Http\Controllers\CustomerUserController@updateFromCMS');
+    Route::post('get-user', 'App\Http\Controllers\CustomerUserController@getSingleUser');
+    Route::post('update-password', 'App\Http\Controllers\CustomerUserController@updatePasswordFromCMS');
+    Route::post('user-password', 'App\Http\Controllers\CustomerUserController@updatePassword');
+    Route::post('deactivate-user', 'App\Http\Controllers\CustomerUserController@deactivateUser');
+    Route::post('activate-user', 'App\Http\Controllers\CustomerUserController@activateUser');
+    Route::post('archive-user', 'App\Http\Controllers\CustomerUserController@archiveUser');
+    Route::post('restore-user', 'App\Http\Controllers\CustomerUserController@restoreUser');
+    Route::post('urls', 'App\Http\Controllers\CustomerController@getUrls');
+    Route::post('update-logos', [CustomerSubscriptionController::class, 'updateLogosFromCms']);
+});
+
+Route::post('/google-places-proxy', [GooglePlacesProxyController::class, 'proxy']);
 
 // User Sync API endpoints
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/admin-api/trigger-user-sync', [\App\Http\Controllers\UserSyncController::class, 'triggerSync']);
-    Route::get('/admin-api/user-sync-status/{userId}', [\App\Http\Controllers\UserSyncController::class, 'getSyncStatus']);
-    Route::get('/admin-api/user-sync-stats', [\App\Http\Controllers\UserSyncController::class, 'getSyncStats']);
+    Route::post('/admin-api/trigger-user-sync', [UserSyncController::class, 'triggerSync']);
+    Route::get('/admin-api/user-sync-status/{userId}', [UserSyncController::class, 'getSyncStatus']);
+    Route::get('/admin-api/user-sync-stats', [UserSyncController::class, 'getSyncStats']);
 });
 
 // MCP / automation: JSON API (Sanctum bearer token; create via php artisan mcp:create-token).

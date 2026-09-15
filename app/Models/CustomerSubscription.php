@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LogoSyncService;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -65,6 +66,11 @@ class CustomerSubscription extends Model
         'forge_site_id',
         'logo_4',
         'logo_5',
+        'logo_1_updated_at',
+        'logo_2_updated_at',
+        'logo_3_updated_at',
+        'logo_4_updated_at',
+        'logo_5_updated_at',
         'created_at',
         'updated_at',
         'database_name',
@@ -105,11 +111,44 @@ class CustomerSubscription extends Model
                 );
             }
         });
+
+        static::updated(function (CustomerSubscription $model): void {
+            $changedSlots = [];
+            foreach (self::LOGO_SLOTS as $slot) {
+                if ($model->wasChanged($slot)) {
+                    $changedSlots[] = $slot;
+                }
+            }
+
+            if ($changedSlots === []) {
+                return;
+            }
+
+            // Skip echo when timestamps were already stamped by LogoSyncService (CMS push / uploadLogos)
+            $timestampAlreadySet = false;
+            foreach ($changedSlots as $slot) {
+                if ($model->wasChanged($slot.'_updated_at')) {
+                    $timestampAlreadySet = true;
+                    break;
+                }
+            }
+
+            if ($timestampAlreadySet) {
+                return;
+            }
+
+            LogoSyncService::stampSlots($model, $changedSlots, pushToCms: true);
+        });
     }
 
     protected $casts = [
         'site_deployment_queue_started_at' => 'datetime',
         'last_deployment_error_at' => 'datetime',
+        'logo_1_updated_at' => 'datetime',
+        'logo_2_updated_at' => 'datetime',
+        'logo_3_updated_at' => 'datetime',
+        'logo_4_updated_at' => 'datetime',
+        'logo_5_updated_at' => 'datetime',
     ];
 
     public $appends = ['null_variable_count', 'logo_urls'];

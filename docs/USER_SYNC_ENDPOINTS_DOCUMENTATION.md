@@ -447,6 +447,7 @@ curl -X POST https://superadmin.blackwidow.org.za/api/update-password \
 
 ### Authentication
 
+-   ✅ **Bearer token** - `Authorization: Bearer {customers.token}` (same secret CMS stores as `SECURE_TOKEN`)
 -   ✅ **App URL validation** - Ensures requests are from valid customers
 -   ✅ **Customer scoping** - All operations scoped to specific customer
 -   ✅ **User ID validation** - Prevents cross-customer user access

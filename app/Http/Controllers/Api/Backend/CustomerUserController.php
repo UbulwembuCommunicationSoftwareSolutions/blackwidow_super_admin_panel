@@ -21,7 +21,7 @@ class CustomerUserController extends Controller
     /** @var list<string> */
     private const SORTABLE = [
         'id', 'email_address', 'first_name', 'last_name', 'cellphone',
-        'customer_id', 'is_system_admin', 'created_at', 'updated_at', 'deleted_at',
+        'customer_id', 'is_system_admin', 'created_at', 'updated_at', 'deleted_at', 'delete_scheduled',
     ];
 
     public function index(Request $request): JsonResponse
@@ -88,7 +88,7 @@ class CustomerUserController extends Controller
     {
         $row = CustomerUser::query()->findOrFail($id);
         $this->authorize('delete', $row);
-        $row->delete();
+        $row->scheduleDelete();
 
         return response()->json(['ok' => true, 'id' => $id]);
     }
@@ -97,7 +97,7 @@ class CustomerUserController extends Controller
     {
         $row = CustomerUser::withTrashed()->findOrFail($id);
         $this->authorize('restore', $row);
-        $row->restore();
+        $row->clearDeleteSchedule();
 
         return response()->json(['data' => $row->fresh()->makeHidden(self::HIDDEN)]);
     }

@@ -12,8 +12,25 @@ class CMSService
 {
     public function setConsoleSystemConfigs($subscription)
     {
-        $url = $subscription->url.'/admin-api/set-levels';
-        echo 'Doing request to '.$url.' with token '.$subscription->customer->token.PHP_EOL;
+        $subscription->loadMissing('customer');
+
+        if (blank($subscription->url)) {
+            Log::warning('CMS system config sync skipped: empty subscription URL', [
+                'subscription_id' => $subscription->id,
+            ]);
+
+            throw new \RuntimeException('CMS system config sync skipped: empty subscription URL');
+        }
+
+        if (! $subscription->customer || blank($subscription->customer->token)) {
+            Log::warning('CMS system config sync skipped: missing customer or API token', [
+                'subscription_id' => $subscription->id,
+            ]);
+
+            throw new \RuntimeException('CMS system config sync skipped: missing customer or API token');
+        }
+
+        $url = rtrim((string) $subscription->url, '/').'/admin-api/set-levels';
         $data = [
             'level_one_in_use' => $subscription->customer->level_one_in_use,
             'level_one_description' => $subscription->customer->level_one_description,
@@ -27,8 +44,29 @@ class CMSService
             'docket_description' => $subscription->customer->docket_description,
         ];
 
-        $response = Http::withToken($subscription->customer->token)->post($url, $data);
-        dd($response->body());
+        $response = Http::withToken((string) $subscription->customer->token)
+            ->acceptJson()
+            ->asJson()
+            ->post($url, $data);
+
+        if (! $response->successful()) {
+            Log::warning('CMS system config sync failed', [
+                'subscription_id' => $subscription->id,
+                'url' => $url,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new \RuntimeException(
+                'CMS system config sync failed with HTTP '.$response->status()
+            );
+        }
+
+        Log::info('CMS system config sync succeeded', [
+            'subscription_id' => $subscription->id,
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
     }
 
     public static function suspendService($customerUser)
@@ -112,6 +150,56 @@ class CMSService
             Log::warning('CMS panic sync failed', [
                 'subscription_id' => $subscription->id,
                 'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+        }
+    }
+
+    /**
+     * Push logo URLs + timestamps to the CMS tenant.
+     *
+     * @param  array{logos: array<string, array{url: ?string, updated_at: ?string}>, source?: string}  $payload
+     */
+    public static function syncLogos(CustomerSubscription $subscription, array $payload): void
+    {
+        if ((int) $subscription->subscription_type_id !== 1) {
+            return;
+        }
+
+        if (blank($subscription->url)) {
+            Log::warning('CMS logo sync skipped: empty subscription URL', [
+                'subscription_id' => $subscription->id,
+            ]);
+
+            return;
+        }
+
+        $subscription->loadMissing('customer');
+
+        if (! $subscription->customer || blank($subscription->customer->token)) {
+            Log::warning('CMS logo sync skipped: missing customer or API token', [
+                'subscription_id' => $subscription->id,
+            ]);
+
+            return;
+        }
+
+        $url = rtrim((string) $subscription->url, '/').'/admin-api/sync-logos';
+
+        $response = Http::withToken((string) $subscription->customer->token)
+            ->acceptJson()
+            ->asJson()
+            ->post($url, $payload);
+
+        if (! $response->successful()) {
+            Log::warning('CMS logo sync failed', [
+                'subscription_id' => $subscription->id,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+        } else {
+            Log::info('CMS logo sync succeeded', [
+                'subscription_id' => $subscription->id,
                 'body' => $response->body(),
             ]);
         }
