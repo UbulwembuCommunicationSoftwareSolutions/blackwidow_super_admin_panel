@@ -33,6 +33,8 @@ return [
         'http://*.heartbeatnetworks.com',
         'https://*.bvigilant.co.za',
         'http://*.bvigilant.co.za',
+        'https://*.aims.net.za',
+        'http://*.aims.net.za',
 
         /*
         | Vue admin SPA (Reseller Console). Listed as an exact origin on

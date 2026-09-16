@@ -151,6 +151,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                     'aims.world' => 'aims.world',
                                     'bvigilant.co.za' => 'bvigilant.co.za',
                                     'siyaleader.org.za' => 'siyaleader.org.za',
+                                    'aims.net.za' => 'aims.net.za',
                                 ])
                                 ->afterStateUpdated(function ($get, $set) {
                                     $type = $get('subscription_type_id');
@@ -160,6 +161,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                         'aims.world' => 'aims_world',
                                         'bvigilant.co.za' => 'bvigilant',
                                         'siyaleader.org.za' => 'siyaleader',
+                                        'aims.net.za' => 'aims_net_za',
                                     ];
                                     $theType = match ((int) $type) {
                                         1 => 'console',

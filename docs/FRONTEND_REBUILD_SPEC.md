@@ -930,7 +930,7 @@ The primary path for onboarding, reached from the Customer Subscriptions tab on 
 | 6 | `app_name` | text | App name | yes | Auto-generated, still editable. Hint "Will be auto-generated from customer name", placeholder "e.g., MyCompanyApp" |
 | 7 | `database_name` | text | Database name | yes | Auto-derived, still editable |
 
-**Vertical options:** `blackwidow.org.za`, `aims.work`, `aims.world`, `bvigilant.co.za`, `siyaleader.org.za`, mapping to the slugs `blackwidow`, `aims_work`, `aims_world`, `bvigilant`, `siyaleader`.
+**Vertical options:** `blackwidow.org.za`, `aims.work`, `aims.world`, `bvigilant.co.za`, `siyaleader.org.za`, `aims.net.za`, mapping to the slugs `blackwidow`, `aims_work`, `aims_world`, `bvigilant`, `siyaleader`, `aims_net_za`.
 
 **Derivation rules to reimplement:**
 - `app_name` — strip non-alphanumerics from the company name, TitleCase, no spaces; falls back to `CustomerApp`
