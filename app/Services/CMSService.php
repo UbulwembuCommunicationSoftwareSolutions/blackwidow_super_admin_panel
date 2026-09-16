@@ -139,12 +139,24 @@ class CMSService
 
         $url = rtrim((string) $subscription->url, '/').'/admin-api/set-panic-button-enabled';
 
-        $response = Http::withToken((string) $subscription->customer->token)
-            ->acceptJson()
-            ->asJson()
-            ->post($url, [
-                'panic_button_enabled' => (bool) $subscription->panic_button_enabled,
+        try {
+            $response = Http::withToken((string) $subscription->customer->token)
+                ->acceptJson()
+                ->asJson()
+                ->connectTimeout(5)
+                ->timeout(10)
+                ->post($url, [
+                    'panic_button_enabled' => (bool) $subscription->panic_button_enabled,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('CMS panic sync unreachable', [
+                'subscription_id' => $subscription->id,
+                'url' => $url,
+                'message' => $e->getMessage(),
             ]);
+
+            return;
+        }
 
         if (! $response->successful()) {
             Log::warning('CMS panic sync failed', [
