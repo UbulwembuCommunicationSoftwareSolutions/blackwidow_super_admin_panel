@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
+use App\Models\CustomerSubscriptionDeploymentJob;
+use App\Models\CustomerUser;
 use App\Models\EnvVariables;
 use App\Models\SubscriptionType;
 use App\Models\TemplateEnvVariables;
+use App\Services\EnvComparisonService;
 use App\Services\SiteDeploymentScheduler;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * JSON API for MCP / automation (auth: Sanctum personal access token).
@@ -30,12 +35,91 @@ class McpSiteController extends Controller
         's3_use_path_style_endpoint',
     ];
 
+    /** @var list<string> */
+    private const CUSTOMER_USER_MCP_HIDDEN = [
+        'password',
+        'sync_hash',
+        'remember_token',
+    ];
+
+    /** @var list<string> */
+    private const CUSTOMER_SORT_COLUMNS = ['id', 'company_name', 'created_at'];
+
+    /** @var list<string> */
+    private const SUBSCRIPTION_SORT_COLUMNS = ['id', 'url', 'domain', 'app_name', 'created_at', 'deployed_at'];
+
     public function health(): JsonResponse
     {
         return response()->json([
             'status' => 'ok',
             'app' => config('app.name'),
             'environment' => config('app.env'),
+        ]);
+    }
+
+    public function overview(): JsonResponse
+    {
+        $customersTotal = Customer::query()->count();
+        $customersTrashed = Customer::onlyTrashed()->count();
+        $subscriptionsTotal = CustomerSubscription::query()->count();
+        $subscriptionsDeployed = CustomerSubscription::query()->whereNotNull('deployed_at')->count();
+        $subscriptionsNotDeployed = CustomerSubscription::query()->whereNull('deployed_at')->count();
+
+        $byType = CustomerSubscription::query()
+            ->selectRaw('subscription_type_id, count(*) as count')
+            ->groupBy('subscription_type_id')
+            ->with('subscriptionType:id,name')
+            ->get()
+            ->map(fn (CustomerSubscription $row) => [
+                'subscription_type_id' => $row->subscription_type_id,
+                'name' => $row->subscriptionType?->name,
+                'count' => (int) $row->count,
+            ])
+            ->values();
+
+        $atOrOverLimit = Customer::query()
+            ->withCount('customerUsers')
+            ->where('max_users', '>', 0)
+            ->get()
+            ->filter(fn (Customer $c) => $c->customer_users_count >= $c->max_users)
+            ->map(fn (Customer $c) => [
+                'id' => $c->id,
+                'company_name' => $c->company_name,
+                'max_users' => $c->max_users,
+                'customer_users_count' => $c->customer_users_count,
+            ])
+            ->values();
+
+        $jobCounts = CustomerSubscriptionDeploymentJob::query()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->map(fn ($c) => (int) $c)
+            ->all();
+
+        $deploymentJobsByStatus = [
+            CustomerSubscriptionDeploymentJob::STATUS_PENDING => (int) ($jobCounts[CustomerSubscriptionDeploymentJob::STATUS_PENDING] ?? 0),
+            CustomerSubscriptionDeploymentJob::STATUS_RUNNING => (int) ($jobCounts[CustomerSubscriptionDeploymentJob::STATUS_RUNNING] ?? 0),
+            CustomerSubscriptionDeploymentJob::STATUS_COMPLETED => (int) ($jobCounts[CustomerSubscriptionDeploymentJob::STATUS_COMPLETED] ?? 0),
+            CustomerSubscriptionDeploymentJob::STATUS_FAILED => (int) ($jobCounts[CustomerSubscriptionDeploymentJob::STATUS_FAILED] ?? 0),
+        ];
+
+        return response()->json([
+            'customers' => [
+                'total' => $customersTotal,
+                'trashed' => $customersTrashed,
+            ],
+            'subscriptions' => [
+                'total' => $subscriptionsTotal,
+                'deployed' => $subscriptionsDeployed,
+                'not_deployed' => $subscriptionsNotDeployed,
+                'by_type' => $byType,
+            ],
+            'seat_utilisation' => [
+                'customers_at_or_over_limit' => $atOrOverLimit,
+                'count' => $atOrOverLimit->count(),
+            ],
+            'deployment_jobs_by_status' => $deploymentJobsByStatus,
         ]);
     }
 
@@ -176,11 +260,30 @@ class McpSiteController extends Controller
 
     public function customers(Request $request): JsonResponse
     {
-        $validated = $this->mcpListRules($request);
+        $validated = $this->mcpListRules($request, extra: [
+            'search' => ['sometimes', 'string', 'max:255'],
+            'sort' => ['sometimes', 'string', Rule::in(self::CUSTOMER_SORT_COLUMNS)],
+            'direction' => ['sometimes', 'string', Rule::in(['asc', 'desc'])],
+            'with_counts' => ['sometimes', 'boolean'],
+            'trashed' => ['sometimes', 'string', Rule::in(['with', 'only'])],
+        ]);
 
-        $paginator = Customer::query()
-            ->orderBy('id')
-            ->paginate($validated['per_page']);
+        $query = Customer::query();
+        $this->applyTrashedFilter($query, $validated['trashed'] ?? null);
+
+        if (! empty($validated['search'])) {
+            $query->where('company_name', 'like', '%'.$validated['search'].'%');
+        }
+
+        if (! empty($validated['with_counts'])) {
+            $query->withCount(['customerSubscriptions', 'customerUsers']);
+        }
+
+        $sort = $validated['sort'] ?? 'id';
+        $direction = $validated['direction'] ?? 'asc';
+        $query->orderBy($sort, $direction);
+
+        $paginator = $query->paginate($validated['per_page']);
 
         $paginator->getCollection()->each(
             fn (Customer $c) => $c->makeHidden(self::CUSTOMER_MCP_HIDDEN)
@@ -235,14 +338,17 @@ class McpSiteController extends Controller
         $validated = $this->mcpListRules($request, extra: [
             'customer_id' => ['sometimes', 'integer', 'exists:customers,id'],
             'subscription_type_id' => ['sometimes', 'integer', 'exists:subscription_types,id'],
+            'search' => ['sometimes', 'string', 'max:255'],
+            'sort' => ['sometimes', 'string', Rule::in(self::SUBSCRIPTION_SORT_COLUMNS)],
+            'direction' => ['sometimes', 'string', Rule::in(['asc', 'desc'])],
+            'deployed' => ['sometimes', 'boolean'],
         ]);
 
         $query = CustomerSubscription::query()
             ->with([
                 'subscriptionType:id,name',
                 'customer:id,company_name',
-            ])
-            ->orderBy('id');
+            ]);
 
         if (array_key_exists('customer_id', $validated)) {
             $query->where('customer_id', $validated['customer_id']);
@@ -250,6 +356,25 @@ class McpSiteController extends Controller
         if (array_key_exists('subscription_type_id', $validated)) {
             $query->where('subscription_type_id', $validated['subscription_type_id']);
         }
+        if (! empty($validated['search'])) {
+            $term = '%'.$validated['search'].'%';
+            $query->where(function (Builder $q) use ($term) {
+                $q->where('url', 'like', $term)
+                    ->orWhere('domain', 'like', $term)
+                    ->orWhere('app_name', 'like', $term);
+            });
+        }
+        if (array_key_exists('deployed', $validated)) {
+            if ($request->boolean('deployed')) {
+                $query->whereNotNull('deployed_at');
+            } else {
+                $query->whereNull('deployed_at');
+            }
+        }
+
+        $sort = $validated['sort'] ?? 'id';
+        $direction = $validated['direction'] ?? 'asc';
+        $query->orderBy($sort, $direction);
 
         $paginator = $query->paginate($validated['per_page']);
 
@@ -334,6 +459,144 @@ class McpSiteController extends Controller
         $row->delete();
 
         return response()->json(['ok' => true, 'id' => $id]);
+    }
+
+    public function envDiff(Request $request, int $id, EnvComparisonService $comparison): JsonResponse
+    {
+        $request->validate([
+            'include_values' => ['sometimes', 'boolean'],
+        ]);
+
+        $subscription = CustomerSubscription::query()->findOrFail($id);
+        $result = $comparison->compare($subscription, $request->boolean('include_values'));
+
+        return response()->json(['data' => $result]);
+    }
+
+    public function customerUsers(Request $request): JsonResponse
+    {
+        $validated = $this->mcpListRules($request, extra: [
+            'customer_id' => ['sometimes', 'integer', 'exists:customers,id'],
+            'search' => ['sometimes', 'string', 'max:255'],
+            'trashed' => ['sometimes', 'string', Rule::in(['with', 'only'])],
+            'console_access' => ['sometimes', 'boolean'],
+            'firearm_access' => ['sometimes', 'boolean'],
+            'responder_access' => ['sometimes', 'boolean'],
+            'reporter_access' => ['sometimes', 'boolean'],
+            'security_access' => ['sometimes', 'boolean'],
+            'driver_access' => ['sometimes', 'boolean'],
+            'survey_access' => ['sometimes', 'boolean'],
+            'time_and_attendance_access' => ['sometimes', 'boolean'],
+            'stock_access' => ['sometimes', 'boolean'],
+        ]);
+
+        $query = CustomerUser::query()
+            ->with(['customer:id,company_name']);
+
+        $this->applyTrashedFilter($query, $validated['trashed'] ?? null);
+
+        if (array_key_exists('customer_id', $validated)) {
+            $query->where('customer_id', $validated['customer_id']);
+        }
+
+        if (! empty($validated['search'])) {
+            $term = '%'.$validated['search'].'%';
+            $query->where(function (Builder $q) use ($term) {
+                $q->where('first_name', 'like', $term)
+                    ->orWhere('last_name', 'like', $term)
+                    ->orWhere('email_address', 'like', $term);
+            });
+        }
+
+        foreach ([
+            'console_access',
+            'firearm_access',
+            'responder_access',
+            'reporter_access',
+            'security_access',
+            'driver_access',
+            'survey_access',
+            'time_and_attendance_access',
+            'stock_access',
+        ] as $flag) {
+            if (array_key_exists($flag, $validated)) {
+                $query->where($flag, $request->boolean($flag));
+            }
+        }
+
+        $paginator = $query->orderBy('id')->paginate($validated['per_page']);
+
+        $paginator->getCollection()->each(
+            fn (CustomerUser $u) => $u->makeHidden(self::CUSTOMER_USER_MCP_HIDDEN)
+        );
+
+        return response()->json($paginator);
+    }
+
+    public function showCustomerUser(int $id): JsonResponse
+    {
+        $row = CustomerUser::query()
+            ->with(['customer:id,company_name'])
+            ->findOrFail($id);
+        $row->makeHidden(self::CUSTOMER_USER_MCP_HIDDEN);
+
+        return response()->json(['data' => $row]);
+    }
+
+    public function deploymentJobs(Request $request): JsonResponse
+    {
+        $validated = $this->mcpListRules($request, extra: [
+            'customer_subscription_id' => ['sometimes', 'integer', 'exists:customer_subscriptions,id'],
+            'status' => ['sometimes', 'string', Rule::in([
+                CustomerSubscriptionDeploymentJob::STATUS_PENDING,
+                CustomerSubscriptionDeploymentJob::STATUS_RUNNING,
+                CustomerSubscriptionDeploymentJob::STATUS_COMPLETED,
+                CustomerSubscriptionDeploymentJob::STATUS_FAILED,
+            ])],
+            'batch_id' => ['sometimes', 'string', 'max:255'],
+            'include_log' => ['sometimes', 'boolean'],
+        ]);
+
+        $query = CustomerSubscriptionDeploymentJob::query()
+            ->with(['customerSubscription:id,customer_id,domain,url,app_name']);
+
+        if (array_key_exists('customer_subscription_id', $validated)) {
+            $query->where('customer_subscription_id', $validated['customer_subscription_id']);
+        }
+        if (array_key_exists('status', $validated)) {
+            $query->where('status', $validated['status']);
+        }
+        if (array_key_exists('batch_id', $validated)) {
+            $query->where('batch_id', $validated['batch_id']);
+        }
+
+        $paginator = $query->orderByDesc('id')->paginate($validated['per_page']);
+        $includeLog = $request->boolean('include_log');
+
+        $paginator->getCollection()->each(function (CustomerSubscriptionDeploymentJob $job) use ($includeLog) {
+            if (! $includeLog) {
+                $job->makeHidden('forge_log');
+            }
+        });
+
+        return response()->json($paginator);
+    }
+
+    public function showDeploymentJob(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'include_log' => ['sometimes', 'boolean'],
+        ]);
+
+        $row = CustomerSubscriptionDeploymentJob::query()
+            ->with(['customerSubscription:id,customer_id,domain,url,app_name'])
+            ->findOrFail($id);
+
+        if (! $request->boolean('include_log')) {
+            $row->makeHidden('forge_log');
+        }
+
+        return response()->json(['data' => $row]);
     }
 
     /**
@@ -430,6 +693,7 @@ class McpSiteController extends Controller
 
     /**
      * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
      */
     private function mcpListRules(Request $request, array $extra = []): array
     {
@@ -445,5 +709,14 @@ class McpSiteController extends Controller
         }
 
         return $validated;
+    }
+
+    private function applyTrashedFilter(Builder $query, ?string $trashed): void
+    {
+        if ($trashed === 'with') {
+            $query->withTrashed();
+        } elseif ($trashed === 'only') {
+            $query->onlyTrashed();
+        }
     }
 }

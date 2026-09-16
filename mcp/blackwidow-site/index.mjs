@@ -80,7 +80,7 @@ const del = (path) => apiRequest('DELETE', path, null, null);
 
 const server = new McpServer({
   name: 'blackwidow-site',
-  version: '1.1.0'
+  version: '1.2.0'
 });
 
 const textResult = (data) => ({
@@ -93,6 +93,16 @@ server.registerTool(
   'site_health',
   { description: 'GET /api/mcp/health', inputSchema: z.object({}) },
   async () => textResult(await get('/mcp/health'))
+);
+
+server.registerTool(
+  'site_overview',
+  {
+    description:
+      'GET /api/mcp/overview — customer/subscription totals, seats at limit, deployments by status, subscriptions by type.',
+    inputSchema: z.object({})
+  },
+  async () => textResult(await get('/mcp/overview'))
 );
 
 server.registerTool(
@@ -258,13 +268,25 @@ const customerFields = {
 server.registerTool(
   'list_customers',
   {
-    description: 'Paginated customers (no S3/api secrets).',
+    description:
+      'Paginated customers (no S3/api secrets). Optional search, sort (id|company_name|created_at), direction, with_counts, trashed (with|only).',
     inputSchema: z.object({
       page: z.number().int().min(1).optional(),
-      per_page: z.number().int().min(1).max(100).optional()
+      per_page: z.number().int().min(1).max(100).optional(),
+      search: z.string().optional(),
+      sort: z.enum(['id', 'company_name', 'created_at']).optional(),
+      direction: z.enum(['asc', 'desc']).optional(),
+      with_counts: z.boolean().optional(),
+      trashed: z.enum(['with', 'only']).optional()
     })
   },
-  async (a) => textResult(await get('/mcp/customers', stripUndef(a)))
+  async (a) =>
+    textResult(
+      await get('/mcp/customers', {
+        ...stripUndef(a),
+        with_counts: a.with_counts === true ? 1 : undefined
+      })
+    )
 );
 
 server.registerTool(
@@ -349,15 +371,29 @@ const subUpdateFields = {
 server.registerTool(
   'list_customer_subscriptions',
   {
-    description: 'Paginated subscriptions; env blob omitted. Filters: customer_id, subscription_type_id.',
+    description:
+      'Paginated subscriptions; env blob omitted. Filters: customer_id, subscription_type_id, search, deployed, sort, direction.',
     inputSchema: z.object({
       customer_id: z.number().int().optional(),
       subscription_type_id: z.number().int().optional(),
+      search: z.string().optional(),
+      deployed: z.boolean().optional(),
+      sort: z
+        .enum(['id', 'url', 'domain', 'app_name', 'created_at', 'deployed_at'])
+        .optional(),
+      direction: z.enum(['asc', 'desc']).optional(),
       page: z.number().int().min(1).optional(),
       per_page: z.number().int().min(1).max(100).optional()
     })
   },
-  async (a) => textResult(await get('/mcp/customer-subscriptions', stripUndef(a)))
+  async (a) =>
+    textResult(
+      await get('/mcp/customer-subscriptions', {
+        ...stripUndef(a),
+        deployed:
+          a.deployed === true ? 1 : a.deployed === false ? 0 : undefined
+      })
+    )
 );
 
 server.registerTool(
@@ -427,6 +463,119 @@ server.registerTool(
     inputSchema: z.object({ id: z.number().int() })
   },
   async (a) => textResult(await del(`/mcp/customer-subscriptions/${a.id}`))
+);
+
+server.registerTool(
+  'compare_subscription_env',
+  {
+    description:
+      'GET env-diff for a subscription: template keys vs EnvVariables vs last-pushed env blob (no Forge). include_values to return secret values.',
+    inputSchema: z.object({
+      id: z.number().int(),
+      include_values: z.boolean().optional()
+    })
+  },
+  async (a) =>
+    textResult(
+      await get(`/mcp/customer-subscriptions/${a.id}/env-diff`, {
+        include_values: a.include_values === true ? 1 : undefined
+      })
+    )
+);
+
+// --- Customer users (read-only) ---
+
+server.registerTool(
+  'list_customer_users',
+  {
+    description:
+      'Paginated customer users (password/sync_hash hidden). Filters: customer_id, search, access flags, trashed.',
+    inputSchema: z.object({
+      customer_id: z.number().int().optional(),
+      search: z.string().optional(),
+      trashed: z.enum(['with', 'only']).optional(),
+      console_access: z.boolean().optional(),
+      firearm_access: z.boolean().optional(),
+      responder_access: z.boolean().optional(),
+      reporter_access: z.boolean().optional(),
+      security_access: z.boolean().optional(),
+      driver_access: z.boolean().optional(),
+      survey_access: z.boolean().optional(),
+      time_and_attendance_access: z.boolean().optional(),
+      stock_access: z.boolean().optional(),
+      page: z.number().int().min(1).optional(),
+      per_page: z.number().int().min(1).max(100).optional()
+    })
+  },
+  async (a) => {
+    const q = stripUndef(a);
+    for (const flag of [
+      'console_access',
+      'firearm_access',
+      'responder_access',
+      'reporter_access',
+      'security_access',
+      'driver_access',
+      'survey_access',
+      'time_and_attendance_access',
+      'stock_access'
+    ]) {
+      if (a[flag] === true) q[flag] = 1;
+      else if (a[flag] === false) q[flag] = 0;
+    }
+    return textResult(await get('/mcp/customer-users', q));
+  }
+);
+
+server.registerTool(
+  'get_customer_user',
+  {
+    description: 'GET one customer user by id (secrets hidden).',
+    inputSchema: z.object({ id: z.number().int() })
+  },
+  async (a) => textResult(await get(`/mcp/customer-users/${a.id}`))
+);
+
+// --- Deployment jobs (read-only) ---
+
+server.registerTool(
+  'list_deployment_jobs',
+  {
+    description:
+      'Paginated deployment jobs (forge_log omitted unless include_log). Filters: customer_subscription_id, status, batch_id.',
+    inputSchema: z.object({
+      customer_subscription_id: z.number().int().optional(),
+      status: z.enum(['pending', 'running', 'completed', 'failed']).optional(),
+      batch_id: z.string().optional(),
+      include_log: z.boolean().optional(),
+      page: z.number().int().min(1).optional(),
+      per_page: z.number().int().min(1).max(100).optional()
+    })
+  },
+  async (a) =>
+    textResult(
+      await get('/mcp/deployment-jobs', {
+        ...stripUndef(a),
+        include_log: a.include_log === true ? 1 : undefined
+      })
+    )
+);
+
+server.registerTool(
+  'get_deployment_job',
+  {
+    description: 'GET one deployment job. include_log true to return forge_log.',
+    inputSchema: z.object({
+      id: z.number().int(),
+      include_log: z.boolean().optional()
+    })
+  },
+  async (a) =>
+    textResult(
+      await get(`/mcp/deployment-jobs/${a.id}`, {
+        include_log: a.include_log === true ? 1 : undefined
+      })
+    )
 );
 
 function stripUndef (o) {

@@ -55,6 +55,7 @@ Route::post('/google-places-proxy', [GooglePlacesProxyController::class, 'proxy'
 // customer-subscription POST: optional trigger_site_deployment, force_site_deployment to queue the Forge site pipeline.
 Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
     Route::get('/health', [McpSiteController::class, 'health']);
+    Route::get('/overview', [McpSiteController::class, 'overview']);
     Route::get('/subscription-types', [McpSiteController::class, 'subscriptionTypes']);
     Route::get('/template-env-variables', [McpSiteController::class, 'templateEnvVariables']);
     Route::get('/template-env-variables/{id}', [McpSiteController::class, 'showTemplateEnvVariable'])->whereNumber('id');
@@ -71,7 +72,12 @@ Route::middleware('auth:sanctum')->prefix('mcp')->group(function () {
     Route::post('/customers', [McpSiteController::class, 'storeCustomer']);
     Route::put('/customers/{id}', [McpSiteController::class, 'updateCustomer'])->whereNumber('id');
     Route::delete('/customers/{id}', [McpSiteController::class, 'destroyCustomer'])->whereNumber('id');
+    Route::get('/customer-users', [McpSiteController::class, 'customerUsers']);
+    Route::get('/customer-users/{id}', [McpSiteController::class, 'showCustomerUser'])->whereNumber('id');
+    Route::get('/deployment-jobs', [McpSiteController::class, 'deploymentJobs']);
+    Route::get('/deployment-jobs/{id}', [McpSiteController::class, 'showDeploymentJob'])->whereNumber('id');
     Route::get('/customer-subscriptions', [McpSiteController::class, 'customerSubscriptions']);
+    Route::get('/customer-subscriptions/{id}/env-diff', [McpSiteController::class, 'envDiff'])->whereNumber('id');
     Route::get('/customer-subscriptions/{id}', [McpSiteController::class, 'showCustomerSubscription'])->whereNumber('id');
     Route::post('/customer-subscriptions', [McpSiteController::class, 'storeCustomerSubscription']);
     Route::put('/customer-subscriptions/{id}', [McpSiteController::class, 'updateCustomerSubscription'])->whereNumber('id');

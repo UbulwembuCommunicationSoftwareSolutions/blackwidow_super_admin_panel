@@ -8,13 +8,15 @@
 
 | Area | Tools |
 |------|--------|
-| Meta | `site_health`, `list_subscription_types` |
+| Meta | `site_health`, `site_overview`, `list_subscription_types` |
 | Template env (`TemplateEnvVariables`) | `list_template_env_variables`, `get_template_env_variable`, `create_template_env_variable`, `update_template_env_variable`, `delete_template_env_variable` |
 | Site env rows (`EnvVariables`) | `list_env_variables`, `get_env_variable`, `create_env_variable`, `update_env_variable`, `delete_env_variable` |
 | Customers | `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer` |
-| Subscriptions | `list_customer_subscriptions`, `get_customer_subscription`, `create_customer_subscription`, `update_customer_subscription`, `delete_customer_subscription` |
+| Customer users | `list_customer_users`, `get_customer_user` (read-only; password/sync_hash hidden) |
+| Subscriptions | `list_customer_subscriptions`, `get_customer_subscription`, `create_customer_subscription`, `update_customer_subscription`, `delete_customer_subscription`, `compare_subscription_env` |
+| Deployment jobs | `list_deployment_jobs`, `get_deployment_job` (read-only; `forge_log` opt-in via `include_log`) |
 
-**Privacy:** API responses hide `Customer` storage credentials and `token`. `CustomerSubscription` list/show default hides the `env` blob; use `get_customer_subscription` with `include_env: true` or per-key `EnvVariables` tools when you need values.
+**Privacy:** API responses hide `Customer` storage credentials and `token`. `CustomerSubscription` list/show default hides the `env` blob; use `get_customer_subscription` with `include_env: true` or per-key `EnvVariables` tools when you need values. `compare_subscription_env` diffs template keys vs configured rows vs the last-pushed env blob (database only — no Forge); pass `include_values: true` to see secret values.
 
 **Create subscription** requires at minimum: `url`, `domain`, `database_name`, `subscription_type_id`, `customer_id` (see tests and `McpSiteController`).
 
