@@ -41,6 +41,7 @@ class DeploymentJobsRelationManager extends RelationManager
                     ->orderByDesc('created_at')
                     ->orderBy('position');
             })
+            ->poll('5s')
             ->columns([
                 TextColumn::make('batch_id')
                     ->label('Batch')
@@ -66,10 +67,27 @@ class DeploymentJobsRelationManager extends RelationManager
                         'success' => CustomerSubscriptionDeploymentJob::STATUS_COMPLETED,
                         'danger' => CustomerSubscriptionDeploymentJob::STATUS_FAILED,
                     ]),
+                TextColumn::make('forge_status')
+                    ->label('Forge status')
+                    ->badge()
+                    ->placeholder('—')
+                    ->color(fn (?string $state): string => match ($state) {
+                        'installed', 'finished' => 'success',
+                        'failed', 'failed-build', 'cancelled' => 'danger',
+                        null => 'gray',
+                        default => 'warning',
+                    })
+                    ->tooltip('The actual status of the resource on Forge (site/deployment/database), not just whether our API call succeeded.'),
                 TextColumn::make('error_message')
                     ->label('Error')
                     ->wrap()
                     ->limit(200)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('forge_log')
+                    ->label('Forge deployment log')
+                    ->wrap()
+                    ->limit(2000)
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('parameters')

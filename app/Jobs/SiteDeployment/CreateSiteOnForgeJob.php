@@ -79,6 +79,25 @@ class CreateSiteOnForgeJob implements ShouldQueue
             }
             throw new \RuntimeException($message);
         }
+
+        if ($this->deploymentJobId !== null) {
+            $forgeStatus = $forgeApi->waitForSiteStatus(
+                (int) $customerSubscription->server_id,
+                (int) $customerSubscription->forge_site_id,
+                ['installed', 'failed'],
+                90
+            );
+            app(DeploymentStepDispatcher::class)->recordForgeStatus($this->deploymentJobId, $forgeStatus);
+            if ($forgeStatus === 'failed') {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    'Forge reported the site installation failed.'
+                );
+
+                return;
+            }
+        }
+
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

@@ -53,7 +53,10 @@ class AddSSLOnSiteJob implements ShouldQueue
             'note' => 'LE order accepted on success; cert may still be installing on Forge.',
         ]);
         $forgeApi = new ForgeApi;
-        $forgeApi->letsEncryptCertificate($customerSubscription);
+        $certificate = $forgeApi->letsEncryptCertificate($customerSubscription);
+        if ($this->deploymentJobId !== null) {
+            app(DeploymentStepDispatcher::class)->recordForgeStatus($this->deploymentJobId, $certificate->status);
+        }
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

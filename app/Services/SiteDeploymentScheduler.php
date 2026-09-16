@@ -129,6 +129,8 @@ class SiteDeploymentScheduler
         $row->update([
             'status' => CustomerSubscriptionDeploymentJob::STATUS_PENDING,
             'error_message' => null,
+            'forge_status' => null,
+            'forge_log' => null,
             'started_at' => null,
             'finished_at' => null,
         ]);

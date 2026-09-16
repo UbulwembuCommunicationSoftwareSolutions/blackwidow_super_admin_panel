@@ -173,10 +173,70 @@ class ForgeApi
         }
     }
 
-    public function deploySite($server_id, $site_id)
+    public function deploySite($server_id, $site_id): \Laravel\Forge\Resources\Deployment
     {
         $organization = $this->organizationSlugForServer((int) $server_id);
-        $this->forge->createDeployment($organization, $server_id, $site_id);
+
+        return $this->forge->createDeployment($organization, $server_id, $site_id);
+    }
+
+    /**
+     * The site's current status on Forge (e.g. installing, installed, failed) — the real state of
+     * the resource Forge is provisioning, as opposed to whether our last API call succeeded.
+     */
+    public function siteStatus(int $server_id, int $site_id): ?string
+    {
+        $organization = $this->organizationSlugForServer($server_id);
+
+        return $this->forge->organizationSite($organization, $site_id)->status;
+    }
+
+    /**
+     * Poll the site's status until it reaches one of $terminalStatuses or $timeoutSeconds elapses.
+     * Returns the last observed status (which may not be terminal, if we timed out).
+     */
+    public function waitForSiteStatus(int $server_id, int $site_id, array $terminalStatuses, int $timeoutSeconds = 60): ?string
+    {
+        $deadline = microtime(true) + $timeoutSeconds;
+        $status = null;
+        do {
+            $status = $this->siteStatus($server_id, $site_id);
+            if ($status !== null && in_array($status, $terminalStatuses, true)) {
+                return $status;
+            }
+            usleep(1_500_000);
+        } while (microtime(true) < $deadline);
+
+        return $status;
+    }
+
+    /**
+     * Poll a deployment until it reaches a terminal status (finished/failed/failed-build/cancelled)
+     * or $timeoutSeconds elapses. Returns the last observed status.
+     */
+    public function waitForDeploymentStatus(int $server_id, int $site_id, int $deployment_id, int $timeoutSeconds = 240): string
+    {
+        $organization = $this->organizationSlugForServer($server_id);
+        $terminal = ['finished', 'failed', 'failed-build', 'cancelled'];
+        $deadline = microtime(true) + $timeoutSeconds;
+        $status = 'pending';
+        do {
+            $deployment = $this->forge->deployment($organization, $server_id, $site_id, $deployment_id);
+            $status = $deployment->status ?? $status;
+            if (in_array($status, $terminal, true)) {
+                return $status;
+            }
+            usleep(2_000_000);
+        } while (microtime(true) < $deadline);
+
+        return $status;
+    }
+
+    public function deploymentLog(int $server_id, int $site_id, int $deployment_id): string
+    {
+        $organization = $this->organizationSlugForServer($server_id);
+
+        return $this->forge->deploymentLog($organization, $server_id, $site_id, $deployment_id);
     }
 
     public function getSitesForServer($serverId)
@@ -276,7 +336,7 @@ class ForgeApi
      *
      * @param  bool  $waitUntilInstalled  When true, blocks until the SDK reports the certificate is installed.
      */
-    public function letsEncryptCertificate(CustomerSubscription $customerSubscription, bool $waitUntilInstalled = false)
+    public function letsEncryptCertificate(CustomerSubscription $customerSubscription, bool $waitUntilInstalled = false): \Laravel\Forge\Resources\Certificate
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $domain = str_replace('http://', '', $customerSubscription->url);
@@ -298,7 +358,7 @@ class ForgeApi
         ]);
 
         if ($waitUntilInstalled) {
-            $this->waitForCertificateInstalled($organization, $serverId, $siteId, $domainId, (int) $certificate->id);
+            $certificate = $this->waitForCertificateInstalled($organization, $serverId, $siteId, $domainId, (int) $certificate->id);
         }
 
         Log::info('forge.letsencrypt_requested', [
@@ -307,22 +367,27 @@ class ForgeApi
             'forge_site_id' => $siteId,
             'domain' => $domain,
             'wait_until_installed' => $waitUntilInstalled,
+            'forge_status' => $certificate->status,
             'note' => $waitUntilInstalled
                 ? null
                 : 'Certificate may still be installing on Forge; check Forge if HTTPS is not live yet.',
         ]);
+
+        return $certificate;
     }
 
-    protected function waitForCertificateInstalled(string $organizationSlug, int $server_id, int $site_id, int $domain_id, int $certificate_id, int $timeoutSeconds = 30): void
+    protected function waitForCertificateInstalled(string $organizationSlug, int $server_id, int $site_id, int $domain_id, int $certificate_id, int $timeoutSeconds = 30): \Laravel\Forge\Resources\Certificate
     {
         $deadline = microtime(true) + $timeoutSeconds;
         do {
             $certificate = $this->forge->certificate($organizationSlug, $server_id, $site_id, $domain_id, $certificate_id);
             if ($certificate->status === 'installed') {
-                return;
+                return $certificate;
             }
             usleep(500000);
         } while (microtime(true) < $deadline);
+
+        return $certificate;
     }
 
     protected function resolveForgeDomainId(string $organizationSlug, int $server_id, int $site_id, string $name): ?int
@@ -423,8 +488,10 @@ class ForgeApi
 
     /**
      * Create the MySQL database on Forge (no user). {@see provisionForgeServerDatabaseUser} for the database user.
+     *
+     * @return string|null The database's Forge-side status (e.g. "installed"), or null if the step was skipped.
      */
-    public function provisionForgeServerDatabase(int $server_id, CustomerSubscription $customerSubscription): void
+    public function provisionForgeServerDatabase(int $server_id, CustomerSubscription $customerSubscription): ?string
     {
         $name = $customerSubscription->forgeMysqlIdentifier();
         if ($name === '') {
@@ -434,7 +501,7 @@ class ForgeApi
                 'database_empty' => true,
             ]);
 
-            return;
+            return null;
         }
 
         $organization = $this->organizationSlugForServer($server_id);
@@ -457,6 +524,8 @@ class ForgeApi
                 'database' => $name,
                 'database_id' => $databaseId,
             ]);
+
+            return $createdDatabase->status;
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
             $databaseId = $this->resolveForgeDatabaseId($organization, $server_id, $name);
@@ -469,16 +538,18 @@ class ForgeApi
                     'validation_message' => $validationMessage,
                     'forge_validation_errors' => $e->errors(),
                 ]);
-            } else {
-                Log::warning('forge.create_database.validation_not_recovered', [
-                    'customer_subscription_id' => $customerSubscription->id,
-                    'server_id' => $server_id,
-                    'database' => $name,
-                    'validation_message' => $validationMessage,
-                    'forge_validation_errors' => $e->errors(),
-                ]);
-                throw $e;
+
+                return $this->forge->database($organization, $server_id, $databaseId)->status;
             }
+
+            Log::warning('forge.create_database.validation_not_recovered', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'database' => $name,
+                'validation_message' => $validationMessage,
+                'forge_validation_errors' => $e->errors(),
+            ]);
+            throw $e;
         } catch (Throwable $e) {
             Log::error('forge.create_database.api_failed', [
                 'customer_subscription_id' => $customerSubscription->id,
@@ -493,8 +564,10 @@ class ForgeApi
 
     /**
      * Create the MySQL user on Forge and grant access to the subscription database.
+     *
+     * @return string|null The database user's Forge-side status (e.g. "installed"), or null if the step was skipped.
      */
-    public function provisionForgeServerDatabaseUser(int $server_id, CustomerSubscription $customerSubscription): void
+    public function provisionForgeServerDatabaseUser(int $server_id, CustomerSubscription $customerSubscription): ?string
     {
         $this->prepareForgeServerDatabaseUserCredentials($customerSubscription);
 
@@ -515,7 +588,7 @@ class ForgeApi
                 'password_empty' => $password === '',
             ]);
 
-            return;
+            return null;
         }
 
         $organization = $this->organizationSlugForServer($server_id);
@@ -547,7 +620,7 @@ class ForgeApi
         ]);
 
         try {
-            $this->forge->createDatabaseUser($organization, $server_id, $userPayload);
+            $createdUser = $this->forge->createDatabaseUser($organization, $server_id, $userPayload);
             Log::info('forge.database_user_created', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
@@ -557,12 +630,12 @@ class ForgeApi
             ]);
             $customerSubscription->refresh();
             $this->syncMysqlEnvFromSubscription($customerSubscription);
+
+            return $createdUser->status;
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
-            if (
-                $this->forgeDatabaseUserNameExistsOnServer($organization, $server_id, $user)
-                || $this->isLikelyDuplicateDatabaseUserMessage($validationMessage)
-            ) {
+            $existingUser = $this->findForgeDatabaseUserByName($organization, $server_id, $user);
+            if ($existingUser !== null || $this->isLikelyDuplicateDatabaseUserMessage($validationMessage)) {
                 Log::warning('forge.create_database_user.skip_exists', [
                     'customer_subscription_id' => $customerSubscription->id,
                     'server_id' => $server_id,
@@ -575,7 +648,7 @@ class ForgeApi
                 $customerSubscription->refresh();
                 $this->syncMysqlEnvFromSubscription($customerSubscription);
 
-                return;
+                return $existingUser?->status;
             }
 
             Log::warning('forge.create_database_user.validation_not_recovered', [
@@ -629,15 +702,15 @@ class ForgeApi
         return null;
     }
 
-    protected function forgeDatabaseUserNameExistsOnServer(string $organizationSlug, int $server_id, string $name): bool
+    protected function findForgeDatabaseUserByName(string $organizationSlug, int $server_id, string $name): ?\Laravel\Forge\Resources\DatabaseUser
     {
         foreach ($this->forge->databaseUsers($organizationSlug, $server_id)->lazy() as $user) {
             if (($user->name ?? null) === $name) {
-                return true;
+                return $user;
             }
         }
 
-        return false;
+        return null;
     }
 
     /**

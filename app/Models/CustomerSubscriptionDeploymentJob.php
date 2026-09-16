@@ -24,6 +24,8 @@ class CustomerSubscriptionDeploymentJob extends Model
         'parameters',
         'status',
         'error_message',
+        'forge_status',
+        'forge_log',
         'started_at',
         'finished_at',
     ];

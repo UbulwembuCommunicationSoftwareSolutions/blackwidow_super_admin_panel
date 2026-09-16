@@ -109,4 +109,22 @@ class DeploymentStepDispatcher
             'finished_at' => now(),
         ]);
     }
+
+    /**
+     * Record the real Forge-side status (and, when available, deployment output) observed for a
+     * step, independent of whether our own API call succeeded. This is what {@see \App\Helpers\ForgeApi}
+     * observes by polling the resource Forge is actually provisioning (site/deployment status), not
+     * just whether the HTTP request to Forge returned without error.
+     */
+    public function recordForgeStatus(int $deploymentJobId, ?string $forgeStatus, ?string $forgeLog = null): void
+    {
+        $row = CustomerSubscriptionDeploymentJob::query()->find($deploymentJobId);
+        if (! $row) {
+            return;
+        }
+        $row->update(array_filter([
+            'forge_status' => $forgeStatus,
+            'forge_log' => $forgeLog,
+        ], fn ($value) => $value !== null));
+    }
 }

@@ -63,7 +63,27 @@ class DeploySite implements ShouldQueue
         $customerSubscription->deployed_at = now();
         $customerSubscription->deployed_version = $customerSubscription->subscriptionType?->master_version;
         $customerSubscription->save();
-        $forgeApi->deploySite($customerSubscription->server_id, $customerSubscription->forge_site_id);
+        $deployment = $forgeApi->deploySite($customerSubscription->server_id, $customerSubscription->forge_site_id);
+
+        if ($this->deploymentJobId !== null) {
+            $serverId = (int) $customerSubscription->server_id;
+            $siteId = (int) $customerSubscription->forge_site_id;
+            $forgeStatus = $forgeApi->waitForDeploymentStatus($serverId, $siteId, (int) $deployment->id, 240);
+
+            $failed = in_array($forgeStatus, ['failed', 'failed-build', 'cancelled'], true);
+            $forgeLog = $failed ? $forgeApi->deploymentLog($serverId, $siteId, (int) $deployment->id) : null;
+            app(DeploymentStepDispatcher::class)->recordForgeStatus($this->deploymentJobId, $forgeStatus, $forgeLog);
+
+            if ($failed) {
+                app(DeploymentStepDispatcher::class)->markStepFailed(
+                    $this->deploymentJobId,
+                    'Forge deployment ' . $forgeStatus . '.' . ($forgeLog ? ' See the deployment log for details.' : '')
+                );
+
+                return;
+            }
+        }
+
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

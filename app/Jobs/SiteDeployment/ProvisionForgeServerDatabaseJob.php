@@ -70,7 +70,10 @@ class ProvisionForgeServerDatabaseJob implements ShouldQueue
             }
             throw new \RuntimeException($message);
         }
-        (new ForgeApi)->provisionForgeServerDatabase($customerSubscription->server_id, $customerSubscription);
+        $forgeStatus = (new ForgeApi)->provisionForgeServerDatabase($customerSubscription->server_id, $customerSubscription);
+        if ($this->deploymentJobId !== null && $forgeStatus !== null) {
+            app(DeploymentStepDispatcher::class)->recordForgeStatus($this->deploymentJobId, $forgeStatus);
+        }
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

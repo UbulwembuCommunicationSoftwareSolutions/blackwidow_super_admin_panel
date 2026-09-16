@@ -48,11 +48,11 @@ class CustomerSubscriptionController extends Controller
     ];
 
     /** @var list<string> */
-    private const JOBS_SEARCHABLE = ['batch_id', 'job_name', 'status', 'error_message'];
+    private const JOBS_SEARCHABLE = ['batch_id', 'job_name', 'status', 'error_message', 'forge_status'];
 
     /** @var list<string> */
     private const JOBS_SORTABLE = [
-        'id', 'batch_id', 'position', 'job_name', 'status',
+        'id', 'batch_id', 'position', 'job_name', 'status', 'forge_status',
         'started_at', 'finished_at', 'created_at',
     ];
 
