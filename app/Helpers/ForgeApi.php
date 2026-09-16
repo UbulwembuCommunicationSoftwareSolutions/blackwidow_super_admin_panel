@@ -687,7 +687,9 @@ class ForgeApi
         $userPayload = [
             'name' => $user,
             'password' => $password,
-            'databases' => [$databaseId],
+            // "databases" (the v1 field name) is silently accepted and ignored by v2 -- no
+            // validation error, but the grant never gets created. The real field is "database_ids".
+            'database_ids' => [$databaseId],
         ];
 
         Log::info('forge.create_database_user', [
