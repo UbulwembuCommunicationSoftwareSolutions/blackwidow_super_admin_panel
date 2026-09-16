@@ -167,56 +167,6 @@ class CMSService
         }
     }
 
-    /**
-     * Push logo URLs + timestamps to the CMS tenant.
-     *
-     * @param  array{logos: array<string, array{url: ?string, updated_at: ?string}>, source?: string}  $payload
-     */
-    public static function syncLogos(CustomerSubscription $subscription, array $payload): void
-    {
-        if ((int) $subscription->subscription_type_id !== 1) {
-            return;
-        }
-
-        if (blank($subscription->url)) {
-            Log::warning('CMS logo sync skipped: empty subscription URL', [
-                'subscription_id' => $subscription->id,
-            ]);
-
-            return;
-        }
-
-        $subscription->loadMissing('customer');
-
-        if (! $subscription->customer || blank($subscription->customer->token)) {
-            Log::warning('CMS logo sync skipped: missing customer or API token', [
-                'subscription_id' => $subscription->id,
-            ]);
-
-            return;
-        }
-
-        $url = rtrim((string) $subscription->url, '/').'/admin-api/sync-logos';
-
-        $response = Http::withToken((string) $subscription->customer->token)
-            ->acceptJson()
-            ->asJson()
-            ->post($url, $payload);
-
-        if (! $response->successful()) {
-            Log::warning('CMS logo sync failed', [
-                'subscription_id' => $subscription->id,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-        } else {
-            Log::info('CMS logo sync succeeded', [
-                'subscription_id' => $subscription->id,
-                'body' => $response->body(),
-            ]);
-        }
-    }
-
     public function sendAppLink(CustomerUser $customerUser, CustomerSubscription $customerSubscription)
     {
 

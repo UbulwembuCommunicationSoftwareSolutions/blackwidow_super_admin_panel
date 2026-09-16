@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\McpSiteController;
+use App\Http\Controllers\Api\V1\BrandingSyncController;
 use App\Http\Controllers\Api\V1\UserSyncController;
 use App\Http\Controllers\CustomerSubscriptionController;
 use App\Http\Controllers\GooglePlacesProxyController;
@@ -30,6 +31,8 @@ Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
     Route::post('users/archive', [UserSyncController::class, 'archive']);
     Route::post('users/restore', [UserSyncController::class, 'restore']);
     Route::post('users/password', [UserSyncController::class, 'password']);
+    Route::get('branding', [BrandingSyncController::class, 'index']);
+    Route::post('branding', [BrandingSyncController::class, 'upsert']);
 });
 
 Route::middleware('customer.bearer')->group(function () {
@@ -44,7 +47,6 @@ Route::middleware('customer.bearer')->group(function () {
     Route::post('archive-user', 'App\Http\Controllers\CustomerUserController@archiveUser');
     Route::post('restore-user', 'App\Http\Controllers\CustomerUserController@restoreUser');
     Route::post('urls', 'App\Http\Controllers\CustomerController@getUrls');
-    Route::post('update-logos', [CustomerSubscriptionController::class, 'updateLogosFromCms']);
 });
 
 Route::post('/google-places-proxy', [GooglePlacesProxyController::class, 'proxy']);

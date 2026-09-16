@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api\Backend;
 
+use App\Jobs\PushBrandingToTenantsJob;
 use App\Jobs\SiteDeployment\DeploySite;
-use App\Jobs\SyncLogosToCmsJob;
+use App\Models\BrandingSyncLog;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerSubscriptionDeploymentJob;
 use App\Services\CustomerSubscriptionService;
@@ -11,6 +12,7 @@ use App\Services\DomainDnsService;
 use App\Services\ForgeService;
 use App\Services\LogoSyncService;
 use App\Services\SiteDeploymentScheduler;
+use App\Support\BrandingSync\BrandingSyncPayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -240,12 +242,21 @@ class CustomerSubscriptionController extends Controller
         $changes = [];
 
         foreach ($uploaded as $slot) {
-            $changes[$slot] = $request->file($slot)->store('/', 'public');
+            $file = $request->file($slot);
+            $changes[$slot] = $file->store('/', 'public');
             $changes[LogoSyncService::timestampColumn($slot)] = now();
+            if (array_key_exists($slot, LogoSyncService::SLOT_TO_CMS)) {
+                $changes[BrandingSyncPayload::checksumColumn($slot)] = BrandingSyncPayload::computeChecksum(
+                    (string) file_get_contents($file->getRealPath())
+                );
+            }
         }
         foreach ($clear as $slot) {
             $changes[$slot] = null;
             $changes[LogoSyncService::timestampColumn($slot)] = now();
+            if (array_key_exists($slot, LogoSyncService::SLOT_TO_CMS)) {
+                $changes[BrandingSyncPayload::checksumColumn($slot)] = null;
+            }
         }
 
         // Only drop the previous file once the replacement is safely on disk.
@@ -254,21 +265,82 @@ class CustomerSubscriptionController extends Controller
             array_values(array_unique([...$uploaded, ...$clear])),
         ), 'filled');
 
+        // Model hook queues PushBrandingToTenantsJob for CMS slots when skipSync is false.
         $row->update($changes);
 
         foreach ($replaced as $path) {
             $disk->delete($path);
         }
 
-        // Timestamps were set in the same update, so the model hook skips push —
-        // dispatch explicitly for CMS (subscription type 1 only).
-        if ((int) $row->subscription_type_id === 1) {
-            SyncLogosToCmsJob::dispatch($row->id, [...$uploaded, ...$clear]);
-        }
-
         $data = $row->fresh()->load(['subscriptionType:id,name', 'customer:id,company_name']);
 
         return response()->json(['data' => $this->present($data, $request)]);
+    }
+
+    /**
+     * Per-slot branding status for the SPA Branding tab (url, timestamp, checksum, last sync).
+     */
+    public function branding(int $id): JsonResponse
+    {
+        $row = CustomerSubscription::query()->findOrFail($id);
+        $this->authorize('view', $row);
+
+        $slots = [];
+        foreach (BrandingSyncPayload::SLOTS as $cmsSlot) {
+            $saSlot = BrandingSyncPayload::CMS_TO_SA_SLOT[$cmsSlot];
+            $path = $row->getAttribute($saSlot);
+            $lastLog = BrandingSyncLog::query()
+                ->where('customer_subscription_id', $row->id)
+                ->where('slot', $cmsSlot)
+                ->where('direction', 'outbound')
+                ->latest('synced_at')
+                ->first();
+
+            $slots[$cmsSlot] = [
+                'sa_slot' => $saSlot,
+                'url' => filled($path) ? LogoSyncService::absolutePublicUrl((string) $path) : null,
+                'updated_at' => optional($row->getAttribute(LogoSyncService::timestampColumn($saSlot)))?->toIso8601String(),
+                'checksum' => $row->getAttribute(BrandingSyncPayload::checksumColumn($saSlot)),
+                'sync_status' => $lastLog?->status,
+                'sync_error' => $lastLog?->error_message,
+                'synced_at' => optional($lastLog?->synced_at)?->toIso8601String(),
+            ];
+        }
+
+        return response()->json([
+            'data' => [
+                'logo_urls' => $row->logo_urls,
+                'slots' => $slots,
+            ],
+        ]);
+    }
+
+    /**
+     * Manually re-push one or all CMS branding slots to the tenant.
+     */
+    public function resyncBranding(Request $request, int $id): JsonResponse
+    {
+        $row = CustomerSubscription::query()->findOrFail($id);
+        $this->authorize('update', $row);
+
+        $validated = $request->validate([
+            'slot' => ['sometimes', 'nullable', 'string', Rule::in(BrandingSyncPayload::SLOTS)],
+        ]);
+
+        $cmsSlots = filled($validated['slot'] ?? null)
+            ? [$validated['slot']]
+            : BrandingSyncPayload::SLOTS;
+
+        if ((int) $row->subscription_type_id !== 1) {
+            return response()->json(['message' => 'Branding sync is only available for CMS subscriptions.'], 422);
+        }
+
+        PushBrandingToTenantsJob::dispatch($row->id, $cmsSlots);
+
+        return response()->json([
+            'ok' => true,
+            'queued' => $cmsSlots,
+        ]);
     }
 
     public function generateLogos(int $id): JsonResponse

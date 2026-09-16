@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Jobs\PushBrandingToTenantsJob;
 use App\Services\LogoSyncService;
+use App\Support\BrandingSync\BrandingSyncPayload;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +25,11 @@ class CustomerSubscription extends Model
 
     /** Subscription logo slots, in the order the form shows them. */
     public const LOGO_SLOTS = ['logo_1', 'logo_2', 'logo_3', 'logo_4', 'logo_5'];
+
+    /**
+     * When true, model hooks must not queue an outbound branding push (inbound apply).
+     */
+    public bool $skipSync = false;
 
     protected $hidden = [
         'database_password',
@@ -71,6 +78,9 @@ class CustomerSubscription extends Model
         'logo_3_updated_at',
         'logo_4_updated_at',
         'logo_5_updated_at',
+        'logo_1_checksum',
+        'logo_2_checksum',
+        'logo_3_checksum',
         'created_at',
         'updated_at',
         'database_name',
@@ -113,6 +123,10 @@ class CustomerSubscription extends Model
         });
 
         static::updated(function (CustomerSubscription $model): void {
+            if ($model->skipSync) {
+                return;
+            }
+
             $changedSlots = [];
             foreach (self::LOGO_SLOTS as $slot) {
                 if ($model->wasChanged($slot)) {
@@ -124,21 +138,58 @@ class CustomerSubscription extends Model
                 return;
             }
 
-            // Skip echo when timestamps were already stamped by LogoSyncService (CMS push / uploadLogos)
-            $timestampAlreadySet = false;
+            // Stamp timestamps for any path-only change that did not already set them.
+            $needsStamp = [];
             foreach ($changedSlots as $slot) {
-                if ($model->wasChanged($slot.'_updated_at')) {
-                    $timestampAlreadySet = true;
-                    break;
+                if (! $model->wasChanged($slot.'_updated_at')) {
+                    $needsStamp[] = $slot;
                 }
             }
 
-            if ($timestampAlreadySet) {
-                return;
+            if ($needsStamp !== []) {
+                LogoSyncService::stampSlots($model, $needsStamp, pushToCms: false);
             }
 
-            LogoSyncService::stampSlots($model, $changedSlots, pushToCms: true);
+            $cmsSlots = [];
+            foreach ($changedSlots as $saSlot) {
+                $cmsSlot = array_search($saSlot, BrandingSyncPayload::CMS_TO_SA_SLOT, true);
+                if ($cmsSlot !== false) {
+                    $cmsSlots[] = $cmsSlot;
+                }
+            }
+
+            if ($cmsSlots !== [] && (int) $model->subscription_type_id === 1) {
+                PushBrandingToTenantsJob::dispatch($model->id, $cmsSlots);
+            }
         });
+    }
+
+    public function brandingSyncLogs(): HasMany
+    {
+        return $this->hasMany(BrandingSyncLog::class);
+    }
+
+    /**
+     * Queue an outbound branding push for the given CMS slots (login_logo, ...).
+     *
+     * @param  list<string>  $cmsSlots
+     */
+    public function queueBrandingPush(array $cmsSlots): void
+    {
+        if ($this->skipSync) {
+            return;
+        }
+
+        if ((int) $this->subscription_type_id !== 1) {
+            return;
+        }
+
+        $cmsSlots = array_values(array_intersect($cmsSlots, BrandingSyncPayload::SLOTS));
+        if ($cmsSlots === []) {
+            return;
+        }
+
+        PushBrandingToTenantsJob::dispatch($this->id, $cmsSlots);
     }
 
     protected $casts = [

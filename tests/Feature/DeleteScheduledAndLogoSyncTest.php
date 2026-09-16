@@ -1,6 +1,6 @@
 <?php
 
-use App\Jobs\SyncLogosToCmsJob;
+use App\Jobs\PushBrandingToTenantsJob;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
@@ -129,7 +129,7 @@ it('rejects login when delete_scheduled is set', function () {
     $response->assertUnauthorized();
 });
 
-it('dispatches SyncLogosToCmsJob when uploading logos on a CMS subscription', function () {
+it('dispatches PushBrandingToTenantsJob when uploading logos on a CMS subscription', function () {
     Storage::fake('public');
 
     $customer = Customer::factory()->create(['token' => 'logo-token']);
@@ -148,64 +148,11 @@ it('dispatches SyncLogosToCmsJob when uploading logos on a CMS subscription', fu
         'logo_1' => UploadedFile::fake()->image('login.png'),
     ])->assertOk();
 
-    Queue::assertPushed(SyncLogosToCmsJob::class, function (SyncLogosToCmsJob $job) use ($row) {
-        return $job->subscriptionId === $row->id && in_array('logo_1', $job->slots, true);
+    Queue::assertPushed(PushBrandingToTenantsJob::class, function ($job) use ($row) {
+        return $job->subscriptionId === $row->id && in_array('login_logo', $job->cmsSlots, true);
     });
 
     expect($row->fresh()->logo_1_updated_at)->not->toBeNull();
-});
-
-it('accepts CMS logo push when remote timestamp is newer', function () {
-    Storage::fake('public');
-
-    $customer = Customer::factory()->create(['token' => 'logo-push-token']);
-    SubscriptionType::factory()->create(['id' => 1, 'name' => 'CMS']);
-    $subscription = CustomerSubscription::factory()->create([
-        'customer_id' => $customer->id,
-        'subscription_type_id' => 1,
-        'url' => 'https://cms-push.example.test',
-        'logo_1_updated_at' => now()->subHour(),
-    ]);
-
-    $response = $this->withToken('logo-push-token')->post('/api/update-logos', [
-        'app_url' => $subscription->url,
-        'logo_1' => UploadedFile::fake()->image('cms-login.png'),
-        'timestamps' => [
-            'logo_1' => now()->toIso8601String(),
-        ],
-    ]);
-
-    $response->assertSuccessful()
-        ->assertJsonPath('success', true);
-
-    expect($response->json('applied'))->toContain('logo_1')
-        ->and($subscription->fresh()->logo_1)->not->toBeNull();
-});
-
-it('rejects CMS logo push when local timestamp is newer', function () {
-    Storage::fake('public');
-
-    $customer = Customer::factory()->create(['token' => 'logo-reject-token']);
-    SubscriptionType::factory()->create(['id' => 1, 'name' => 'CMS']);
-    $subscription = CustomerSubscription::factory()->create([
-        'customer_id' => $customer->id,
-        'subscription_type_id' => 1,
-        'url' => 'https://cms-push-old.example.test',
-        'logo_1' => 'existing.png',
-        'logo_1_updated_at' => now(),
-    ]);
-
-    $response = $this->withToken('logo-reject-token')->post('/api/update-logos', [
-        'app_url' => $subscription->url,
-        'logo_1' => UploadedFile::fake()->image('older.png'),
-        'timestamps' => [
-            'logo_1' => now()->subHour()->toIso8601String(),
-        ],
-    ]);
-
-    $response->assertSuccessful();
-    expect($response->json('applied'))->toBe([])
-        ->and($subscription->fresh()->logo_1)->toBe('existing.png');
 });
 
 it('includes logo timestamps on customer_logos response', function () {

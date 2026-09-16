@@ -6,7 +6,6 @@ use App\Helpers\ForgeApi;
 use App\Http\Requests\CustomerSubscriptionRequest;
 use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
-use App\Services\LogoSyncService;
 use Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -385,75 +384,6 @@ class CustomerSubscriptionController extends Controller
         $customerSubscription->delete();
 
         return response()->json();
-    }
-
-    /**
-     * Accept logo file uploads from CMS (last-write-wins via timestamps).
-     */
-    public function updateLogosFromCms(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'app_url' => ['required', 'string'],
-            'timestamps' => ['sometimes', 'array'],
-            'timestamps.logo_1' => ['nullable', 'date'],
-            'timestamps.logo_2' => ['nullable', 'date'],
-            'timestamps.logo_3' => ['nullable', 'date'],
-            'logo_1' => ['sometimes', 'file', 'mimes:jpg,jpeg,png,gif,webp,svg', 'max:10240'],
-            'logo_2' => ['sometimes', 'file', 'mimes:jpg,jpeg,png,gif,webp,svg', 'max:10240'],
-            'logo_3' => ['sometimes', 'file', 'mimes:jpg,jpeg,png,gif,webp,svg', 'max:10240'],
-        ]);
-
-        $normalized = rtrim($validated['app_url'], '/');
-        $subscription = CustomerSubscription::query()
-            ->where(function ($q) use ($validated, $normalized) {
-                $q->where('url', $validated['app_url'])
-                    ->orWhere('url', $normalized)
-                    ->orWhere('url', $normalized.'/');
-            })
-            ->where('subscription_type_id', 1)
-            ->first();
-
-        if (! $subscription) {
-            $host = parse_url($normalized, PHP_URL_HOST);
-            if ($host) {
-                $subscription = CustomerSubscription::query()
-                    ->where('url', 'like', '%'.$host.'%')
-                    ->where('subscription_type_id', 1)
-                    ->first();
-            }
-        }
-
-        if (! $subscription) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid app URL',
-            ], 400);
-        }
-
-        $files = [];
-        foreach (['logo_1', 'logo_2', 'logo_3'] as $slot) {
-            if ($request->hasFile($slot)) {
-                $files[$slot] = $request->file($slot);
-            }
-        }
-
-        if ($files === []) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Provide at least one logo file',
-            ], 422);
-        }
-
-        $applied = LogoSyncService::applyCmsUpload(
-            $subscription,
-            $files,
-            $validated['timestamps'] ?? []
-        );
-
-        return response()->json([
-            'success' => true,
-            'applied' => $applied,
-        ]);
     }
 
     /**
