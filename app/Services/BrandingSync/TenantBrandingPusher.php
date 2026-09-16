@@ -21,14 +21,33 @@ class TenantBrandingPusher
     public function pushSlots(CustomerSubscription $subscription, array $cmsSlots): void
     {
         if (! config('branding_sync.enabled', true)) {
+            Log::info('Branding push skipped: branding_sync disabled', [
+                'subscription_id' => $subscription->id,
+            ]);
+
             return;
         }
 
         $targets = $this->targetSubscriptions($subscription);
         if ($targets->isEmpty()) {
+            $subscription->loadMissing('customer');
+            $reason = match (true) {
+                ! in_array((int) $subscription->subscription_type_id, array_map('intval', (array) config('branding_sync.tenant_subscription_types', [1])), true) => 'subscription_type_id not a tenant type',
+                blank($subscription->url) => 'subscription has no url',
+                blank($subscription->customer?->token) => 'customer has no token',
+                default => 'unknown',
+            };
+
             Log::info('No tenant apps to push branding to', [
                 'subscription_id' => $subscription->id,
+                'subscription_type_id' => $subscription->subscription_type_id,
+                'url' => $subscription->url,
+                'reason' => $reason,
             ]);
+
+            foreach ($cmsSlots as $cmsSlot) {
+                $this->log($subscription, $cmsSlot, 'skipped', $reason);
+            }
 
             return;
         }
@@ -62,12 +81,16 @@ class TenantBrandingPusher
         try {
             $response = $this->client($target)->post($url, $body);
         } catch (\Throwable $e) {
-            $this->log($source, $payload->slot, 'failed', $e->getMessage(), ['url' => $url]);
+            $this->log($source, $payload->slot, 'failed', $e->getMessage(), [
+                'url' => $url,
+                'request' => $body,
+            ]);
 
             Log::error('Branding push to tenant threw', [
                 'subscription_id' => $source->id,
                 'slot' => $payload->slot,
                 'url' => $url,
+                'request' => $body,
                 'error' => $e->getMessage(),
             ]);
 
@@ -77,13 +100,18 @@ class TenantBrandingPusher
         if (! $response->successful()) {
             $this->log($source, $payload->slot, 'failed', 'HTTP '.$response->status().' '.$response->body(), [
                 'url' => $url,
+                'request' => $body,
+                'status' => $response->status(),
+                'response_body' => $response->body(),
             ]);
 
             Log::error('Branding push to tenant failed', [
                 'subscription_id' => $source->id,
                 'slot' => $payload->slot,
                 'url' => $url,
+                'request' => $body,
                 'status' => $response->status(),
+                'response_body' => $response->body(),
             ]);
 
             throw new \RuntimeException('Tenant branding sync failed with HTTP '.$response->status().' for '.$url);
@@ -91,6 +119,16 @@ class TenantBrandingPusher
 
         $this->log($source, $payload->slot, 'success', null, [
             'url' => $url,
+            'request' => $body,
+            'outcome' => $response->json('outcome'),
+            'response' => $response->json(),
+        ]);
+
+        Log::info('Branding push to tenant succeeded', [
+            'subscription_id' => $source->id,
+            'slot' => $payload->slot,
+            'url' => $url,
+            'request' => $body,
             'outcome' => $response->json('outcome'),
             'response' => $response->json(),
         ]);
