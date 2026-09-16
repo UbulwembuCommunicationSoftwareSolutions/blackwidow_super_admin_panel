@@ -2,6 +2,6 @@
 
 return [
     App\Providers\AppServiceProvider::class,
-    App\Providers\Filament\AdminPanelProvider::class,
+    // Filament admin panel disabled; /admin now redirects to the external frontend (see routes/web.php).
     App\Providers\HorizonServiceProvider::class,
 ];

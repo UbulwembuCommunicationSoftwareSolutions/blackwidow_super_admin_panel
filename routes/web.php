@@ -3,15 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerSubscriptionController;
 
-// Laravel and packages often expect a route named "login". Filament auth lives at /admin/login;
-// register this name after the panel is booted (Filament route names are not available while loading web.php).
+// The Filament admin panel has been removed in favor of the external super admin frontend.
+// Laravel and packages often expect a route named "login".
 Route::get('/login', function () {
-    if (Route::has('filament.admin.auth.login')) {
-        return redirect()->route('filament.admin.auth.login');
-    }
-
-    return redirect()->to('/admin/login');
+    return redirect()->away('https://super_admin_frontend-eumaqzrf.on-forge.com/');
 })->name('login');
+
+Route::get('/admin/{any?}', function () {
+    return redirect()->away('https://super_admin_frontend-eumaqzrf.on-forge.com/');
+})->where('any', '.*');
 
 Route::get('/', function () {
     return view('welcome');

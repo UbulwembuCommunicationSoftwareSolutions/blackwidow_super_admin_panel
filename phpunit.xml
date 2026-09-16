@@ -6,6 +6,7 @@
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+            <exclude>tests/Feature/Filament</exclude>
         </testsuite>
         <testsuite name="Browser">
             <directory>tests/Browser</directory>
