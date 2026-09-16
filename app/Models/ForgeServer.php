@@ -9,6 +9,7 @@ class ForgeServer extends Model
     protected $table = 'my_forge_servers';
     protected $fillable = [
         'forge_server_id',
+        'organization',
         'name',
         'ip_address',
     ];

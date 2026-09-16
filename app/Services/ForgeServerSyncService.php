@@ -30,6 +30,7 @@ class ForgeServerSyncService
             ForgeServer::query()->updateOrCreate(
                 ['forge_server_id' => (int) $server->id],
                 [
+                    'organization' => $server->organizationSlug,
                     'name' => $server->name !== null && $server->name !== '' ? (string) $server->name : null,
                     'ip_address' => isset($server->ipAddress) && $server->ipAddress !== '' ? (string) $server->ipAddress : null,
                 ],

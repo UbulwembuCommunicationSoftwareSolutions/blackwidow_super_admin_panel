@@ -25,7 +25,8 @@ class ForgeService
     public static function getSiteEnvironment(CustomerSubscription $subscription): void
     {
         $forgeApi = new ForgeApi();
-        $response = $forgeApi->forge->siteEnvironmentFile($subscription->server_id, $subscription->forge_site_id);
+        $organization = $forgeApi->organizationSlugForServer((int) $subscription->server_id);
+        $response = $forgeApi->forge->siteEnvironment($organization, $subscription->server_id, $subscription->forge_site_id);
 
         $responseForLog = is_string($response)
             ? $response

@@ -35,6 +35,47 @@ class ForgeApi
         $this->forge = new Forge($apiKey);
     }
 
+    /**
+     * Resolve the Forge organization slug that owns the given server, from the local
+     * {@see ForgeServer} cache. Falls back to scanning every organization the API key
+     * can see (used the first time a server is encountered, or after Forge migrates
+     * a server between organizations) and caches the result.
+     */
+    public function organizationSlugForServer(int $server_id): string
+    {
+        $organization = ForgeServer::query()->where('forge_server_id', $server_id)->value('organization');
+        if (filled($organization)) {
+            return $organization;
+        }
+
+        $organization = $this->discoverOrganizationSlugForServer($server_id);
+        if ($organization === null) {
+            throw new \RuntimeException(
+                'Could not find server ' . $server_id . ' in any Forge organization visible to this API token.'
+            );
+        }
+
+        ForgeServer::query()->updateOrCreate(
+            ['forge_server_id' => $server_id],
+            ['organization' => $organization]
+        );
+
+        return $organization;
+    }
+
+    protected function discoverOrganizationSlugForServer(int $server_id): ?string
+    {
+        foreach ($this->forge->organizations()->lazy() as $organization) {
+            foreach ($this->forge->servers($organization->slug)->lazy() as $server) {
+                if ((int) $server->id === $server_id) {
+                    return $organization->slug;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function sendCommand($customerSubscriptionId, $command)
     {
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
@@ -42,31 +83,39 @@ class ForgeApi
             throw new \InvalidArgumentException('Customer subscription not found: ' . $customerSubscriptionId);
         }
         $this->assertForgeSiteReady($customerSubscription);
-        $commands_array['command'] = $command;
+        $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
         Log::info('forge.execute_site_command', [
             'customer_subscription_id' => (int) $customerSubscriptionId,
         ]);
-        $this->forge->executeSiteCommand($customerSubscription->server_id, $customerSubscription->forge_site_id, $commands_array);
+        $this->forge->createCommand($organization, $customerSubscription->server_id, $customerSubscription->forge_site_id, [
+            'command' => $command,
+        ]);
     }
 
     public function horizonCreator($customerSubscription)
     {
+        $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
         $data = [
             'command' => 'php /home/forge/' . $customerSubscription->domain . '/artisan horizon',
         ];
-        $this->forge->$this->forge->createDaemon($customerSubscription->server_id, $data);
+        $this->forge->createBackgroundProcess($organization, $customerSubscription->server_id, $data);
     }
 
     public function sendDeploymentScript(CustomerSubscription $customerSubscription)
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
-        $this->forge->updateSiteDeploymentScript($customerSubscription->server_id, $customerSubscription->forge_site_id, $customerSubscription->deploymentScript()->first()->script);
+        $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
+        $this->forge->updateDeploymentScript($organization, $customerSubscription->server_id, $customerSubscription->forge_site_id, [
+            'content' => $customerSubscription->deploymentScript()->first()->script,
+        ]);
     }
 
     public function sendGitRepository($customerSubscription)
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
-        $this->forge->installGitRepositoryOnSite(
+        $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
+        $this->forge->updateSite(
+            $organization,
             $customerSubscription->server_id,
             $customerSubscription->forge_site_id,
             [
@@ -86,98 +135,20 @@ class ForgeApi
         }
     }
 
-    public function getSitesForServer($serverId)
-    {
-        $sites = $this->getSites($serverId);
-        if (! is_array($sites)) {
-            return;
-        }
-        foreach ($sites as $site) {
-            $customerSubscription = CustomerSubscription::query()
-                ->where('server_id', $serverId)
-                ->where(function ($q) use ($site) {
-                    $q->where('domain', $site->name)
-                        ->orWhere('url', 'like', '%://' . $site->name . '%');
-                })
-                ->first();
-            if ($customerSubscription) {
-                $customerSubscription->forge_site_id = $site->id;
-                $customerSubscription->save();
-                Log::info('forge.site_matched', [
-                    'customer_subscription_id' => $customerSubscription->id,
-                    'forge_site_id' => $site->id,
-                    'site_name' => $site->name,
-                ]);
-            }
-        }
-    }
-
     /**
-     * Ensure this subscription has forge_site_id by re-fetching Forge sites for its server (used when API id was not saved).
+     * Fetch every server visible to this API token, across every organization it belongs to.
+     *
+     * @return list<\Laravel\Forge\Resources\Server>
      */
-    public function tryLinkForgeSiteId(CustomerSubscription $customerSubscription): bool
-    {
-        if ($customerSubscription->forge_site_id) {
-            return true;
-        }
-        if (! $customerSubscription->server_id) {
-            Log::warning('forge.try_link_no_server', ['customer_subscription_id' => $customerSubscription->id]);
-
-            return false;
-        }
-        $this->getSitesForServer($customerSubscription->server_id);
-        $customerSubscription->refresh();
-
-        return (bool) $customerSubscription->forge_site_id;
-    }
-
-    public function assertForgeSiteReady(CustomerSubscription $customerSubscription): CustomerSubscription
-    {
-        $fresh = $customerSubscription->fresh() ?? $customerSubscription;
-        if (! $fresh->server_id || ! $fresh->forge_site_id) {
-            throw new \RuntimeException(
-                'Subscription ' . $fresh->id . ' is not ready for Forge API calls (missing server_id or forge_site_id).'
-            );
-        }
-
-        return $fresh;
-    }
-
-    public function deployAllConsoles()
-    {
-        $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
-        foreach ($customerSubscriptions as $customerSubscription) {
-            if ($customerSubscription->server_id == null || $customerSubscription->forge_site_id == null) {
-                Log::error('Server ID or Site ID not found for Subscription ID: ' . $customerSubscription->id);
-            } else {
-                TriggerForgeDeployment::dispatch($customerSubscription->server_id, $customerSubscription->forge_site_id);
-            }
-        }
-    }
-
-    public function parseEnvContent($content)
-    {
-        $lines = explode("\n", $content);
-        $env = [];
-
-        foreach ($lines as $line) {
-            if (empty($line) || strpos(trim($line), '#') === 0) {
-                continue;
-            }
-
-            [$key, $value] = array_map('trim', explode('=', $line, 2));
-            if (preg_match('/^"(.*)"$/', $value, $matches)) {
-                $value = $matches[1];
-            }
-            $env[$key] = $value;
-        }
-
-        return $env;
-    }
-
     public function getServers()
     {
-        $this->servers = $this->forge->servers();
+        $servers = [];
+        foreach ($this->forge->organizations()->lazy() as $organization) {
+            foreach ($this->forge->servers($organization->slug)->lazy() as $server) {
+                $servers[] = $server;
+            }
+        }
+        $this->servers = $servers;
 
         return $this->servers;
     }
@@ -186,7 +157,8 @@ class ForgeApi
     {
         $sites = [];
         try {
-            foreach ($this->forge->sites($serverId) as $site) {
+            $organization = $this->organizationSlugForServer((int) $serverId);
+            foreach ($this->forge->serverSites($organization, $serverId)->lazy() as $site) {
                 $sites[] = $site;
             }
 
@@ -203,13 +175,15 @@ class ForgeApi
 
     public function deploySite($server_id, $site_id)
     {
-        $this->forge->deploySite($server_id, $site_id);
+        $organization = $this->organizationSlugForServer((int) $server_id);
+        $this->forge->createDeployment($organization, $server_id, $site_id);
     }
 
     /**
-     * Request a Let's Encrypt certificate on Forge. By default the Forge API is called with
-     * wait=false (request accepted, installation may still be in progress) to avoid job timeouts
-     * and queue retries that re-trigger LE and hit rate limits.
+     * Request a Let's Encrypt certificate on Forge for the subscription's primary domain.
+     * By default this does not block on Forge's polling ($waitUntilInstalled=false), since
+     * DNS/HTTP challenge verification can take a while and we don't want to tie up a queue
+     * worker or trigger job-timeout retries that re-request the certificate.
      *
      * @param  bool  $waitUntilInstalled  When true, blocks until the SDK reports the certificate is installed.
      */
@@ -218,26 +192,59 @@ class ForgeApi
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $domain = str_replace('http://', '', $customerSubscription->url);
         $domain = str_replace('https://', '', $domain);
-        $this->forge->obtainLetsEncryptCertificate(
-            $customerSubscription->server_id,
-            $customerSubscription->forge_site_id,
-            [
-                'domains' => [$domain],
-                'wildcard' => false,
-            ],
-            $waitUntilInstalled
-        );
+        $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
+        $serverId = (int) $customerSubscription->server_id;
+        $siteId = (int) $customerSubscription->forge_site_id;
+
+        $domainId = $this->resolveForgeDomainId($organization, $serverId, $siteId, $domain);
+        if ($domainId === null) {
+            $domainResource = $this->forge->createDomain($organization, $serverId, $siteId, [
+                'name' => $domain,
+            ]);
+            $domainId = (int) $domainResource->id;
+        }
+
+        $certificate = $this->forge->createCertificate($organization, $serverId, $siteId, $domainId, [
+            'type' => 'letsencrypt',
+        ]);
+
+        if ($waitUntilInstalled) {
+            $this->waitForCertificateInstalled($organization, $serverId, $siteId, $domainId, (int) $certificate->id);
+        }
 
         Log::info('forge.letsencrypt_requested', [
             'customer_subscription_id' => $customerSubscription->id,
-            'server_id' => $customerSubscription->server_id,
-            'forge_site_id' => $customerSubscription->forge_site_id,
+            'server_id' => $serverId,
+            'forge_site_id' => $siteId,
             'domain' => $domain,
             'wait_until_installed' => $waitUntilInstalled,
             'note' => $waitUntilInstalled
                 ? null
                 : 'Certificate may still be installing on Forge; check Forge if HTTPS is not live yet.',
         ]);
+    }
+
+    protected function waitForCertificateInstalled(string $organizationSlug, int $server_id, int $site_id, int $domain_id, int $certificate_id, int $timeoutSeconds = 30): void
+    {
+        $deadline = microtime(true) + $timeoutSeconds;
+        do {
+            $certificate = $this->forge->certificate($organizationSlug, $server_id, $site_id, $domain_id, $certificate_id);
+            if ($certificate->status === 'installed') {
+                return;
+            }
+            usleep(500000);
+        } while (microtime(true) < $deadline);
+    }
+
+    protected function resolveForgeDomainId(string $organizationSlug, int $server_id, int $site_id, string $name): ?int
+    {
+        foreach ($this->forge->domains($organizationSlug, $server_id, $site_id)->lazy() as $domain) {
+            if (($domain->name ?? null) === $name) {
+                return (int) $domain->id;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -304,7 +311,8 @@ class ForgeApi
 
         Log::info('forge.create_site', $payload);
 
-        $site = $this->forge->createSite($server_id, $payload);
+        $organization = $this->organizationSlugForServer((int) $server_id);
+        $site = $this->forge->createSite($organization, $server_id, $payload);
         $customerSubscription->forge_site_id = (string) $site->id;
         if (! $customerSubscription->site_created_at) {
             $customerSubscription->site_created_at = now();
@@ -340,6 +348,7 @@ class ForgeApi
             return;
         }
 
+        $organization = $this->organizationSlugForServer($server_id);
         $databasePayload = [
             'name' => $name,
         ];
@@ -351,7 +360,7 @@ class ForgeApi
         ]);
 
         try {
-            $createdDatabase = $this->forge->createDatabase($server_id, $databasePayload);
+            $createdDatabase = $this->forge->createDatabase($organization, $server_id, $databasePayload);
             $databaseId = (int) $createdDatabase->id;
             Log::info('forge.database_created', [
                 'customer_subscription_id' => $customerSubscription->id,
@@ -361,7 +370,7 @@ class ForgeApi
             ]);
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
-            $databaseId = $this->resolveForgeDatabaseId($server_id, $name);
+            $databaseId = $this->resolveForgeDatabaseId($organization, $server_id, $name);
             if ($databaseId !== null) {
                 Log::info('forge.create_database.skip_exists', [
                     'customer_subscription_id' => $customerSubscription->id,
@@ -420,7 +429,8 @@ class ForgeApi
             return;
         }
 
-        $databaseId = $this->resolveForgeDatabaseId($server_id, $name);
+        $organization = $this->organizationSlugForServer($server_id);
+        $databaseId = $this->resolveForgeDatabaseId($organization, $server_id, $name);
         if ($databaseId === null) {
             $message = 'Forge MySQL database "' . $name . '" was not found on the server. Create the database step must succeed first.';
             Log::error('forge.create_database_user.missing_database', [
@@ -448,7 +458,7 @@ class ForgeApi
         ]);
 
         try {
-            $this->forge->createDatabaseUser($server_id, $userPayload);
+            $this->forge->createDatabaseUser($organization, $server_id, $userPayload);
             Log::info('forge.database_user_created', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
@@ -461,7 +471,7 @@ class ForgeApi
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
             if (
-                $this->forgeDatabaseUserNameExistsOnServer($server_id, $user)
+                $this->forgeDatabaseUserNameExistsOnServer($organization, $server_id, $user)
                 || $this->isLikelyDuplicateDatabaseUserMessage($validationMessage)
             ) {
                 Log::warning('forge.create_database_user.skip_exists', [
@@ -519,9 +529,9 @@ class ForgeApi
             || str_contains($m, 'already');
     }
 
-    protected function resolveForgeDatabaseId(int $server_id, string $name): ?int
+    protected function resolveForgeDatabaseId(string $organizationSlug, int $server_id, string $name): ?int
     {
-        foreach ($this->forge->databases($server_id) as $db) {
+        foreach ($this->forge->databases($organizationSlug, $server_id)->lazy() as $db) {
             if (($db->name ?? null) === $name) {
                 return (int) $db->id;
             }
@@ -530,9 +540,9 @@ class ForgeApi
         return null;
     }
 
-    protected function forgeDatabaseUserNameExistsOnServer(int $server_id, string $name): bool
+    protected function forgeDatabaseUserNameExistsOnServer(string $organizationSlug, int $server_id, string $name): bool
     {
-        foreach ($this->forge->databaseUsers($server_id) as $user) {
+        foreach ($this->forge->databaseUsers($organizationSlug, $server_id)->lazy() as $user) {
             if (($user->name ?? null) === $name) {
                 return true;
             }
@@ -696,6 +706,7 @@ class ForgeApi
             );
         }
 
+        $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
         $env = $this->collectEnv($customerSubscription);
         Log::info('forge.update_site_environment_file', [
             'customer_subscription_id' => $customerSubscription->id,
@@ -704,7 +715,7 @@ class ForgeApi
         ]);
         Log::info(json_encode($env));
         try {
-            $this->forge->updateSiteEnvironmentFile($customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
+            $this->forge->updateSiteEnvironment($organization, $customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
         } catch (ValidationException $e) {
             Log::error('forge.env.validation_failed', [
                 'errors' => $e->errors(),
