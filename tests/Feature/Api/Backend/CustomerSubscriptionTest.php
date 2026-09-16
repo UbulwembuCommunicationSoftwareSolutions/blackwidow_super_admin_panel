@@ -188,6 +188,108 @@ it('lists deployment jobs for a subscription', function () {
         ->assertJsonPath('data.0.job_name', 'create_site');
 });
 
+it('retries a failed deployment job', function () {
+    actingAsBackendUser();
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => SubscriptionType::factory()->create(['project_type' => 'static'])->id,
+    ]);
+    $job = CustomerSubscriptionDeploymentJob::query()->create([
+        'customer_subscription_id' => $sub->id,
+        'batch_id' => 'retry-batch',
+        'position' => 0,
+        'job_name' => 'create_site',
+        'status' => CustomerSubscriptionDeploymentJob::STATUS_FAILED,
+        'error_message' => 'Unauthenticated.',
+    ]);
+
+    $this->mock(SiteDeploymentScheduler::class, function ($mock) {
+        $mock->shouldReceive('retryDeploymentJob')->once()->andReturn('retry-batch');
+    });
+
+    $this->postJson("/api/backend/customer-subscriptions/{$sub->id}/deployment-jobs/{$job->id}/retry")
+        ->assertOk()
+        ->assertJsonPath('data.batch_id', 'retry-batch')
+        ->assertJsonPath('data.deployment_job_id', $job->id);
+});
+
+it('runs a deployment job alone', function () {
+    actingAsBackendUser();
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => SubscriptionType::factory()->create(['project_type' => 'static'])->id,
+    ]);
+    $job = CustomerSubscriptionDeploymentJob::query()->create([
+        'customer_subscription_id' => $sub->id,
+        'batch_id' => 'original-batch',
+        'position' => 2,
+        'job_name' => 'create_site',
+        'status' => CustomerSubscriptionDeploymentJob::STATUS_FAILED,
+        'error_message' => 'boom',
+    ]);
+
+    $this->mock(SiteDeploymentScheduler::class, function ($mock) {
+        $mock->shouldReceive('requeueDeploymentJobAlone')->once()->andReturn('alone-batch');
+    });
+
+    $this->postJson("/api/backend/customer-subscriptions/{$sub->id}/deployment-jobs/{$job->id}/run-alone")
+        ->assertOk()
+        ->assertJsonPath('data.batch_id', 'alone-batch')
+        ->assertJsonPath('data.deployment_job_id', $job->id);
+});
+
+it('returns 404 when retrying a deployment job from another subscription', function () {
+    actingAsBackendUser();
+    $typeId = SubscriptionType::factory()->create(['project_type' => 'static'])->id;
+    $sub = CustomerSubscription::factory()->create(['subscription_type_id' => $typeId]);
+    $other = CustomerSubscription::factory()->create(['subscription_type_id' => $typeId]);
+    $job = CustomerSubscriptionDeploymentJob::query()->create([
+        'customer_subscription_id' => $other->id,
+        'batch_id' => 'other-batch',
+        'position' => 0,
+        'job_name' => 'create_site',
+        'status' => CustomerSubscriptionDeploymentJob::STATUS_FAILED,
+        'error_message' => 'boom',
+    ]);
+
+    $this->postJson("/api/backend/customer-subscriptions/{$sub->id}/deployment-jobs/{$job->id}/retry")
+        ->assertNotFound();
+});
+
+it('rejects retrying a running deployment job', function () {
+    actingAsBackendUser();
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => SubscriptionType::factory()->create(['project_type' => 'static'])->id,
+    ]);
+    $job = CustomerSubscriptionDeploymentJob::query()->create([
+        'customer_subscription_id' => $sub->id,
+        'batch_id' => 'running-batch',
+        'position' => 0,
+        'job_name' => 'create_site',
+        'status' => CustomerSubscriptionDeploymentJob::STATUS_RUNNING,
+        'started_at' => now(),
+    ]);
+
+    $this->postJson("/api/backend/customer-subscriptions/{$sub->id}/deployment-jobs/{$job->id}/retry")
+        ->assertStatus(422);
+});
+
+it('forbids retrying a deployment job without Update:CustomerSubscription', function () {
+    actingAsBackendForbidden();
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => SubscriptionType::factory()->create(['project_type' => 'static'])->id,
+    ]);
+    $job = CustomerSubscriptionDeploymentJob::query()->create([
+        'customer_subscription_id' => $sub->id,
+        'batch_id' => 'forbidden-batch',
+        'position' => 0,
+        'job_name' => 'create_site',
+        'status' => CustomerSubscriptionDeploymentJob::STATUS_FAILED,
+        'error_message' => 'boom',
+    ]);
+
+    $this->postJson("/api/backend/customer-subscriptions/{$sub->id}/deployment-jobs/{$job->id}/retry")
+        ->assertForbidden();
+});
+
 it('verifies a domain via DomainDnsService', function () {
     $user = actingAsBackendUser();
     RateLimiter::clear('verify-domain:'.$user->id);

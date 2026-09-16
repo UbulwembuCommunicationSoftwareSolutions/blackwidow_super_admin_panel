@@ -42,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customer-subscriptions/{id}/pipeline-steps', [CustomerSubscriptionController::class, 'pipelineSteps'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/pipeline-steps/{index}', [CustomerSubscriptionController::class, 'queuePipelineStep'])->whereNumber(['id', 'index']);
     Route::get('/customer-subscriptions/{id}/deployment-jobs', [CustomerSubscriptionController::class, 'deploymentJobs'])->whereNumber('id');
+    Route::post('/customer-subscriptions/{id}/deployment-jobs/{jobId}/retry', [CustomerSubscriptionController::class, 'retryDeploymentJob'])->whereNumber(['id', 'jobId']);
+    Route::post('/customer-subscriptions/{id}/deployment-jobs/{jobId}/run-alone', [CustomerSubscriptionController::class, 'runDeploymentJobAlone'])->whereNumber(['id', 'jobId']);
     Route::get('/customer-subscriptions', [CustomerSubscriptionController::class, 'index']);
     Route::post('/customer-subscriptions', [CustomerSubscriptionController::class, 'store']);
     Route::get('/customer-subscriptions/{id}', [CustomerSubscriptionController::class, 'show'])->whereNumber('id');

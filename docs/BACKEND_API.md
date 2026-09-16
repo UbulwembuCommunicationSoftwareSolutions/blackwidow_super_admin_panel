@@ -121,6 +121,8 @@ Custom actions (same services/jobs as Filament):
 - `GET /customer-subscriptions/{id}/pipeline-steps`
 - `POST /customer-subscriptions/{id}/pipeline-steps/{index}`
 - `GET /customer-subscriptions/{id}/deployment-jobs`
+- `POST /customer-subscriptions/{id}/deployment-jobs/{jobId}/retry` — re-dispatch that row in place so later steps in the same batch resume on success
+- `POST /customer-subscriptions/{id}/deployment-jobs/{jobId}/run-alone` — copy that row into a new single-step batch (original batch is left untouched)
 
 Env row edits live on `/env-variables`.
 

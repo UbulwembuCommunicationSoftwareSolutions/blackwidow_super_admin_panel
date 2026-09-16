@@ -109,6 +109,80 @@ class SiteDeploymentScheduler
     }
 
     /**
+     * Re-dispatch a deployment job row in place so later steps in the same batch resume on success.
+     *
+     * @throws \RuntimeException If any row in the same batch is currently running.
+     */
+    public function retryDeploymentJob(CustomerSubscriptionDeploymentJob $row): string
+    {
+        $batchRunning = CustomerSubscriptionDeploymentJob::query()
+            ->where('batch_id', $row->batch_id)
+            ->where('status', CustomerSubscriptionDeploymentJob::STATUS_RUNNING)
+            ->exists();
+
+        if ($batchRunning) {
+            throw new \RuntimeException(
+                'Cannot retry deployment job '.$row->id.' while another step in batch '.$row->batch_id.' is running.'
+            );
+        }
+
+        $row->update([
+            'status' => CustomerSubscriptionDeploymentJob::STATUS_PENDING,
+            'error_message' => null,
+            'started_at' => null,
+            'finished_at' => null,
+        ]);
+        $row->refresh();
+
+        $subscription = $row->customerSubscription;
+        if ($subscription) {
+            $subscription->last_deployment_error = null;
+            $subscription->last_deployment_error_at = null;
+            $subscription->save();
+        }
+
+        app(DeploymentStepDispatcher::class)->dispatchForRow($row);
+
+        Log::info('site_deployment.job_retried', [
+            'customer_subscription_id' => $row->customer_subscription_id,
+            'batch_id' => $row->batch_id,
+            'deployment_job_id' => $row->id,
+            'job_name' => $row->job_name,
+            'position' => $row->position,
+        ]);
+
+        return (string) $row->batch_id;
+    }
+
+    /**
+     * Copy a deployment job into a new single-step batch (does not resume the original batch).
+     */
+    public function requeueDeploymentJobAlone(CustomerSubscriptionDeploymentJob $row): string
+    {
+        $batchId = (string) Str::uuid();
+        $copy = CustomerSubscriptionDeploymentJob::query()->create([
+            'customer_subscription_id' => $row->customer_subscription_id,
+            'batch_id' => $batchId,
+            'position' => 0,
+            'job_name' => $row->job_name,
+            'parameters' => $row->parameters,
+            'status' => CustomerSubscriptionDeploymentJob::STATUS_PENDING,
+        ]);
+
+        app(DeploymentStepDispatcher::class)->dispatchForRow($copy);
+
+        Log::info('site_deployment.job_requeued_alone', [
+            'customer_subscription_id' => $row->customer_subscription_id,
+            'batch_id' => $batchId,
+            'source_deployment_job_id' => $row->id,
+            'deployment_job_id' => $copy->id,
+            'job_name' => $row->job_name,
+        ]);
+
+        return $batchId;
+    }
+
+    /**
      * @throws \RuntimeException
      */
     private function beginDeploymentRun(CustomerSubscription $customerSubscription, bool $force): void

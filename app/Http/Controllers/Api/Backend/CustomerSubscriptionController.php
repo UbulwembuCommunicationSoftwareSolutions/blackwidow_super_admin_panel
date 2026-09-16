@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Backend;
 use App\Jobs\SiteDeployment\DeploySite;
 use App\Jobs\SyncLogosToCmsJob;
 use App\Models\CustomerSubscription;
+use App\Models\CustomerSubscriptionDeploymentJob;
 use App\Services\CustomerSubscriptionService;
 use App\Services\DomainDnsService;
 use App\Services\ForgeService;
@@ -379,6 +380,56 @@ class CustomerSubscriptionController extends Controller
         $paginator = $query->paginate($validated['per_page']);
 
         return response()->json($paginator);
+    }
+
+    public function retryDeploymentJob(int $id, int $jobId): JsonResponse
+    {
+        $row = CustomerSubscription::query()->findOrFail($id);
+        $this->authorize('update', $row);
+
+        $job = $row->deploymentJobs()->findOrFail($jobId);
+
+        if ($job->status === CustomerSubscriptionDeploymentJob::STATUS_RUNNING) {
+            return response()->json(['message' => 'Cannot retry a running deployment job.'], 422);
+        }
+
+        try {
+            $batchId = app(SiteDeploymentScheduler::class)->retryDeploymentJob($job);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'data' => ['batch_id' => $batchId, 'deployment_job_id' => $job->id],
+        ]);
+    }
+
+    public function runDeploymentJobAlone(int $id, int $jobId): JsonResponse
+    {
+        $row = CustomerSubscription::query()->findOrFail($id);
+        $this->authorize('update', $row);
+
+        $job = $row->deploymentJobs()->findOrFail($jobId);
+
+        if ($job->status === CustomerSubscriptionDeploymentJob::STATUS_RUNNING) {
+            return response()->json(['message' => 'Cannot run a running deployment job alone.'], 422);
+        }
+
+        try {
+            $batchId = app(SiteDeploymentScheduler::class)->requeueDeploymentJobAlone($job);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'data' => ['batch_id' => $batchId, 'deployment_job_id' => $job->id],
+        ]);
     }
 
     /**
