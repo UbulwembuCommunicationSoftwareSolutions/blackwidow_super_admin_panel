@@ -13,6 +13,18 @@ class Customer extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Name of the reserved customer that catches Forge sites found with no matching subscription
+     * (created directly on Forge, or predating this app's tracking) so they stay visible in
+     * Filament for an operator to reassign, instead of being silently skipped.
+     */
+    public const PLACEHOLDER_COMPANY_NAME = 'Unassigned (Forge Sync)';
+
+    public static function placeholder(): self
+    {
+        return static::query()->firstOrCreate(['company_name' => self::PLACEHOLDER_COMPANY_NAME]);
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -20,7 +32,7 @@ class Customer extends Model
         static::created(function ($model) {
             // Your logic here
             // For example, call a method on the model
-            if (strlen($model->token) > 0) {
+            if (strlen((string) $model->token) > 0) {
                 return;
             } else {
                 $model->token = Str::uuid();

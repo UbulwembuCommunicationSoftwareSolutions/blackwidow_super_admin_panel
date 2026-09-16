@@ -4,6 +4,7 @@ namespace App\Helpers;
 
 use App\Jobs\GetSitesForServerJob;
 use App\Jobs\TriggerForgeDeployment;
+use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
 use App\Models\ForgeServer;
@@ -36,44 +37,28 @@ class ForgeApi
     }
 
     /**
-     * Resolve the Forge organization slug that owns the given server, from the local
-     * {@see ForgeServer} cache. Falls back to scanning every organization the API key
-     * can see (used the first time a server is encountered, or after Forge migrates
-     * a server between organizations) and caches the result.
+     * The single Forge organization this app is scoped to (https://forge.laravel.com/{slug}).
+     * Every Forge API call goes through this so the app never reads or writes another organization.
      */
-    public function organizationSlugForServer(int $server_id): string
+    public function organization(): string
     {
-        $organization = ForgeServer::query()->where('forge_server_id', $server_id)->value('organization');
-        if (filled($organization)) {
-            return $organization;
-        }
-
-        $organization = $this->discoverOrganizationSlugForServer($server_id);
-        if ($organization === null) {
+        $organization = config('services.forge.organization');
+        if (blank($organization)) {
             throw new \RuntimeException(
-                'Could not find server ' . $server_id . ' in any Forge organization visible to this API token.'
+                'Forge organization is not configured: set FORGE_ORGANIZATION_SLUG in your .env.'
             );
         }
-
-        ForgeServer::query()->updateOrCreate(
-            ['forge_server_id' => $server_id],
-            ['organization' => $organization]
-        );
 
         return $organization;
     }
 
-    protected function discoverOrganizationSlugForServer(int $server_id): ?string
+    /**
+     * Kept for callers that used to resolve a per-server organization; the app is now scoped to
+     * one organization ({@see organization()}), so every server belongs to it by definition.
+     */
+    public function organizationSlugForServer(int $server_id): string
     {
-        foreach ($this->forge->organizations()->lazy() as $organization) {
-            foreach ($this->forge->servers($organization->slug)->lazy() as $server) {
-                if ((int) $server->id === $server_id) {
-                    return $organization->slug;
-                }
-            }
-        }
-
-        return null;
+        return $this->organization();
     }
 
     public function sendCommand($customerSubscriptionId, $command)
@@ -151,7 +136,9 @@ class ForgeApi
 
     public function syncForge()
     {
-        $servers = ForgeServer::get();
+        // Scoped to organization() so a server cached locally from before the app was limited to
+        // one Forge organization can't get a site-sync job dispatched against the wrong org.
+        $servers = ForgeServer::where('organization', $this->organization())->get();
         foreach ($servers as $server) {
             echo 'Syncing Server: ' . $server->name . ' with ID of : ' . $server->forge_server_id . " \n";
             GetSitesForServerJob::dispatch($server->forge_server_id);
@@ -159,17 +146,15 @@ class ForgeApi
     }
 
     /**
-     * Fetch every server visible to this API token, across every organization it belongs to.
+     * Fetch every server in {@see organization()} — the one Forge organization this app manages.
      *
      * @return list<\Laravel\Forge\Resources\Server>
      */
     public function getServers()
     {
         $servers = [];
-        foreach ($this->forge->organizations()->lazy() as $organization) {
-            foreach ($this->forge->servers($organization->slug)->lazy() as $server) {
-                $servers[] = $server;
-            }
+        foreach ($this->forge->servers($this->organization())->lazy() as $server) {
+            $servers[] = $server;
         }
         $this->servers = $servers;
 
@@ -262,6 +247,12 @@ class ForgeApi
         return $this->forge->deploymentLog($organization, $server_id, $site_id, $deployment_id);
     }
 
+    /**
+     * Reconcile every Forge site on this server against {@see CustomerSubscription}. A site Forge
+     * already knows about but this app doesn't (created directly on Forge, or predating this app's
+     * tracking of it) is "caught up" as a new subscription under {@see Customer::placeholder()},
+     * rather than left invisible, so an operator can find and reassign it in Filament.
+     */
     public function getSitesForServer($serverId)
     {
         $sites = $this->getSites($serverId);
@@ -284,7 +275,25 @@ class ForgeApi
                     'forge_site_id' => $site->id,
                     'site_name' => $site->name,
                 ]);
+
+                continue;
             }
+
+            $customerSubscription = CustomerSubscription::create([
+                'customer_id' => Customer::placeholder()->id,
+                'server_id' => $serverId,
+                'forge_site_id' => $site->id,
+                'domain' => $site->name,
+                'url' => 'https://' . $site->name,
+                'database_name' => CustomerSubscription::normalizeDatabaseIdentifier((string) $site->name),
+                'site_created_at' => now(),
+            ]);
+            Log::info('forge.site_imported_under_placeholder_customer', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'forge_site_id' => $site->id,
+                'site_name' => $site->name,
+                'server_id' => $serverId,
+            ]);
         }
     }
 

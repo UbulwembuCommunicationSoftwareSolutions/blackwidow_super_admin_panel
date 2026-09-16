@@ -37,6 +37,8 @@ return [
 
     'forge' => [
         'key' => env('FORGE_API_KEY'),
+        // The only Forge organization this app is allowed to see/manage (https://forge.laravel.com/{slug}).
+        'organization' => env('FORGE_ORGANIZATION_SLUG', 'richard-hall-zbo'),
     ],
 
     'google' => [
