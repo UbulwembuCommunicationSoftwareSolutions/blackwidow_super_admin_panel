@@ -687,7 +687,15 @@ class ForgeApi
         ]);
 
         try {
-            $createdUser = $this->forge->createDatabaseUser($organization, $server_id, $userPayload);
+            /**
+             * wait:false works around a bug in laravel/forge-sdk v4.1.0: createDatabaseUser()'s
+             * internal poll-for-install retry passes the un-cast (string) JSON:API id straight into
+             * databaseUser(int $userId), which throws a TypeError. createDatabase() casts its
+             * equivalent id correctly; createDatabaseUser() doesn't. We poll ourselves instead, with
+             * a proper (int) cast, to get the same "wait until installed" behavior safely.
+             */
+            $createdUser = $this->forge->createDatabaseUser($organization, $server_id, $userPayload, wait: false);
+            $status = $this->waitForDatabaseUserInstalled($organization, $server_id, (int) $createdUser->id);
             Log::info('forge.database_user_created', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
@@ -698,7 +706,7 @@ class ForgeApi
             $customerSubscription->refresh();
             $this->syncMysqlEnvFromSubscription($customerSubscription);
 
-            return $createdUser->status;
+            return $status;
         } catch (ValidationException $e) {
             $validationMessage = $e->getMessage();
             $existingUser = $this->findForgeDatabaseUserByName($organization, $server_id, $user);
@@ -767,6 +775,22 @@ class ForgeApi
         }
 
         return null;
+    }
+
+    protected function waitForDatabaseUserInstalled(string $organizationSlug, int $server_id, int $user_id, int $timeoutSeconds = 30): ?string
+    {
+        $deadline = microtime(true) + $timeoutSeconds;
+        $status = null;
+        do {
+            $user = $this->forge->databaseUser($organizationSlug, $server_id, $user_id);
+            $status = $user->status;
+            if ($status === 'installed') {
+                return $status;
+            }
+            usleep(1_500_000);
+        } while (microtime(true) < $deadline);
+
+        return $status;
     }
 
     protected function findForgeDatabaseUserByName(string $organizationSlug, int $server_id, string $name): ?\Laravel\Forge\Resources\DatabaseUser
