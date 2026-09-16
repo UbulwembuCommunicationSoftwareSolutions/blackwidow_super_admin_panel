@@ -993,9 +993,24 @@ class ForgeApi
                 'value' => $env->value,
             ]);
             $value = $env->value ?? '';
-            $envFileStr .= $env->key . '=' . $value . "\r";
+            $envFileStr .= $env->key . '=' . $this->formatEnvValue($value) . "\n";
         }
 
         return $envFileStr;
+    }
+
+    /**
+     * Quote an .env value when it contains characters that would otherwise break parsing (whitespace,
+     * '#', quotes, '='). Forge's v2 updateSiteEnvironment() validates the file strictly and rejects
+     * unquoted values like `APP_NAME=Forge API Test` with "unexpected whitespace" -- the v1 endpoint
+     * tolerated this.
+     */
+    protected function formatEnvValue(string $value): string
+    {
+        if ($value === '' || preg_match('/[\s#"\'=]/', $value) === 1) {
+            return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
+        }
+
+        return $value;
     }
 }
