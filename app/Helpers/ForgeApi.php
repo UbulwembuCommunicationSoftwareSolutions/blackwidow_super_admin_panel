@@ -393,19 +393,34 @@ class ForgeApi
          * points to a unique target"), which we have no way to create ourselves. http-01 just needs
          * DNS already pointing at the server and port 80 reachable -- both already true for every
          * site we create.
+         *
+         * enable MUST be false here. Confirmed live: enable:true makes Forge immediately rewrite
+         * nginx to a 443-only vhost referencing the (not-yet-issued) certificate files, which kills
+         * the plain-HTTP listener http-01 validation itself depends on -- a chicken-and-egg failure
+         * that reliably breaks the request. The right sequence is request (disabled) -> poll until
+         * Forge reports the cert "installed" -> only then enable it via a certificate action.
          */
         $certificate = $this->forge->createCertificate($organization, $serverId, $siteId, $domainId, [
             'type' => 'letsencrypt',
-            'enable' => true,
+            'enable' => false,
             'letsencrypt' => [
                 'verification_method' => 'http-01',
                 'key_type' => 'ecdsa',
                 'preferred_chain' => 'ISRG Root X1',
             ],
         ]);
+        $certificateId = (int) $certificate->id;
 
-        if ($waitUntilInstalled) {
-            $certificate = $this->waitForCertificateInstalled($organization, $serverId, $siteId, $domainId, (int) $certificate->id);
+        $status = $this->waitForCertificateInstalled($organization, $serverId, $siteId, $domainId, $certificateId);
+
+        if ($status === 'installed') {
+            $this->forge->createCertificateAction($organization, $serverId, $siteId, $domainId, $certificateId, [
+                'action' => 'enable',
+            ]);
+        } elseif ($waitUntilInstalled) {
+            throw new \RuntimeException(
+                'Forge certificate '.$certificateId.' for '.$domain.' did not finish installing (last status: '.$status.').'
+            );
         }
 
         Log::info('forge.letsencrypt_requested', [
@@ -413,28 +428,33 @@ class ForgeApi
             'server_id' => $serverId,
             'forge_site_id' => $siteId,
             'domain' => $domain,
-            'wait_until_installed' => $waitUntilInstalled,
-            'forge_status' => $certificate->status,
-            'note' => $waitUntilInstalled
+            'forge_status' => $status,
+            'enabled' => $status === 'installed',
+            'note' => $status === 'installed'
                 ? null
-                : 'Certificate may still be installing on Forge; check Forge if HTTPS is not live yet.',
+                : 'Certificate did not finish installing within the poll window; left disabled -- check the site on Forge and retry.',
         ]);
 
-        return $certificate;
+        return $this->forge->certificate($organization, $serverId, $siteId, $domainId, $certificateId);
     }
 
-    protected function waitForCertificateInstalled(string $organizationSlug, int $server_id, int $site_id, int $domain_id, int $certificate_id, int $timeoutSeconds = 30): \Laravel\Forge\Resources\Certificate
+    /**
+     * @return string|null The last observed certificate status.
+     */
+    protected function waitForCertificateInstalled(string $organizationSlug, int $server_id, int $site_id, int $domain_id, int $certificate_id, int $timeoutSeconds = 90): ?string
     {
         $deadline = microtime(true) + $timeoutSeconds;
+        $status = null;
         do {
             $certificate = $this->forge->certificate($organizationSlug, $server_id, $site_id, $domain_id, $certificate_id);
-            if ($certificate->status === 'installed') {
-                return $certificate;
+            $status = $certificate->status;
+            if ($status === 'installed' || $status === 'failed') {
+                return $status;
             }
-            usleep(500000);
+            usleep(1_500_000);
         } while (microtime(true) < $deadline);
 
-        return $certificate;
+        return $status;
     }
 
     protected function resolveForgeDomainId(string $organizationSlug, int $server_id, int $site_id, string $name): ?int
