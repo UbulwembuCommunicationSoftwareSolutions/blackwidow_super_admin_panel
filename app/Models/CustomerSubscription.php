@@ -113,7 +113,10 @@ class CustomerSubscription extends Model
                 return;
             }
             if (blank($model->database_password)) {
-                $model->database_password = Str::password(32);
+                // symbols: false -- Forge's database user password validation rejects some characters
+                // in Str::password()'s default symbol pool (e.g. backtick), which would otherwise
+                // cause a random, hard-to-reproduce failure whenever the generator happened to draw one.
+                $model->database_password = Str::password(32, symbols: false);
             }
             if (blank($model->database_user)) {
                 $model->database_user = self::limitMysqlUserName(
@@ -379,7 +382,7 @@ class CustomerSubscription extends Model
         if (filled($this->database_password)) {
             return;
         }
-        $this->forceFill(['database_password' => Str::password(32)])->save();
+        $this->forceFill(['database_password' => Str::password(32, symbols: false)])->save();
     }
 
     /**
