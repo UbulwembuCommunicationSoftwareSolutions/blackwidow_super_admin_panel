@@ -447,16 +447,22 @@ class ForgeApi
 
         if ($databaseName) {
             $payload = [
-                'domain' => $customerSubscription->domain,
-                'project_type' => $customerSubscription->subscriptionType->project_type,
+                'name' => $customerSubscription->domain,
+                'type' => 'php',
+                'domain_mode' => 'custom',
+                'www_redirect_type' => 'none',
+                'allow_wildcard_subdomains' => false,
                 'directory' => $customerSubscription->subscriptionType->public_dir,
                 'php_version' => 'php83',
                 'database' => $databaseName,
             ];
         } else {
             $payload = [
-                'domain' => $customerSubscription->domain,
-                'project_type' => $customerSubscription->subscriptionType->project_type,
+                'name' => $customerSubscription->domain,
+                'type' => 'php',
+                'domain_mode' => 'custom',
+                'www_redirect_type' => 'none',
+                'allow_wildcard_subdomains' => false,
                 'directory' => $customerSubscription->subscriptionType->public_dir,
                 'php_version' => 'php83',
                 'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
@@ -466,7 +472,28 @@ class ForgeApi
         Log::info('forge.create_site', $payload);
 
         $organization = $this->organizationSlugForServer((int) $server_id);
-        $site = $this->forge->createSite($organization, $server_id, $payload);
+        try {
+            $site = $this->forge->createSite($organization, $server_id, $payload);
+        } catch (ValidationException $e) {
+            $existingSite = $this->findForgeSiteByName($server_id, $customerSubscription->domain);
+            if ($existingSite === null) {
+                Log::warning('forge.create_site.validation_not_recovered', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'server_id' => $server_id,
+                    'validation_message' => $e->getMessage(),
+                    'forge_validation_errors' => $e->errors(),
+                ]);
+                throw $e;
+            }
+            Log::info('forge.create_site.skip_exists', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'server_id' => $server_id,
+                'forge_site_id' => $existingSite->id,
+                'validation_message' => $e->getMessage(),
+                'forge_validation_errors' => $e->errors(),
+            ]);
+            $site = $existingSite;
+        }
         $customerSubscription->forge_site_id = (string) $site->id;
         if (! $customerSubscription->site_created_at) {
             $customerSubscription->site_created_at = now();
@@ -477,6 +504,17 @@ class ForgeApi
             'forge_site_id' => $site->id,
         ]);
         $this->syncForge();
+    }
+
+    protected function findForgeSiteByName(int $server_id, string $name): ?\Laravel\Forge\Resources\Site
+    {
+        foreach ($this->getSites($server_id) as $site) {
+            if (($site->name ?? null) === $name) {
+                return $site;
+            }
+        }
+
+        return null;
     }
 
     public function needsForgeServerDatabase(CustomerSubscription $customerSubscription): bool
