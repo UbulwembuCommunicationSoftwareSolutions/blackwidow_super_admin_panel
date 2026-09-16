@@ -381,12 +381,27 @@ class ForgeApi
         if ($domainId === null) {
             $domainResource = $this->forge->createDomain($organization, $serverId, $siteId, [
                 'name' => $domain,
+                'allow_wildcard_subdomains' => false,
+                'www_redirect_type' => 'none',
             ]);
             $domainId = (int) $domainResource->id;
         }
 
+        /**
+         * http-01 (not the recommended dns-01) so this stays fully automatable: dns-01 requires a
+         * one-time manual CNAME record per domain (Forge's docs: "create a single CNAME record that
+         * points to a unique target"), which we have no way to create ourselves. http-01 just needs
+         * DNS already pointing at the server and port 80 reachable -- both already true for every
+         * site we create.
+         */
         $certificate = $this->forge->createCertificate($organization, $serverId, $siteId, $domainId, [
             'type' => 'letsencrypt',
+            'enable' => true,
+            'letsencrypt' => [
+                'verification_method' => 'http-01',
+                'key_type' => 'ecdsa',
+                'preferred_chain' => 'ISRG Root X1',
+            ],
         ]);
 
         if ($waitUntilInstalled) {
