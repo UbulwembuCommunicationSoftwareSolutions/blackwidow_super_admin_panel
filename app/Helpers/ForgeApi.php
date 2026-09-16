@@ -179,6 +179,95 @@ class ForgeApi
         $this->forge->createDeployment($organization, $server_id, $site_id);
     }
 
+    public function getSitesForServer($serverId)
+    {
+        $sites = $this->getSites($serverId);
+        if (! is_array($sites)) {
+            return;
+        }
+        foreach ($sites as $site) {
+            $customerSubscription = CustomerSubscription::query()
+                ->where('server_id', $serverId)
+                ->where(function ($q) use ($site) {
+                    $q->where('domain', $site->name)
+                        ->orWhere('url', 'like', '%://' . $site->name . '%');
+                })
+                ->first();
+            if ($customerSubscription) {
+                $customerSubscription->forge_site_id = $site->id;
+                $customerSubscription->save();
+                Log::info('forge.site_matched', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'forge_site_id' => $site->id,
+                    'site_name' => $site->name,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Ensure this subscription has forge_site_id by re-fetching Forge sites for its server (used when API id was not saved).
+     */
+    public function tryLinkForgeSiteId(CustomerSubscription $customerSubscription): bool
+    {
+        if ($customerSubscription->forge_site_id) {
+            return true;
+        }
+        if (! $customerSubscription->server_id) {
+            Log::warning('forge.try_link_no_server', ['customer_subscription_id' => $customerSubscription->id]);
+
+            return false;
+        }
+        $this->getSitesForServer($customerSubscription->server_id);
+        $customerSubscription->refresh();
+
+        return (bool) $customerSubscription->forge_site_id;
+    }
+
+    public function assertForgeSiteReady(CustomerSubscription $customerSubscription): CustomerSubscription
+    {
+        $fresh = $customerSubscription->fresh() ?? $customerSubscription;
+        if (! $fresh->server_id || ! $fresh->forge_site_id) {
+            throw new \RuntimeException(
+                'Subscription ' . $fresh->id . ' is not ready for Forge API calls (missing server_id or forge_site_id).'
+            );
+        }
+
+        return $fresh;
+    }
+
+    public function deployAllConsoles()
+    {
+        $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
+        foreach ($customerSubscriptions as $customerSubscription) {
+            if ($customerSubscription->server_id == null || $customerSubscription->forge_site_id == null) {
+                Log::error('Server ID or Site ID not found for Subscription ID: ' . $customerSubscription->id);
+            } else {
+                TriggerForgeDeployment::dispatch($customerSubscription->server_id, $customerSubscription->forge_site_id);
+            }
+        }
+    }
+
+    public function parseEnvContent($content)
+    {
+        $lines = explode("\n", $content);
+        $env = [];
+
+        foreach ($lines as $line) {
+            if (empty($line) || strpos(trim($line), '#') === 0) {
+                continue;
+            }
+
+            [$key, $value] = array_map('trim', explode('=', $line, 2));
+            if (preg_match('/^"(.*)"$/', $value, $matches)) {
+                $value = $matches[1];
+            }
+            $env[$key] = $value;
+        }
+
+        return $env;
+    }
+
     /**
      * Request a Let's Encrypt certificate on Forge for the subscription's primary domain.
      * By default this does not block on Forge's polling ($waitUntilInstalled=false), since
