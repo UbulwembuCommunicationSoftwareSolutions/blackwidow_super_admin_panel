@@ -495,7 +495,12 @@ class ForgeApi
             $payload['source_control_provider'] = 'github';
             $payload['repository'] = $customerSubscription->subscriptionType->github_repo;
             $payload['branch'] = $customerSubscription->subscriptionType->branch;
-            $payload['install_composer_dependencies'] = true;
+            // The deployment script (added later in the pipeline) runs its own composer update;
+            // installing here too would just repeat that work on every new site.
+            $payload['install_composer_dependencies'] = false;
+            // We trigger deploys ourselves via deploySite()/createDeployment(); push-to-deploy would
+            // let a bare git push also fire an uncontrolled deploy outside that pipeline.
+            $payload['push_to_deploy'] = false;
         }
 
         Log::info('forge.create_site', $payload);
