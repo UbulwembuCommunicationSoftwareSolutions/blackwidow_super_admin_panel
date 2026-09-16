@@ -57,7 +57,10 @@ class AddGitRepoOnForgeJob implements ShouldQueue
             'customer_subscription_id' => $this->customerSubscriptionId,
         ]);
         $forgeApi = new ForgeApi;
-        $forgeApi->sendGitRepository($customerSubscription);
+        $forgeStatus = $forgeApi->sendGitRepository($customerSubscription);
+        if ($this->deploymentJobId !== null && $forgeStatus !== null) {
+            app(DeploymentStepDispatcher::class)->recordForgeStatus($this->deploymentJobId, $forgeStatus);
+        }
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

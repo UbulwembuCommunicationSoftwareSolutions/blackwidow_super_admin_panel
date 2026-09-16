@@ -110,19 +110,42 @@ class ForgeApi
         ]);
     }
 
-    public function sendGitRepository($customerSubscription)
+    /**
+     * Forge API v2 attaches a site's git repository only at creation time (see the
+     * source_control_provider/repository/branch fields in {@see createSite}) — there is no working
+     * endpoint to attach one afterward (updateSite() silently accepts and ignores repository fields
+     * post-creation). This verifies the repository createSite() already requested actually finished
+     * installing, polling briefly since the clone happens asynchronously on Forge's side.
+     *
+     * @return string|null The repository's Forge-side status (e.g. "installed"), or null if this
+     *                      subscription type has no repository to install.
+     */
+    public function sendGitRepository($customerSubscription, int $timeoutSeconds = 60): ?string
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
+        $customerSubscription->loadMissing('subscriptionType');
+
+        if (blank($customerSubscription->subscriptionType->github_repo)) {
+            return null;
+        }
+
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
-        $this->forge->updateSite(
-            $organization,
-            $customerSubscription->server_id,
-            $customerSubscription->forge_site_id,
-            [
-                'provider' => 'github',
-                'repository' => $customerSubscription->subscriptionType->github_repo,
-                'branch' => $customerSubscription->subscriptionType->branch,
-            ]
+        $siteId = (int) $customerSubscription->forge_site_id;
+
+        $deadline = microtime(true) + $timeoutSeconds;
+        $status = null;
+        do {
+            $site = $this->forge->organizationSite($organization, $siteId);
+            $status = $site->repository['status'] ?? null;
+            if ($status === 'installed') {
+                return $status;
+            }
+            usleep(1_500_000);
+        } while (microtime(true) < $deadline);
+
+        throw new \RuntimeException(
+            'Forge site '.$siteId.' repository did not finish installing (last status: '.($status ?? 'unknown').'). '
+            .'It should have been attached during site creation; check the site on Forge directly.'
         );
     }
 
@@ -445,28 +468,34 @@ class ForgeApi
         $useForgeSiteDatabase = $this->needsForgeServerDatabase($customerSubscription);
         $databaseName = $useForgeSiteDatabase ? $customerSubscription->forgeMysqlIdentifier() : null;
 
+        $payload = [
+            'name' => $customerSubscription->domain,
+            'type' => 'php',
+            'domain_mode' => 'custom',
+            'www_redirect_type' => 'none',
+            'allow_wildcard_subdomains' => false,
+            'web_directory' => $customerSubscription->subscriptionType->public_dir,
+            'php_version' => 'php83',
+        ];
+
         if ($databaseName) {
-            $payload = [
-                'name' => $customerSubscription->domain,
-                'type' => 'php',
-                'domain_mode' => 'custom',
-                'www_redirect_type' => 'none',
-                'allow_wildcard_subdomains' => false,
-                'directory' => $customerSubscription->subscriptionType->public_dir,
-                'php_version' => 'php83',
-                'database' => $databaseName,
-            ];
-        } else {
-            $payload = [
-                'name' => $customerSubscription->domain,
-                'type' => 'php',
-                'domain_mode' => 'custom',
-                'www_redirect_type' => 'none',
-                'allow_wildcard_subdomains' => false,
-                'directory' => $customerSubscription->subscriptionType->public_dir,
-                'php_version' => 'php83',
-                'nginx_template' => $customerSubscription->subscriptionType->nginx_template_id,
-            ];
+            $payload['database'] = $databaseName;
+        } elseif ($customerSubscription->subscriptionType->nginx_template_id) {
+            $payload['nginx_template_id'] = $customerSubscription->subscriptionType->nginx_template_id;
+        }
+
+        /**
+         * Forge API v2 only attaches a site's git repository at creation time — there is no working
+         * endpoint to attach one afterward (confirmed: updateSite() silently accepts and ignores
+         * repository fields post-creation). "source_control_provider" identifies which connected
+         * account to use by provider name (e.g. "github"); Forge resolves the specific connection
+         * itself, so no connection/provider ID is needed.
+         */
+        if (filled($customerSubscription->subscriptionType->github_repo)) {
+            $payload['source_control_provider'] = 'github';
+            $payload['repository'] = $customerSubscription->subscriptionType->github_repo;
+            $payload['branch'] = $customerSubscription->subscriptionType->branch;
+            $payload['install_composer_dependencies'] = true;
         }
 
         Log::info('forge.create_site', $payload);
