@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/customer-users/{id}/update-password', [CustomerUserController::class, 'updatePassword'])->whereNumber('id');
     Route::post('/customer-users/{id}/send-welcome-email', [CustomerUserController::class, 'sendWelcomeEmail'])->whereNumber('id');
     Route::post('/customer-users/{id}/send-login-email', [CustomerUserController::class, 'sendLoginEmail'])->whereNumber('id');
+    Route::post('/customer-users/{id}/impersonate', [CustomerUserController::class, 'impersonate'])->whereNumber('id');
     Route::put('/customer-users/{id}/access-rights', [CustomerUserController::class, 'updateAccessRights'])->whereNumber('id');
     Route::get('/customer-users', [CustomerUserController::class, 'index']);
     Route::post('/customer-users', [CustomerUserController::class, 'store']);

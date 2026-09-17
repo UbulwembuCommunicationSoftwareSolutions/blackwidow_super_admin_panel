@@ -6,8 +6,10 @@ use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Services\CMSService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class CustomerUserController extends Controller
@@ -162,6 +164,47 @@ class CustomerUserController extends Controller
         SendSubscriptionEmailJob::dispatch($row, $subscription);
 
         return response()->json(['ok' => true]);
+    }
+
+    public function impersonate(Request $request, int $id): JsonResponse
+    {
+        $row = CustomerUser::query()->findOrFail($id);
+        $this->authorize('update', $row);
+
+        $validated = $request->validate([
+            'customer_subscription_id' => ['required', 'integer', 'exists:customer_subscriptions,id'],
+        ]);
+
+        $subscription = CustomerSubscription::query()
+            ->where('customer_id', $row->customer_id)
+            ->find($validated['customer_subscription_id']);
+
+        if (! $subscription) {
+            return response()->json(['message' => 'Subscription not found for this customer.'], 422);
+        }
+
+        // Console only for now - other tenant apps don't expose the mint-token endpoint yet.
+        if ((int) $subscription->subscription_type_id !== 1) {
+            return response()->json(['message' => 'Impersonation currently only supports Console subscriptions.'], 422);
+        }
+
+        if (! $row->checkAccess($subscription->subscription_type_id)) {
+            return response()->json(['message' => 'User does not have access to this subscription.'], 422);
+        }
+
+        try {
+            $result = app(CMSService::class)->impersonate($row, $subscription);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 502);
+        }
+
+        Log::info('Customer user impersonation link issued', [
+            'admin_user_id' => $request->user()?->id,
+            'customer_user_id' => $row->id,
+            'customer_subscription_id' => $subscription->id,
+        ]);
+
+        return response()->json($result);
     }
 
     public function updateAccessRights(Request $request, int $id): JsonResponse
