@@ -9,9 +9,15 @@ use App\Models\CustomerSubscription;
 use App\Models\EnvVariables;
 use App\Models\ForgeServer;
 use App\Models\TemplateEnvVariables;
+use App\Services\CustomerEnvSyncService;
 use Exception;
 use Laravel\Forge\Exceptions\ValidationException;
 use Laravel\Forge\Forge;
+use Laravel\Forge\Resources\Certificate;
+use Laravel\Forge\Resources\DatabaseUser;
+use Laravel\Forge\Resources\Deployment;
+use Laravel\Forge\Resources\Server;
+use Laravel\Forge\Resources\Site;
 use Log;
 use Throwable;
 
@@ -65,7 +71,7 @@ class ForgeApi
     {
         $customerSubscription = CustomerSubscription::find($customerSubscriptionId);
         if (! $customerSubscription) {
-            throw new \InvalidArgumentException('Customer subscription not found: ' . $customerSubscriptionId);
+            throw new \InvalidArgumentException('Customer subscription not found: '.$customerSubscriptionId);
         }
         $this->assertForgeSiteReady($customerSubscription);
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
@@ -81,7 +87,7 @@ class ForgeApi
     {
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
         $data = [
-            'command' => 'php /home/forge/' . $customerSubscription->domain . '/artisan horizon',
+            'command' => 'php /home/forge/'.$customerSubscription->domain.'/artisan horizon',
         ];
         $this->forge->createBackgroundProcess($organization, $customerSubscription->server_id, $data);
     }
@@ -103,7 +109,7 @@ class ForgeApi
      * installing, polling briefly since the clone happens asynchronously on Forge's side.
      *
      * @return string|null The repository's Forge-side status (e.g. "installed"), or null if this
-     *                      subscription type has no repository to install.
+     *                     subscription type has no repository to install.
      */
     public function sendGitRepository($customerSubscription, int $timeoutSeconds = 60): ?string
     {
@@ -140,7 +146,7 @@ class ForgeApi
         // one Forge organization can't get a site-sync job dispatched against the wrong org.
         $servers = ForgeServer::where('organization', $this->organization())->get();
         foreach ($servers as $server) {
-            echo 'Syncing Server: ' . $server->name . ' with ID of : ' . $server->forge_server_id . " \n";
+            echo 'Syncing Server: '.$server->name.' with ID of : '.$server->forge_server_id." \n";
             GetSitesForServerJob::dispatch($server->forge_server_id);
         }
     }
@@ -148,7 +154,7 @@ class ForgeApi
     /**
      * Fetch every server in {@see organization()} — the one Forge organization this app manages.
      *
-     * @return list<\Laravel\Forge\Resources\Server>
+     * @return list<Server>
      */
     public function getServers()
     {
@@ -181,7 +187,7 @@ class ForgeApi
         }
     }
 
-    public function deploySite($server_id, $site_id): \Laravel\Forge\Resources\Deployment
+    public function deploySite($server_id, $site_id): Deployment
     {
         $organization = $this->organizationSlugForServer((int) $server_id);
 
@@ -264,7 +270,7 @@ class ForgeApi
                 ->where('server_id', $serverId)
                 ->where(function ($q) use ($site) {
                     $q->where('domain', $site->name)
-                        ->orWhere('url', 'like', '%://' . $site->name . '%');
+                        ->orWhere('url', 'like', '%://'.$site->name.'%');
                 })
                 ->first();
             if ($customerSubscription) {
@@ -284,7 +290,7 @@ class ForgeApi
                 'server_id' => $serverId,
                 'forge_site_id' => $site->id,
                 'domain' => $site->name,
-                'url' => 'https://' . $site->name,
+                'url' => 'https://'.$site->name,
                 'database_name' => CustomerSubscription::normalizeDatabaseIdentifier((string) $site->name),
                 'site_created_at' => now(),
             ]);
@@ -321,7 +327,7 @@ class ForgeApi
         $fresh = $customerSubscription->fresh() ?? $customerSubscription;
         if (! $fresh->server_id || ! $fresh->forge_site_id) {
             throw new \RuntimeException(
-                'Subscription ' . $fresh->id . ' is not ready for Forge API calls (missing server_id or forge_site_id).'
+                'Subscription '.$fresh->id.' is not ready for Forge API calls (missing server_id or forge_site_id).'
             );
         }
 
@@ -333,7 +339,7 @@ class ForgeApi
         $customerSubscriptions = CustomerSubscription::where('subscription_type_id', 1)->get();
         foreach ($customerSubscriptions as $customerSubscription) {
             if ($customerSubscription->server_id == null || $customerSubscription->forge_site_id == null) {
-                Log::error('Server ID or Site ID not found for Subscription ID: ' . $customerSubscription->id);
+                Log::error('Server ID or Site ID not found for Subscription ID: '.$customerSubscription->id);
             } else {
                 TriggerForgeDeployment::dispatch($customerSubscription->server_id, $customerSubscription->forge_site_id);
             }
@@ -368,7 +374,7 @@ class ForgeApi
      *
      * @param  bool  $waitUntilInstalled  When true, blocks until the SDK reports the certificate is installed.
      */
-    public function letsEncryptCertificate(CustomerSubscription $customerSubscription, bool $waitUntilInstalled = false): \Laravel\Forge\Resources\Certificate
+    public function letsEncryptCertificate(CustomerSubscription $customerSubscription, bool $waitUntilInstalled = false): Certificate
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $domain = str_replace('http://', '', $customerSubscription->url);
@@ -584,7 +590,7 @@ class ForgeApi
         $this->syncForge();
     }
 
-    protected function findForgeSiteByName(int $server_id, string $name): ?\Laravel\Forge\Resources\Site
+    protected function findForgeSiteByName(int $server_id, string $name): ?Site
     {
         foreach ($this->getSites($server_id) as $site) {
             if (($site->name ?? null) === $name) {
@@ -710,7 +716,7 @@ class ForgeApi
         $organization = $this->organizationSlugForServer($server_id);
         $databaseId = $this->resolveForgeDatabaseId($organization, $server_id, $name);
         if ($databaseId === null) {
-            $message = 'Forge MySQL database "' . $name . '" was not found on the server. Create the database step must succeed first.';
+            $message = 'Forge MySQL database "'.$name.'" was not found on the server. Create the database step must succeed first.';
             Log::error('forge.create_database_user.missing_database', [
                 'customer_subscription_id' => $customerSubscription->id,
                 'server_id' => $server_id,
@@ -844,7 +850,7 @@ class ForgeApi
         return $status;
     }
 
-    protected function findForgeDatabaseUserByName(string $organizationSlug, int $server_id, string $name): ?\Laravel\Forge\Resources\DatabaseUser
+    protected function findForgeDatabaseUserByName(string $organizationSlug, int $server_id, string $name): ?DatabaseUser
     {
         foreach ($this->forge->databaseUsers($organizationSlug, $server_id)->lazy() as $user) {
             if (($user->name ?? null) === $name) {
@@ -994,6 +1000,8 @@ class ForgeApi
                 $minioBucket->value = $customerSubscription->database_name;
                 $minioBucket->save();
             }
+
+            app(CustomerEnvSyncService::class)->syncSubscription($customerSubscription);
         }
     }
 
@@ -1039,7 +1047,7 @@ class ForgeApi
                 'value' => $env->value,
             ]);
             $value = $env->value ?? '';
-            $envFileStr .= $env->key . '=' . $this->formatEnvValue($value) . "\n";
+            $envFileStr .= $env->key.'='.$this->formatEnvValue($value)."\n";
         }
 
         return $envFileStr;
@@ -1054,7 +1062,7 @@ class ForgeApi
     protected function formatEnvValue(string $value): string
     {
         if ($value === '' || preg_match('/[\s#"\'=]/', $value) === 1) {
-            return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
+            return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
         }
 
         return $value;

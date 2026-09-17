@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Customers\Schemas;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -9,6 +10,19 @@ use Filament\Schemas\Schema;
 
 class CustomerForm
 {
+    /**
+     * Mailers Laravel can drive from MAIL_MAILER / MAIL_TRANSPORT. See config/mail.php.
+     *
+     * @return array<string, string>
+     */
+    private static function mailerOptions(): array
+    {
+        return array_combine(
+            $mailers = ['smtp', 'sendmail', 'ses', 'mailgun', 'postmark', 'resend', 'log', 'array', 'failover', 'roundrobin'],
+            $mailers
+        );
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -17,9 +31,74 @@ class CustomerForm
                     ->required(),
                 TextInput::make('google_api_key')
                     ->label('Google API key')
+                    ->helperText('Written to GOOGLE_MAPS_API_KEY in every subscription this customer owns.')
                     ->password()
                     ->revealable()
                     ->nullable(),
+                Section::make('Mail (SMTP)')
+                    ->description('Written to the MAIL_* variables of every subscription this customer owns. Leave a field empty to keep the subscription type\'s template default.')
+                    ->schema([
+                        Select::make('mail_mailer')
+                            ->label('Mailer')
+                            ->options(self::mailerOptions())
+                            ->helperText('MAIL_MAILER. Also used for MAIL_TRANSPORT unless overridden below.')
+                            ->nullable(),
+                        TextInput::make('mail_host')
+                            ->label('Host')
+                            ->placeholder('mail.blackwidow.org.za')
+                            ->helperText('MAIL_HOST. Also used for MAIL_URL unless overridden below.')
+                            ->nullable(),
+                        TextInput::make('mail_port')
+                            ->label('Port')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(65535)
+                            ->placeholder('465')
+                            ->nullable(),
+                        TextInput::make('mail_username')
+                            ->label('Username')
+                            ->placeholder('demo@blackwidow.org.za')
+                            ->nullable(),
+                        TextInput::make('mail_password')
+                            ->label('Password')
+                            ->password()
+                            ->revealable()
+                            ->nullable(),
+                        TextInput::make('mail_from_address')
+                            ->label('From address')
+                            ->email()
+                            ->placeholder('demo@blackwidow.org.za')
+                            ->nullable(),
+                        TextInput::make('mail_from_name')
+                            ->label('From name')
+                            ->placeholder('${APP_NAME}')
+                            ->helperText('Leave empty to use the subscription\'s app name.')
+                            ->nullable(),
+                        TextInput::make('mail_ehlo_domain')
+                            ->label('EHLO domain')
+                            ->placeholder('blackwidow.org.za')
+                            ->nullable(),
+                        TextInput::make('mail_encryption')
+                            ->label('Encryption')
+                            ->placeholder('null')
+                            ->helperText('MAIL_ENCRYPTION, e.g. tls, ssl, or null.')
+                            ->nullable(),
+                        TextInput::make('mail_scheme')
+                            ->label('Scheme')
+                            ->placeholder('null')
+                            ->helperText('MAIL_SCHEME, Laravel 11\'s replacement for encryption, e.g. smtps.')
+                            ->nullable(),
+                        Select::make('mail_transport')
+                            ->label('Transport override')
+                            ->options(self::mailerOptions())
+                            ->helperText('MAIL_TRANSPORT. Defaults to the mailer above.')
+                            ->nullable(),
+                        TextInput::make('mail_url')
+                            ->label('URL override')
+                            ->helperText('MAIL_URL. Defaults to the host above.')
+                            ->nullable(),
+                    ])
+                    ->collapsible(),
                 Section::make('S3 / MinIO storage')
                     ->description('S3-compatible object storage (e.g. MinIO). Use the same values as Laravel\'s s3 disk: endpoint, access key, secret, region, bucket, and path-style endpoint for MinIO.')
                     ->schema([

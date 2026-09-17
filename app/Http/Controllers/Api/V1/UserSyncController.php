@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\UserSyncIndexRequest;
 use App\Http\Requests\Api\V1\UserSyncLocateRequest;
 use App\Http\Requests\Api\V1\UserSyncPasswordRequest;
+use App\Http\Requests\Api\V1\UserSyncPasswordResetEmailRequest;
 use App\Http\Requests\Api\V1\UserSyncUpsertRequest;
+use App\Jobs\SendWelcomeEmailJob;
 use App\Models\CustomerUser;
 use App\Services\UserSync\CustomerUserSyncService;
 use App\Support\UserSync\SyncOutcome;
@@ -83,6 +85,29 @@ class UserSyncController extends Controller
         return $user
             ? $this->ok(SyncOutcome::Updated, $user)
             : $this->notFound();
+    }
+
+    /**
+     * Email the user a password reset link, on a tenant's behalf.
+     *
+     * The same job the panel uses when it creates a console user, so a manual
+     * resend from a tenant's own UI produces exactly the same email.
+     */
+    public function passwordResetEmail(UserSyncPasswordResetEmailRequest $request): JsonResponse
+    {
+        $user = $this->sync->locate($request->subscription(), $request->payload());
+
+        if (! $user) {
+            return $this->notFound();
+        }
+
+        SendWelcomeEmailJob::dispatch($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset email queued.',
+            'user' => $this->serialize($user),
+        ], 202);
     }
 
     private function ok(SyncOutcome $outcome, CustomerUser $user): JsonResponse

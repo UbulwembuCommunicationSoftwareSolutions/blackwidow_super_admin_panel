@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Jobs\SiteDeployment\SendSystemConfigJob;
+use App\Jobs\SyncCustomerEnvToSubscriptionsJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -77,7 +78,35 @@ class Customer extends Model
                 SendSystemConfigJob::dispatch($model->id);
             }
         });
+
+        static::updated(function ($model) {
+            if ($model->wasChanged(self::SUBSCRIPTION_ENV_FIELDS)) {
+                SyncCustomerEnvToSubscriptionsJob::dispatch($model->id);
+            }
+        });
     }
+
+    /**
+     * Customer-level fields that are mirrored into every subscription's .env.
+     * A change to any of these re-pushes the environment to Forge.
+     *
+     * @var list<string>
+     */
+    public const SUBSCRIPTION_ENV_FIELDS = [
+        'google_api_key',
+        'mail_mailer',
+        'mail_transport',
+        'mail_host',
+        'mail_url',
+        'mail_port',
+        'mail_username',
+        'mail_password',
+        'mail_encryption',
+        'mail_scheme',
+        'mail_from_address',
+        'mail_from_name',
+        'mail_ehlo_domain',
+    ];
 
     protected $fillable = [
         'company_name',
@@ -89,6 +118,18 @@ class Customer extends Model
         's3_region',
         's3_bucket',
         's3_use_path_style_endpoint',
+        'mail_mailer',
+        'mail_transport',
+        'mail_host',
+        'mail_url',
+        'mail_port',
+        'mail_username',
+        'mail_password',
+        'mail_encryption',
+        'mail_scheme',
+        'mail_from_address',
+        'mail_from_name',
+        'mail_ehlo_domain',
         'max_users',
         'docket_description',
         'task_description',
@@ -106,6 +147,7 @@ class Customer extends Model
     {
         return [
             's3_use_path_style_endpoint' => 'boolean',
+            'mail_port' => 'integer',
         ];
     }
 
@@ -114,14 +156,56 @@ class Customer extends Model
         return $this->belongsToMany(User::class, 'user_customers');
     }
 
-    public function customerSubscriptions(): hasMany
+    public function customerSubscriptions(): HasMany
     {
         return $this->hasMany(CustomerSubscription::class);
     }
 
-    public function customerUsers(): hasMany
+    public function customerUsers(): HasMany
     {
         return $this->hasMany(CustomerUser::class);
+    }
+
+    /**
+     * The .env keys this customer controls, mapped to the values every one of its subscriptions
+     * must run with (Google Maps key + SMTP credentials).
+     *
+     * Blank fields are omitted so the subscription type's template default is left untouched.
+     * MAIL_TRANSPORT and MAIL_URL are aliases Laravel's mail config also reads, so they fall back
+     * to the mailer and host rather than being left pointing at a template default.
+     *
+     * @return array<string, string>
+     */
+    public function subscriptionEnvOverrides(): array
+    {
+        $values = [
+            'GOOGLE_MAPS_API_KEY' => $this->google_api_key,
+            'MAIL_MAILER' => $this->mail_mailer,
+            'MAIL_TRANSPORT' => $this->mail_transport ?: $this->mail_mailer,
+            'MAIL_HOST' => $this->mail_host,
+            'MAIL_URL' => $this->mail_url ?: $this->mail_host,
+            'MAIL_PORT' => $this->mail_port,
+            'MAIL_USERNAME' => $this->mail_username,
+            'MAIL_PASSWORD' => $this->mail_password,
+            'MAIL_ENCRYPTION' => $this->mail_encryption,
+            'MAIL_SCHEME' => $this->mail_scheme,
+            'MAIL_FROM_ADDRESS' => $this->mail_from_address,
+            'MAIL_FROM_NAME' => $this->mail_from_name,
+            'MAIL_EHLO_DOMAIN' => $this->mail_ehlo_domain,
+        ];
+
+        return collect($values)
+            ->reject(fn ($value) => $value === null || $value === '')
+            ->map(fn ($value) => (string) $value)
+            ->all();
+    }
+
+    /**
+     * A usable SMTP configuration needs at least a mailer, a host and a from address.
+     */
+    public function hasMailConfiguration(): bool
+    {
+        return filled($this->mail_mailer) && filled($this->mail_host) && filled($this->mail_from_address);
     }
 
     /**

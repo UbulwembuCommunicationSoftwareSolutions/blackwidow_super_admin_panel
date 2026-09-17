@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\Backend;
 
+use App\Jobs\SyncCustomerEnvToSubscriptionsJob;
 use App\Models\Customer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -18,6 +20,7 @@ class CustomerController extends Controller
         's3_region',
         's3_bucket',
         's3_use_path_style_endpoint',
+        'mail_password',
     ];
 
     /** @var list<string> */
@@ -38,6 +41,36 @@ class CustomerController extends Controller
         's3_region',
         's3_bucket',
         's3_use_path_style_endpoint',
+        'mail_mailer',
+        'mail_transport',
+        'mail_host',
+        'mail_url',
+        'mail_port',
+        'mail_username',
+        'mail_password',
+        'mail_encryption',
+        'mail_scheme',
+        'mail_from_address',
+        'mail_from_name',
+        'mail_ehlo_domain',
+    ];
+
+    /**
+     * Mailers Laravel can drive from MAIL_MAILER / MAIL_TRANSPORT. See config/mail.php.
+     *
+     * @var list<string>
+     */
+    private const MAILERS = [
+        'smtp',
+        'sendmail',
+        'ses',
+        'mailgun',
+        'postmark',
+        'resend',
+        'log',
+        'array',
+        'failover',
+        'roundrobin',
     ];
 
     /**
@@ -120,6 +153,31 @@ class CustomerController extends Controller
         return response()->json(['data' => $this->present($row->fresh())]);
     }
 
+    /**
+     * Re-apply the customer's Google Maps key and SMTP credentials to every subscription's env and
+     * push the changed envs to Forge. Runs automatically whenever those fields are updated; this
+     * endpoint is for replaying it (e.g. after a site was recreated).
+     */
+    public function syncEnv(int $id): JsonResponse
+    {
+        $row = Customer::query()->findOrFail($id);
+        $this->authorize('update', $row);
+
+        if ($row->subscriptionEnvOverrides() === []) {
+            return response()->json([
+                'message' => 'Nothing to sync: this customer has no Google API key or mail settings configured.',
+            ], 422);
+        }
+
+        SyncCustomerEnvToSubscriptionsJob::dispatch($row->id);
+
+        return response()->json([
+            'ok' => true,
+            'customer_subscriptions_count' => $row->customerSubscriptions()->count(),
+            'keys' => array_keys($row->subscriptionEnvOverrides()),
+        ]);
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $row = Customer::query()->findOrFail($id);
@@ -174,7 +232,19 @@ class CustomerController extends Controller
     private function fieldRules(string $presence): array
     {
         return [
-            'google_api_key' => [$presence, 'string'],
+            'google_api_key' => [$presence, 'nullable', 'string'],
+            'mail_mailer' => [$presence, 'nullable', 'string', Rule::in(self::MAILERS)],
+            'mail_transport' => [$presence, 'nullable', 'string', Rule::in(self::MAILERS)],
+            'mail_host' => [$presence, 'nullable', 'string', 'max:255'],
+            'mail_url' => [$presence, 'nullable', 'string', 'max:512'],
+            'mail_port' => [$presence, 'nullable', 'integer', 'min:1', 'max:65535'],
+            'mail_username' => [$presence, 'nullable', 'string', 'max:255'],
+            'mail_password' => [$presence, 'nullable', 'string', 'max:1024'],
+            'mail_encryption' => [$presence, 'nullable', 'string', 'max:32'],
+            'mail_scheme' => [$presence, 'nullable', 'string', 'max:32'],
+            'mail_from_address' => [$presence, 'nullable', 'email', 'max:255'],
+            'mail_from_name' => [$presence, 'nullable', 'string', 'max:255'],
+            'mail_ehlo_domain' => [$presence, 'nullable', 'string', 'max:255'],
             's3_endpoint' => [$presence, 'string', 'max:2048'],
             's3_key' => [$presence, 'string', 'max:255'],
             's3_secret' => [$presence, 'string', 'max:255'],
@@ -212,6 +282,8 @@ class CustomerController extends Controller
         $customer->setAttribute('google_api_key_set', filled($customer->google_api_key));
         $customer->setAttribute('s3_configured', $s3Filled === 4);
         $customer->setAttribute('s3_partial', $s3Filled > 0 && $s3Filled < 4);
+        $customer->setAttribute('mail_configured', $customer->hasMailConfiguration());
+        $customer->setAttribute('mail_password_set', filled($customer->mail_password));
 
         return $customer->makeHidden(self::HIDDEN);
     }

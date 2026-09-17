@@ -86,20 +86,47 @@ All paths below are prefixed with `/api/backend`.
 - `POST /customers/{id}/restore`
 - `DELETE /customers/{id}/force`
 - `GET /customers/{id}/credentials` — same View permission as show
+- `POST /customers/{id}/sync-env` — same Update permission as update
 
-Create/update fields: `company_name` (required on create), S3 fields, `token`, `google_api_key`, descriptions, level toggles, `max_users`. Writes stay on `POST/PUT /customers/{id}`; omit a secret key when the field was never revealed so a save does not blank it.
+Create/update fields: `company_name` (required on create), S3 fields, mail fields, `token`, `google_api_key`, descriptions, level toggles, `max_users`. Writes stay on `POST/PUT /customers/{id}`; omit a secret key when the field was never revealed so a save does not blank it.
 
-List, show, store, update, and restore **never** return `token`, `google_api_key`, or any `s3_*` field. They do include:
+List, show, store, update, and restore **never** return `token`, `google_api_key`, `mail_password`, or any `s3_*` field. They do include:
 
 | Field | Meaning |
 | --- | --- |
 | `google_api_key_set` | `true` when a Google API key is stored |
 | `s3_configured` | `true` only when **all four** of `s3_endpoint`, `s3_key`, `s3_secret`, and `s3_bucket` are filled |
 | `s3_partial` | `true` when some but not all of those four are filled |
+| `mail_configured` | `true` when `mail_mailer`, `mail_host`, and `mail_from_address` are all filled |
+| `mail_password_set` | `true` when an SMTP password is stored |
 | `customer_subscriptions_count` | `withCount` of sites |
 | `customer_users_count` | `withCount` of client users |
 
-`GET /customers/{id}/credentials` returns `{ "data": { token, google_api_key, s3_endpoint, s3_key, s3_secret, s3_region, s3_bucket, s3_use_path_style_endpoint } }` for the Reveal UI.
+`GET /customers/{id}/credentials` returns `{ "data": { token, google_api_key, s3_endpoint, s3_key, s3_secret, s3_region, s3_bucket, s3_use_path_style_endpoint, mail_mailer, mail_transport, mail_host, mail_url, mail_port, mail_username, mail_password, mail_encryption, mail_scheme, mail_from_address, mail_from_name, mail_ehlo_domain } }` for the Reveal UI.
+
+#### Per-customer env configuration
+
+The Google API key and the mail fields are mirrored into the `.env` of **every** subscription the customer owns:
+
+| Customer field | Subscription `.env` key | Rules |
+| --- | --- | --- |
+| `google_api_key` | `GOOGLE_MAPS_API_KEY` | |
+| `mail_mailer` | `MAIL_MAILER` | one of `smtp`, `sendmail`, `ses`, `mailgun`, `postmark`, `resend`, `log`, `array`, `failover`, `roundrobin` |
+| `mail_transport` | `MAIL_TRANSPORT` | same list; falls back to `mail_mailer` |
+| `mail_host` | `MAIL_HOST` | |
+| `mail_url` | `MAIL_URL` | falls back to `mail_host` |
+| `mail_port` | `MAIL_PORT` | integer 1–65535 |
+| `mail_username` | `MAIL_USERNAME` | |
+| `mail_password` | `MAIL_PASSWORD` | hidden on read |
+| `mail_encryption` | `MAIL_ENCRYPTION` | |
+| `mail_scheme` | `MAIL_SCHEME` | |
+| `mail_from_address` | `MAIL_FROM_ADDRESS` | must be a valid email |
+| `mail_from_name` | `MAIL_FROM_NAME` | |
+| `mail_ehlo_domain` | `MAIL_EHLO_DOMAIN` | |
+
+Every field is nullable — send `null` to unset it. A blank field is skipped, so the subscription keeps whatever its subscription-type env template ships with. Only keys a subscription already has are written, so a static site whose template has no `MAIL_*` never gains them.
+
+Saving any of these fields queues `SyncCustomerEnvToSubscriptionsJob`, which rewrites the `env_variables` rows and pushes the changed envs to Forge. Subscriptions without a Forge site are updated in the database and skipped for the push. `POST /customers/{id}/sync-env` replays the same job on demand and returns `{ ok, customer_subscriptions_count, keys }`, or `422` when the customer has nothing configured. A site with cached config needs a redeploy before the new values take effect.
 
 Nested reads: `GET /customer-subscriptions?customer_id=`, `GET /customer-users?customer_id=`.
 

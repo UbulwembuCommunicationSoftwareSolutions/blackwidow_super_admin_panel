@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\SyncCustomerEnvToSubscriptionsJob;
 use App\Models\Customer;
 use App\Models\CustomerUser;
 use Illuminate\Support\Facades\Http;
@@ -22,6 +23,7 @@ function assertCustomerHasNoSecrets(?array $payload): void
         's3_region',
         's3_bucket',
         's3_use_path_style_endpoint',
+        'mail_password',
     ] as $key) {
         expect($payload)->not->toHaveKey($key);
     }
@@ -204,6 +206,130 @@ it('returns customer secrets on the credentials endpoint for authorized users', 
                 's3_region' => 'eu-west-1',
                 's3_bucket' => 'reveal-bucket',
                 's3_use_path_style_endpoint' => true,
+                'mail_mailer' => null,
+                'mail_transport' => null,
+                'mail_host' => null,
+                'mail_url' => null,
+                'mail_port' => null,
+                'mail_username' => null,
+                'mail_password' => null,
+                'mail_encryption' => null,
+                'mail_scheme' => null,
+                'mail_from_address' => null,
+                'mail_from_name' => null,
+                'mail_ehlo_domain' => null,
             ],
         ]);
+});
+
+it('reveals the mail settings on the credentials endpoint', function () {
+    actingAsBackendUser(['View:Customer']);
+
+    $customer = Customer::factory()->withMailSettings()->create();
+
+    $this->getJson("/api/backend/customers/{$customer->id}/credentials")
+        ->assertOk()
+        ->assertJsonPath('data.mail_mailer', 'smtp')
+        ->assertJsonPath('data.mail_host', 'mail.blackwidow.org.za')
+        ->assertJsonPath('data.mail_port', 465)
+        ->assertJsonPath('data.mail_password', 'Spider1962$#@!');
+});
+
+it('saves the per-customer mail settings and flags them as configured', function () {
+    actingAsBackendUser();
+
+    $customer = Customer::factory()->create();
+
+    $response = $this->putJson("/api/backend/customers/{$customer->id}", [
+        'mail_mailer' => 'smtp',
+        'mail_host' => 'mail.blackwidow.org.za',
+        'mail_port' => 465,
+        'mail_username' => 'demo@blackwidow.org.za',
+        'mail_password' => 'Spider1962$#@!',
+        'mail_encryption' => 'null',
+        'mail_from_address' => 'demo@blackwidow.org.za',
+        'mail_ehlo_domain' => 'blackwidow.org.za',
+    ])->assertOk();
+
+    assertCustomerHasNoSecrets($response->json('data'));
+    expect($response->json('data.mail_configured'))->toBeTrue()
+        ->and($response->json('data.mail_password_set'))->toBeTrue()
+        ->and($response->json('data.mail_mailer'))->toBe('smtp');
+
+    $customer->refresh();
+    expect($customer->mail_password)->toBe('Spider1962$#@!')
+        ->and($customer->mail_port)->toBe(465);
+
+    Queue::assertPushed(SyncCustomerEnvToSubscriptionsJob::class);
+});
+
+it('reports mail as not configured until mailer, host and from address are set', function () {
+    actingAsBackendUser();
+
+    $customer = Customer::factory()->create(['mail_mailer' => 'smtp', 'mail_host' => 'mail.blackwidow.org.za']);
+
+    $this->getJson("/api/backend/customers/{$customer->id}")
+        ->assertOk()
+        ->assertJsonPath('data.mail_configured', false);
+});
+
+it('lets a mail setting be cleared back to the env template default', function () {
+    actingAsBackendUser();
+
+    $customer = Customer::factory()->withMailSettings()->create();
+
+    $this->putJson("/api/backend/customers/{$customer->id}", ['mail_host' => null])
+        ->assertOk()
+        ->assertJsonPath('data.mail_configured', false);
+
+    expect($customer->fresh()->mail_host)->toBeNull();
+});
+
+it('validates the mail settings', function (array $payload, string $field) {
+    actingAsBackendUser();
+
+    $customer = Customer::factory()->create();
+
+    $this->putJson("/api/backend/customers/{$customer->id}", $payload)
+        ->assertStatus(422)
+        ->assertJsonValidationErrors([$field]);
+})->with([
+    'unknown mailer' => [['mail_mailer' => 'pigeon'], 'mail_mailer'],
+    'unknown transport' => [['mail_transport' => 'pigeon'], 'mail_transport'],
+    'port out of range' => [['mail_port' => 70000], 'mail_port'],
+    'port not a number' => [['mail_port' => 'four-six-five'], 'mail_port'],
+    'from address not an email' => [['mail_from_address' => 'not-an-email'], 'mail_from_address'],
+]);
+
+it('queues an env sync for every subscription on demand', function () {
+    actingAsBackendUser();
+
+    $customer = Customer::factory()->withMailSettings()->create();
+
+    $this->postJson("/api/backend/customers/{$customer->id}/sync-env")
+        ->assertOk()
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('customer_subscriptions_count', 0);
+
+    Queue::assertPushed(
+        SyncCustomerEnvToSubscriptionsJob::class,
+        fn (SyncCustomerEnvToSubscriptionsJob $job) => $job->customerId === $customer->id
+    );
+});
+
+it('refuses to sync env when the customer has nothing configured', function () {
+    actingAsBackendUser();
+
+    $customer = Customer::factory()->create(['google_api_key' => null]);
+
+    $this->postJson("/api/backend/customers/{$customer->id}/sync-env")->assertStatus(422);
+
+    Queue::assertNotPushed(SyncCustomerEnvToSubscriptionsJob::class);
+});
+
+it('forbids syncing env without Shield Update permission', function () {
+    actingAsBackendForbidden();
+    $customer = Customer::factory()->withMailSettings()->create();
+
+    $this->postJson("/api/backend/customers/{$customer->id}/sync-env")->assertForbidden();
 });

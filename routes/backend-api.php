@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/customers/{id}/restore', [CustomerController::class, 'restore'])->whereNumber('id');
     Route::delete('/customers/{id}/force', [CustomerController::class, 'forceDestroy'])->whereNumber('id');
     Route::get('/customers/{id}/credentials', [CustomerController::class, 'credentials'])->whereNumber('id');
+    Route::post('/customers/{id}/sync-env', [CustomerController::class, 'syncEnv'])->whereNumber('id');
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::post('/customers', [CustomerController::class, 'store']);
     Route::get('/customers/{id}', [CustomerController::class, 'show'])->whereNumber('id');
