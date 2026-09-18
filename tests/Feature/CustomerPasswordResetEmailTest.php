@@ -1,7 +1,6 @@
 <?php
 
 use App\Jobs\SendWelcomeEmailJob;
-use App\Mail\CustomerPasswordResetMail;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
@@ -15,9 +14,10 @@ use Illuminate\Support\Facades\Queue;
 uses(RefreshDatabase::class);
 
 /**
- * The console owns the password_reset_tokens table, so it mints the link and we
- * send it. These cover both halves: the request that fetches a link, and the
- * endpoint a console hits when an admin resends one by hand.
+ * We only ever trigger a console's welcome email — the console owns the
+ * password_reset_tokens table and always sends it itself. These cover both
+ * halves: the trigger call this panel makes, and the endpoint a console hits
+ * when an admin resends one by hand.
  */
 beforeEach(function () {
     Mail::fake();
@@ -57,49 +57,7 @@ function consoleUser(Customer $customer): CustomerUser
     ]);
 }
 
-it('emails the reset link the console hands back', function () {
-    ['customer' => $customer] = consoleTenant();
-    $user = consoleUser($customer);
-
-    Http::fake([
-        '*/admin-api/send-welcome-email' => Http::response([
-            'message' => 'Reset link issued',
-            'sent_by' => 'super_admin',
-            'email' => $user->email_address,
-            'token' => 'the-console-token',
-            'reset_url' => 'https://console.example.test/reset-password/the-console-token?email=reset-me%40tenant.test',
-            'expires_in_minutes' => 45,
-        ], 200),
-    ]);
-
-    (new CMSService)->sendWelcomeEmail($user);
-
-    Mail::assertSent(CustomerPasswordResetMail::class, function (CustomerPasswordResetMail $mail) use ($user) {
-        return $mail->hasTo($user->email_address)
-            && $mail->resetUrl === 'https://console.example.test/reset-password/the-console-token?email=reset-me%40tenant.test'
-            && $mail->expiresInMinutes === 45
-            && $mail->appName === 'Console';
-    });
-});
-
-it('sends the console the user email with the customer bearer token', function () {
-    ['customer' => $customer] = consoleTenant();
-    $user = consoleUser($customer);
-
-    Http::fake([
-        '*/admin-api/send-welcome-email' => Http::response(['reset_url' => 'https://console.example.test/reset-password/abc'], 200),
-    ]);
-
-    (new CMSService)->sendWelcomeEmail($user);
-
-    Http::assertSent(function ($request) use ($user) {
-        return $request->url() === 'https://console.example.test/admin-api/send-welcome-email'
-            && $request->hasHeader('Authorization', 'Bearer console-token')
-            && $request['email'] === $user->email_address;
-    });
-});
-
-it('sends nothing when the console reports it emailed the user itself', function () {
+it('never sends the welcome email itself, whatever the console reports', function () {
     ['customer' => $customer] = consoleTenant();
     $user = consoleUser($customer);
 
@@ -113,6 +71,23 @@ it('sends nothing when the console reports it emailed the user itself', function
     (new CMSService)->sendWelcomeEmail($user);
 
     Mail::assertNothingSent();
+});
+
+it('sends the console the user email with the customer bearer token', function () {
+    ['customer' => $customer] = consoleTenant();
+    $user = consoleUser($customer);
+
+    Http::fake([
+        '*/admin-api/send-welcome-email' => Http::response(['message' => 'Email sent', 'sent_by' => 'cms'], 200),
+    ]);
+
+    (new CMSService)->sendWelcomeEmail($user);
+
+    Http::assertSent(function ($request) use ($user) {
+        return $request->url() === 'https://console.example.test/admin-api/send-welcome-email'
+            && $request->hasHeader('Authorization', 'Bearer console-token')
+            && $request['email'] === $user->email_address;
+    });
 });
 
 it('fails loudly so the job retries when the console request errors', function () {
