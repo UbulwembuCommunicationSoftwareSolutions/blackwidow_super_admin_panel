@@ -46,14 +46,14 @@ class CustomerSubscriptionController extends Controller
         }
     }
 
-    public function getManifest(Request $request)
+    public function getManifest(Request $request): JsonResponse
     {
-        // Get the referer URL
-        $referer = $request->headers->get('referer');
-        $parsedUrl = parse_url($referer);
-        $originHost = $parsedUrl['host'] ?? 'unknown';
+        $originHost = $this->resolveManifestHost($request);
 
-        // Find the customer's subscription based on the domain
+        if ($originHost === null) {
+            return response()->json(['error' => 'Subscription not found'], 404);
+        }
+
         $customerSubscription = CustomerSubscription::where('url', 'like', '%'.$originHost.'%')->first();
 
         if (! $customerSubscription) {
@@ -108,6 +108,39 @@ class CustomerSubscriptionController extends Controller
         ];
 
         return response()->json($manifest, 200, ['Content-Type' => 'application/manifest+json']);
+    }
+
+    private function resolveManifestHost(Request $request): ?string
+    {
+        foreach ([$request->headers->get('referer'), $request->headers->get('origin')] as $candidate) {
+            if (! filled($candidate)) {
+                continue;
+            }
+
+            $host = parse_url((string) $candidate, PHP_URL_HOST);
+            if (filled($host)) {
+                return $host;
+            }
+        }
+
+        if (! $request->filled('customer_url')) {
+            return null;
+        }
+
+        $rawUrl = (string) $request->query('customer_url');
+        $host = parse_url($rawUrl, PHP_URL_HOST);
+        if (filled($host)) {
+            return $host;
+        }
+
+        if ($rawUrl !== '' && ! str_contains($rawUrl, '://')) {
+            $host = parse_url('https://'.$rawUrl, PHP_URL_HOST);
+            if (filled($host)) {
+                return $host;
+            }
+        }
+
+        return null;
     }
 
     public function getLogos(Request $request): JsonResponse

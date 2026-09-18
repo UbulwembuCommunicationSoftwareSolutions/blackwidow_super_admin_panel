@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'paths' => ['customer-logo', 'customer_logo/*', 'customer_logos', 'api/*', 'sanctum/csrf-cookie', 'google-places-proxy'],
+    'paths' => ['app_manifest', 'customer-logo', 'customer_logo/*', 'customer_logos', 'api/*', 'sanctum/csrf-cookie', 'google-places-proxy'],
 
     'allowed_methods' => ['*'],
 
