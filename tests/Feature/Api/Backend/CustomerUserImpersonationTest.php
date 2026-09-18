@@ -123,7 +123,8 @@ it('reports a gateway error when the console cannot mint a link', function () {
 
     $this->postJson("/api/backend/customer-users/{$user->id}/impersonate", [
         'customer_subscription_id' => $subscription->id,
-    ])->assertStatus(502);
+    ])->assertStatus(502)
+        ->assertJsonPath('message', 'Console impersonation link request failed: Server error');
 });
 
 it('requires a token to impersonate', function () {

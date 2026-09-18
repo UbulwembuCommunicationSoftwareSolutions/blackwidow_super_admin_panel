@@ -274,8 +274,13 @@ class CMSService
                 'body' => $response->body(),
             ]);
 
+            $consoleMessage = $response->json('message');
+            $detail = is_string($consoleMessage) && $consoleMessage !== ''
+                ? $consoleMessage
+                : ('HTTP '.$response->status());
+
             throw new \RuntimeException(
-                'Console impersonation link request failed with HTTP '.$response->status()
+                'Console impersonation link request failed: '.$detail
             );
         }
 
