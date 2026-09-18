@@ -2,13 +2,11 @@
 
 namespace App\Services;
 
-use App\Mail\CustomerPasswordResetMail;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class CMSService
 {
@@ -86,12 +84,12 @@ class CMSService
     }
 
     /**
-     * Email a console user the link that lets them set their password.
+     * Trigger a console's welcome email for one of its new users.
      *
-     * Only the console owns the password_reset_tokens table, so it mints the
-     * token and hands the link back; we do the sending. A console that is not
-     * linked to us still sends its own email and returns no link, in which case
-     * there is nothing left for us to do.
+     * We never send this email ourselves — only the console owns the
+     * password_reset_tokens table, and it's the one place a user has an actual
+     * account to reset. Our only job is to ask it to act, whether or not this
+     * console is linked to us; the console decides how to deliver it.
      */
     public function sendWelcomeEmail(CustomerUser $customerUser): void
     {
@@ -100,7 +98,7 @@ class CMSService
             ->first();
 
         if (! $subscription || blank($subscription->url)) {
-            Log::warning('Console password reset email skipped: no console subscription URL', [
+            Log::warning('Welcome email trigger skipped: no console subscription URL', [
                 'customer_user_id' => $customerUser->id,
                 'customer_id' => $customerUser->customer_id,
             ]);
@@ -111,7 +109,7 @@ class CMSService
         $subscription->loadMissing('customer');
 
         if (! $subscription->customer || blank($subscription->customer->token)) {
-            Log::warning('Console password reset email skipped: missing customer or API token', [
+            Log::warning('Welcome email trigger skipped: missing customer or API token', [
                 'customer_user_id' => $customerUser->id,
                 'subscription_id' => $subscription->id,
             ]);
@@ -127,7 +125,7 @@ class CMSService
             ->post($url, ['email' => $customerUser->email_address]);
 
         if (! $response->successful()) {
-            Log::warning('Console password reset link request failed', [
+            Log::warning('Welcome email trigger failed', [
                 'customer_user_id' => $customerUser->id,
                 'url' => $url,
                 'status' => $response->status(),
@@ -135,31 +133,11 @@ class CMSService
             ]);
 
             throw new \RuntimeException(
-                'Console password reset link request failed with HTTP '.$response->status()
+                'Welcome email trigger failed with HTTP '.$response->status()
             );
         }
 
-        $resetUrl = $response->json('reset_url');
-
-        if (! is_string($resetUrl) || $resetUrl === '') {
-            Log::info('Console sent its own password reset email; nothing to send here', [
-                'customer_user_id' => $customerUser->id,
-                'subscription_id' => $subscription->id,
-            ]);
-
-            return;
-        }
-
-        $customerUser->loadMissing('customer');
-
-        Mail::to($customerUser->email_address)->send(new CustomerPasswordResetMail(
-            $customerUser,
-            $resetUrl,
-            (string) ($subscription->app_name ?: 'Console'),
-            (int) ($response->json('expires_in_minutes') ?: config('auth.passwords.users.expire')),
-        ));
-
-        Log::info('Console password reset email sent', [
+        Log::info('Welcome email triggered on tenant console', [
             'customer_user_id' => $customerUser->id,
             'subscription_id' => $subscription->id,
         ]);
