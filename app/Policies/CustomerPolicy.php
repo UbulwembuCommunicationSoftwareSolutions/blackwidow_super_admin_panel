@@ -4,21 +4,39 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Customer;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class CustomerPolicy
 {
     use HandlesAuthorization;
-    
+
     public function viewAny(AuthUser $authUser): bool
     {
+        if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
+            return false;
+        }
+
         return $authUser->can('ViewAny:Customer');
     }
 
     public function view(AuthUser $authUser, Customer $customer): bool
     {
+        if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
+            return CustomerAdminAccess::allows($authUser, $customer->id);
+        }
+
+        return $authUser->can('View:Customer');
+    }
+
+    public function viewCredentials(AuthUser $authUser, Customer $customer): bool
+    {
+        if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
+            return false;
+        }
+
         return $authUser->can('View:Customer');
     }
 
@@ -66,5 +84,4 @@ class CustomerPolicy
     {
         return $authUser->can('Reorder:Customer');
     }
-
 }

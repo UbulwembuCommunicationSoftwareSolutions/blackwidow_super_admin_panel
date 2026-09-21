@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Backend;
 
 use App\Http\Controllers\Controller as BaseController;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,20 @@ abstract class Controller extends BaseController
         }
 
         return $validated;
+    }
+
+    /**
+     * Limit a query to the signed-in customer admin's customer. Staff are unchanged.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<*>|\Illuminate\Database\Eloquent\Relations\Relation<*, *, *>  $query
+     */
+    protected function scopeToCustomerAdmin($query, string $column = 'customer_id'): void
+    {
+        $customerId = CustomerAdminAccess::customerId(auth()->user());
+
+        if ($customerId !== null) {
+            $query->where($column, $customerId);
+        }
     }
 
     /**

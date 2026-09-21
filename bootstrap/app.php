@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveCustomerAdmin;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Middleware\VerifyCustomerBearerToken;
 use Illuminate\Foundation\Application;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'customer.bearer' => VerifyCustomerBearerToken::class,
+            'customer.admin' => EnsureActiveCustomerAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

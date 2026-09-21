@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\Customer;
+use App\Models\CustomerUser;
 use App\Models\User;
+use App\Support\CustomerAdminAccess;
 
 it('rejects backend user without a token', function () {
     $this->getJson('/api/backend/user')->assertUnauthorized();
@@ -72,4 +75,124 @@ it('revokes the current token on logout', function () {
         ->assertJsonPath('ok', true);
 
     expect($user->tokens()->count())->toBe(0);
+});
+
+it('logs in a customer user who is a system admin', function () {
+    $customer = Customer::factory()->create();
+    CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'portal@example.com',
+        'first_name' => 'Pat',
+        'last_name' => 'Admin',
+        'password' => 'secret-pass',
+        'is_system_admin' => true,
+        'skip_sync' => true,
+    ]);
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'portal@example.com',
+        'password' => 'secret-pass',
+    ])->assertOk()
+        ->assertJsonPath('data.user.email', 'portal@example.com')
+        ->assertJsonPath('data.user.name', 'Pat Admin')
+        ->assertJsonPath('data.user.roles.0', 'customer_admin')
+        ->assertJsonPath('data.user.actor_type', 'customer_admin')
+        ->assertJsonPath('data.user.customer_id', $customer->id)
+        ->assertJsonPath('data.user.permissions', CustomerAdminAccess::permissions());
+});
+
+it('rejects a customer user who is not a system admin', function () {
+    $customer = Customer::factory()->create();
+    CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'member@example.com',
+        'password' => 'secret-pass',
+        'is_system_admin' => false,
+        'skip_sync' => true,
+    ]);
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'member@example.com',
+        'password' => 'secret-pass',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['email']);
+});
+
+it('rejects a trashed system admin customer user', function () {
+    $customer = Customer::factory()->create();
+    $admin = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'gone@example.com',
+        'password' => 'secret-pass',
+        'is_system_admin' => true,
+        'skip_sync' => true,
+    ]);
+    $admin->delete();
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'gone@example.com',
+        'password' => 'secret-pass',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['email']);
+});
+
+it('prefers a staff user when the email is shared with a customer admin', function () {
+    $customer = Customer::factory()->create();
+    User::factory()->create([
+        'email' => 'shared@example.com',
+        'password' => 'staff-pass',
+    ]);
+    CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'shared@example.com',
+        'password' => 'customer-pass',
+        'is_system_admin' => true,
+        'skip_sync' => true,
+    ]);
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'shared@example.com',
+        'password' => 'customer-pass',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['email']);
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'shared@example.com',
+        'password' => 'staff-pass',
+    ])->assertOk()
+        ->assertJsonPath('data.user.email', 'shared@example.com')
+        ->assertJsonMissingPath('data.user.actor_type');
+});
+
+it('signs in a customer admin on the customer portal when a staff user shares the email', function () {
+    $customer = Customer::factory()->create();
+    User::factory()->create([
+        'email' => 'shared@example.com',
+        'password' => 'staff-pass',
+    ]);
+    CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'shared@example.com',
+        'first_name' => 'Pat',
+        'last_name' => 'Admin',
+        'password' => 'customer-pass',
+        'is_system_admin' => true,
+        'skip_sync' => true,
+    ]);
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'shared@example.com',
+        'password' => 'customer-pass',
+        'portal' => 'customer',
+    ])->assertOk()
+        ->assertJsonPath('data.user.actor_type', 'customer_admin')
+        ->assertJsonPath('data.user.customer_id', $customer->id)
+        ->assertJsonPath('data.user.name', 'Pat Admin');
+
+    $this->postJson('/api/backend/login', [
+        'email' => 'shared@example.com',
+        'password' => 'staff-pass',
+        'portal' => 'customer',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['email']);
 });

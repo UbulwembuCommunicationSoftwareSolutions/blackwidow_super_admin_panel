@@ -13,6 +13,7 @@ use App\Services\ForgeService;
 use App\Services\LogoSyncService;
 use App\Services\SiteDeploymentScheduler;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -73,7 +74,9 @@ class CustomerSubscriptionController extends Controller
                 'customer:id,company_name',
             ]);
 
-        if (array_key_exists('customer_id', $validated)) {
+        $this->scopeToCustomerAdmin($query);
+
+        if (CustomerAdminAccess::customerId($request->user()) === null && array_key_exists('customer_id', $validated)) {
             $query->where('customer_id', $validated['customer_id']);
         }
         if (array_key_exists('subscription_type_id', $validated)) {

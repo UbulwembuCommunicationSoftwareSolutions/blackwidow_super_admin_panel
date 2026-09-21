@@ -7,6 +7,7 @@ use App\Jobs\SendWelcomeEmailJob;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Services\CMSService;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -37,8 +38,9 @@ class CustomerUserController extends Controller
 
         $query = CustomerUser::query();
         $this->applyTrashed($query, $validated['trashed'] ?? null);
+        $this->scopeToCustomerAdmin($query);
 
-        if (array_key_exists('customer_id', $validated)) {
+        if (CustomerAdminAccess::customerId($request->user()) === null && array_key_exists('customer_id', $validated)) {
             $query->where('customer_id', $validated['customer_id']);
         }
 
@@ -63,6 +65,12 @@ class CustomerUserController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if (CustomerAdminAccess::isCustomerAdmin($request->user())) {
+            $request->merge([
+                'customer_id' => CustomerAdminAccess::customerId($request->user()),
+            ]);
+        }
+
         $this->authorize('create', CustomerUser::class);
 
         $row = CustomerUser::query()->create($request->validate($this->storeRules()));
@@ -200,6 +208,7 @@ class CustomerUserController extends Controller
 
         Log::info('Customer user impersonation link issued', [
             'admin_user_id' => $request->user()?->id,
+            'actor_type' => $request->user() instanceof CustomerUser ? 'customer_admin' : 'staff',
             'customer_user_id' => $row->id,
             'customer_subscription_id' => $subscription->id,
         ]);

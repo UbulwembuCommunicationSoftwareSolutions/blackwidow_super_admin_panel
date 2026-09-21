@@ -8,6 +8,7 @@ use App\Models\DeploymentTemplate;
 use App\Models\NginxTemplate;
 use App\Models\SubscriptionType;
 use App\Models\TemplateEnvVariables;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -43,6 +44,15 @@ class SearchController extends Controller
 
             if ($resource['with'] !== []) {
                 $query->with($resource['with']);
+            }
+
+            $customerId = CustomerAdminAccess::customerId($request->user());
+            if ($customerId !== null) {
+                if ($resource['model'] === Customer::class) {
+                    $query->whereKey($customerId);
+                } elseif ($resource['model'] === CustomerSubscription::class) {
+                    $query->where('customer_id', $customerId);
+                }
             }
 
             $this->applySearch($query, $validated['q'], $resource['columns']);

@@ -1,5 +1,14 @@
 <?php
 
+use App\Models\Customer;
+use App\Models\CustomerSubscription;
+use App\Models\CustomerUser;
+use App\Models\SubscriptionType;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Permission;
+use Tests\TestCase;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -12,11 +21,11 @@
 */
 
 uses(
-    Tests\TestCase::class,
+    TestCase::class,
 )->in('Feature');
 
 uses(
-    Tests\TestCase::class,
+    TestCase::class,
 )->in('Browser');
 
 /*
@@ -49,20 +58,21 @@ expect()->extend('toBeSoftDeleted', function () {
 |
 */
 
-function createUserWithRole(string $role): \App\Models\User
+function createUserWithRole(string $role): User
 {
-    $user = \App\Models\User::factory()->create();
+    $user = User::factory()->create();
     $user->assignRole($role);
+
     return $user;
 }
 
-function createCustomerWithSubscriptions(int $count = 1): \App\Models\Customer
+function createCustomerWithSubscriptions(int $count = 1): Customer
 {
-    $customer = \App\Models\Customer::factory()->create();
-    $subscriptionType = \App\Models\SubscriptionType::factory()->create();
+    $customer = Customer::factory()->create();
+    $subscriptionType = SubscriptionType::factory()->create();
 
     for ($i = 0; $i < $count; $i++) {
-        \App\Models\CustomerSubscription::factory()->create([
+        CustomerSubscription::factory()->create([
             'customer_id' => $customer->id,
             'subscription_type_id' => $subscriptionType->id,
         ]);
@@ -110,11 +120,11 @@ function backendShieldPermissions(): array
     return $permissions;
 }
 
-function grantBackendPermissions(\App\Models\User $user, ?array $permissions = null): \App\Models\User
+function grantBackendPermissions(User $user, ?array $permissions = null): User
 {
     $permissions ??= backendShieldPermissions();
     foreach ($permissions as $permission) {
-        \Spatie\Permission\Models\Permission::findOrCreate($permission, 'web');
+        Permission::findOrCreate($permission, 'web');
     }
     $user->givePermissionTo($permissions);
     $user->forgetCachedPermissions();
@@ -122,18 +132,36 @@ function grantBackendPermissions(\App\Models\User $user, ?array $permissions = n
     return $user;
 }
 
-function actingAsBackendUser(?array $permissions = null): \App\Models\User
+function actingAsBackendUser(?array $permissions = null): User
 {
-    $user = grantBackendPermissions(\App\Models\User::factory()->create(), $permissions);
-    \Laravel\Sanctum\Sanctum::actingAs($user, ['backend']);
+    $user = grantBackendPermissions(User::factory()->create(), $permissions);
+    Sanctum::actingAs($user, ['backend']);
 
     return $user;
 }
 
-function actingAsBackendForbidden(): \App\Models\User
+function actingAsBackendForbidden(): User
 {
-    $user = \App\Models\User::factory()->create();
-    \Laravel\Sanctum\Sanctum::actingAs($user, ['backend']);
+    $user = User::factory()->create();
+    Sanctum::actingAs($user, ['backend']);
+
+    return $user;
+}
+
+function actingAsCustomerAdmin(?Customer $customer = null, array $attributes = []): CustomerUser
+{
+    $customer ??= Customer::factory()->create();
+    $password = $attributes['password'] ?? 'secret-pass';
+    unset($attributes['password']);
+
+    $user = CustomerUser::factory()->create(array_merge([
+        'customer_id' => $customer->id,
+        'is_system_admin' => true,
+        'skip_sync' => true,
+        'password' => $password,
+    ], $attributes));
+
+    Sanctum::actingAs($user, ['backend']);
 
     return $user;
 }

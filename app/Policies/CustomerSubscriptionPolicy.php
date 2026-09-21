@@ -4,21 +4,30 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\CustomerSubscription;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class CustomerSubscriptionPolicy
 {
     use HandlesAuthorization;
-    
+
     public function viewAny(AuthUser $authUser): bool
     {
+        if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
+            return true;
+        }
+
         return $authUser->can('ViewAny:CustomerSubscription');
     }
 
     public function view(AuthUser $authUser, CustomerSubscription $customerSubscription): bool
     {
+        if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
+            return CustomerAdminAccess::allows($authUser, $customerSubscription->customer_id);
+        }
+
         return $authUser->can('View:CustomerSubscription');
     }
 
@@ -66,5 +75,4 @@ class CustomerSubscriptionPolicy
     {
         return $authUser->can('Reorder:CustomerSubscription');
     }
-
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Backend;
 
 use App\Jobs\SyncCustomerEnvToSubscriptionsJob;
 use App\Models\Customer;
+use App\Support\CustomerAdminAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -126,7 +127,7 @@ class CustomerController extends Controller
     public function credentials(int $id): JsonResponse
     {
         $row = Customer::query()->findOrFail($id);
-        $this->authorize('view', $row);
+        $this->authorize('viewCredentials', $row);
 
         return response()->json(['data' => $row->only(self::CREDENTIALS)]);
     }
@@ -285,6 +286,11 @@ class CustomerController extends Controller
         $customer->setAttribute('mail_configured', $customer->hasMailConfiguration());
         $customer->setAttribute('mail_password_set', filled($customer->mail_password));
 
-        return $customer->makeHidden(self::HIDDEN);
+        $hidden = self::HIDDEN;
+        if (CustomerAdminAccess::isCustomerAdmin(auth()->user())) {
+            $hidden = array_values(array_unique([...$hidden, ...self::CREDENTIALS]));
+        }
+
+        return $customer->makeHidden($hidden);
     }
 }
