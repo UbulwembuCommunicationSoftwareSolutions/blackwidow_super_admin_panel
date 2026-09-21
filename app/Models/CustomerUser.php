@@ -8,6 +8,7 @@ use App\Jobs\SendWelcomeEmailJob;
 use App\Support\UserSync\PushOperation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -272,6 +273,11 @@ class CustomerUser extends Authenticatable
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function productPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductPermission::class, 'customer_user_product_permissions');
     }
 
     public function syncLogs()

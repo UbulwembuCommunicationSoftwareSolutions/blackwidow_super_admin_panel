@@ -8,8 +8,10 @@ use App\Support\CustomerAdminAccess;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -44,6 +46,32 @@ class AuthController extends Controller
             $validated['email'],
             $validated['password'],
         ));
+    }
+
+    public function exchangeSso(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'size:64'],
+        ]);
+
+        $token = Cache::pull('customer-portal-sso:'.$validated['code']);
+        $accessToken = is_string($token) && $token !== ''
+            ? PersonalAccessToken::findToken($token)
+            : null;
+        $user = $accessToken?->tokenable;
+
+        if (! $user instanceof CustomerUser || ! $user->is_system_admin) {
+            throw ValidationException::withMessages([
+                'code' => ['This customer portal link has expired.'],
+            ]);
+        }
+
+        return response()->json([
+            'data' => [
+                'token' => $token,
+                'user' => $this->userPayload($user),
+            ],
+        ]);
     }
 
     /**

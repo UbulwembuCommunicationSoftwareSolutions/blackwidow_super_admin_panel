@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->encryptCookies(except: [
+            'external_token',
+        ]);
+
         $middleware->web(remove: [
             Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         ]);

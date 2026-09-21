@@ -25,12 +25,20 @@ class CustomerUserResource extends JsonResource
             'console_access' => $this->console_access,
             'firearm_access' => $this->firearm_access,
             'responder_access' => $this->responder_access,
-            'reporter_access'   => $this->reporter_access,
-            'security_access'   => $this->security_access,
-            'driver_access'     => $this->driver_access,
-            'survey_access'     => $this->survey_access,
+            'reporter_access' => $this->reporter_access,
+            'security_access' => $this->security_access,
+            'driver_access' => $this->driver_access,
+            'survey_access' => $this->survey_access,
             'time_and_attendance_access' => $this->time_and_attendance_access,
-            'stock_access'      => $this->stock_access,
+            'stock_access' => $this->stock_access,
+            'product_permissions' => $this->whenLoaded('productPermissions', function () {
+                return $this->productPermissions->map(fn ($permission) => [
+                    'id' => $permission->id,
+                    'product' => $permission->product,
+                    'name' => $permission->name,
+                    'group_name' => $permission->group_name,
+                ])->values();
+            }),
             'customer' => new CustomerResource($this->whenLoaded('customer')),
         ];
     }

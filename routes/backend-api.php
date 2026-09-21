@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Backend\UserCustomerController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/login/sso', [AuthController::class, 'exchangeSso'])->name('login.sso');
 
 Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

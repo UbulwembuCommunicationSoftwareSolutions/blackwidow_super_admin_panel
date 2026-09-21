@@ -47,7 +47,8 @@ final class UserSyncPayload
         public readonly ?string $lastName,
         public readonly ?string $cellphone,
         public readonly array $access,
-        public readonly bool $isSystemAdmin,
+        public readonly ?bool $isSystemAdmin,
+        public readonly ?bool $superAdminPanelAccess,
         public readonly ?Carbon $deleteScheduled,
         public readonly ?Carbon $updatedAt,
     ) {}
@@ -68,6 +69,7 @@ final class UserSyncPayload
             cellphone: $user->cellphone,
             access: $access,
             isSystemAdmin: (bool) $user->is_system_admin,
+            superAdminPanelAccess: null,
             deleteScheduled: $user->delete_scheduled,
             updatedAt: $user->updated_at,
         );
@@ -80,9 +82,9 @@ final class UserSyncPayload
     {
         $access = [];
         foreach (array_keys(self::ACCESS_FLAGS) as $flag) {
-            $access[$flag] = array_key_exists($flag, $data)
-                ? filter_var($data[$flag], FILTER_VALIDATE_BOOLEAN)
-                : false;
+            if (array_key_exists($flag, $data)) {
+                $access[$flag] = filter_var($data[$flag], FILTER_VALIDATE_BOOLEAN);
+            }
         }
 
         return new self(
@@ -93,7 +95,12 @@ final class UserSyncPayload
             lastName: $data['last_name'] ?? null,
             cellphone: $data['cellphone'] ?? null,
             access: $access,
-            isSystemAdmin: filter_var($data['is_system_admin'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            isSystemAdmin: array_key_exists('is_system_admin', $data)
+                ? filter_var($data['is_system_admin'], FILTER_VALIDATE_BOOLEAN)
+                : null,
+            superAdminPanelAccess: array_key_exists('super_admin_panel_access', $data)
+                ? filter_var($data['super_admin_panel_access'], FILTER_VALIDATE_BOOLEAN)
+                : null,
             deleteScheduled: isset($data['delete_scheduled']) ? Carbon::parse($data['delete_scheduled']) : null,
             updatedAt: isset($data['updated_at']) ? Carbon::parse($data['updated_at']) : null,
         );
@@ -104,15 +111,24 @@ final class UserSyncPayload
      */
     public function toArray(): array
     {
-        return array_merge([
+        $payload = [
             'super_admin_user_id' => $this->superAdminUserId,
             'cms_user_id' => $this->cmsUserId,
             'email' => $this->email,
             'first_name' => $this->firstName,
             'last_name' => $this->lastName,
             'cellphone' => $this->cellphone,
-            'is_system_admin' => $this->isSystemAdmin,
-        ], $this->access, [
+        ];
+
+        if ($this->isSystemAdmin !== null) {
+            $payload['is_system_admin'] = $this->isSystemAdmin;
+        }
+
+        if ($this->superAdminPanelAccess !== null) {
+            $payload['super_admin_panel_access'] = $this->superAdminPanelAccess;
+        }
+
+        return array_merge($payload, $this->access, [
             'delete_scheduled' => $this->deleteScheduled?->toIso8601String(),
             'updated_at' => $this->updatedAt?->toIso8601String(),
         ]);
@@ -141,13 +157,18 @@ final class UserSyncPayload
      */
     public function toCustomerUserAttributes(): array
     {
-        return array_merge([
+        $attributes = [
             'email_address' => $this->email,
             'first_name' => $this->firstName,
             'last_name' => $this->lastName,
             'cellphone' => $this->cellphone,
-            'is_system_admin' => $this->isSystemAdmin,
-        ], $this->access);
+        ];
+
+        if ($this->isSystemAdmin !== null) {
+            $attributes['is_system_admin'] = $this->isSystemAdmin;
+        }
+
+        return array_merge($attributes, $this->access);
     }
 
     /**
@@ -167,6 +188,7 @@ final class UserSyncPayload
             $key.'last_name' => 'nullable|string|max:255',
             $key.'cellphone' => 'nullable|string|max:255',
             $key.'is_system_admin' => 'nullable|boolean',
+            $key.'super_admin_panel_access' => 'nullable|boolean',
             $key.'delete_scheduled' => 'nullable|date',
             $key.'updated_at' => 'nullable|date',
         ];

@@ -4,6 +4,7 @@ namespace App\Services\UserSync;
 
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Models\ProductPermission;
 use App\Support\UserSync\SyncOutcome;
 use App\Support\UserSync\UserSyncPayload;
 use Illuminate\Support\Facades\Log;
@@ -55,7 +56,7 @@ class CustomerUserSyncService
 
         return [
             'outcome' => SyncOutcome::Updated,
-            'user' => $this->update($user, $payload, $password),
+            'user' => $this->update($user, $payload, $password, $subscription),
         ];
     }
 
@@ -177,6 +178,7 @@ class CustomerUserSyncService
         $user = CustomerUser::create($attributes);
 
         $this->grantSubscriptionAccess($user, $subscription);
+        $this->syncSuperAdminPanelAccess($user, $subscription, $payload);
 
         Log::info('Customer user created from tenant sync', [
             'customer_user_id' => $user->id,
@@ -187,8 +189,12 @@ class CustomerUserSyncService
         return $user->fresh();
     }
 
-    private function update(CustomerUser $user, UserSyncPayload $payload, ?string $password = null): CustomerUser
-    {
+    private function update(
+        CustomerUser $user,
+        UserSyncPayload $payload,
+        ?string $password,
+        CustomerSubscription $subscription,
+    ): CustomerUser {
         if ($user->trashed()) {
             $user->restore();
         }
@@ -202,6 +208,7 @@ class CustomerUserSyncService
         }
 
         $user->save();
+        $this->syncSuperAdminPanelAccess($user, $subscription, $payload);
 
         Log::info('Customer user updated from tenant sync', [
             'customer_user_id' => $user->id,
@@ -209,6 +216,41 @@ class CustomerUserSyncService
         ]);
 
         return $user->fresh();
+    }
+
+    private function syncSuperAdminPanelAccess(
+        CustomerUser $user,
+        CustomerSubscription $subscription,
+        UserSyncPayload $payload,
+    ): void {
+        if ($payload->superAdminPanelAccess === null) {
+            return;
+        }
+
+        $product = match ((int) $subscription->subscription_type_id) {
+            1 => 'console',
+            2 => 'firearm',
+            default => null,
+        };
+
+        if ($product === null) {
+            return;
+        }
+
+        $permission = ProductPermission::query()
+            ->where('product', $product)
+            ->where('name', 'access super admin')
+            ->first();
+
+        if ($permission === null) {
+            return;
+        }
+
+        if ($payload->superAdminPanelAccess) {
+            $user->productPermissions()->syncWithoutDetaching([$permission->id]);
+        } else {
+            $user->productPermissions()->detach($permission->id);
+        }
     }
 
     /**

@@ -36,7 +36,7 @@ class CustomerUserController extends Controller
             'trashed' => ['sometimes', 'in:with,only'],
         ], self::SORTABLE);
 
-        $query = CustomerUser::query();
+        $query = CustomerUser::query()->with('productPermissions');
         $this->applyTrashed($query, $validated['trashed'] ?? null);
         $this->scopeToCustomerAdmin($query);
 
@@ -57,7 +57,7 @@ class CustomerUserController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $row = CustomerUser::query()->findOrFail($id);
+        $row = CustomerUser::query()->with('productPermissions')->findOrFail($id);
         $this->authorize('view', $row);
 
         return response()->json(['data' => $row->makeHidden(self::HIDDEN)]);
