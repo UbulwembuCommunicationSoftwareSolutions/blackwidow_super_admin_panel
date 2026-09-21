@@ -108,6 +108,7 @@ class Type1ConsoleRequiredEnvSeeder extends Seeder
             ['key' => 'SENTRY_LARAVEL_DSN', 'value' => $pSentry],
             ['key' => 'SENTRY_TRACES_SAMPLE_RATE', 'value' => '1.0'],
             ['key' => 'SESSION_DOMAIN', 'value' => 'null'],
+            ['key' => 'COOKIE_DOMAIN', 'value' => '.blackwidow.org.za'],
             ['key' => 'SESSION_DRIVER', 'value' => 'database'],
             ['key' => 'SESSION_ENCRYPT', 'value' => 'false'],
             ['key' => 'SESSION_LIFETIME', 'value' => '120'],

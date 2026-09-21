@@ -40,6 +40,7 @@ final class PhpModuleEnvTemplate
             ['key' => 'SESSION_ENCRYPT', 'value' => 'false'],
             ['key' => 'SESSION_PATH', 'value' => '/'],
             ['key' => 'SESSION_DOMAIN', 'value' => 'null'],
+            ['key' => 'COOKIE_DOMAIN', 'value' => '.blackwidow.org.za'],
             ['key' => 'BROADCAST_CONNECTION', 'value' => 'log'],
             ['key' => 'FILESYSTEM_DISK', 'value' => 'local'],
             ['key' => 'QUEUE_CONNECTION', 'value' => 'redis'],

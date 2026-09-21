@@ -6,11 +6,12 @@ use App\Helpers\ForgeApi;
 use App\Http\Requests\CustomerSubscriptionRequest;
 use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
-use Auth;
+use App\Models\CustomerUser;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\PersonalAccessToken;
 use Log;
 
 class CustomerSubscriptionController extends Controller
@@ -24,26 +25,67 @@ class CustomerSubscriptionController extends Controller
         return CustomerSubscriptionResource::collection(CustomerSubscription::all());
     }
 
-    public function checkLoggedIn(Request $request)
+    public function checkLoggedIn(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        if (! $user) {
-            Log::info('User is not logged in');
+        $validated = $request->validate([
+            'app_url' => ['required', 'string'],
+        ]);
 
+        $user = $request->user();
+
+        if (! $user instanceof CustomerUser || $user->isDeleteScheduled()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User is not logged in',
+                'message' => 'Access Denied',
             ], 401);
-        } else {
-            Log::info('User is logged in');
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'User is logged in',
-                'user' => $user,
-                'token' => $request->bearerToken(),
-            ]);
         }
+
+        $url = $this->normalizeAppUrl($validated['app_url']);
+        $subscription = CustomerSubscription::query()->where('url', $url)->first();
+
+        if (! $subscription || (int) $subscription->customer_id !== (int) $user->customer_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Access Denied',
+            ], 401);
+        }
+
+        if (! $user->checkAccess((int) $subscription->subscription_type_id)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Access Denied',
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User is logged in',
+            'user' => $user->makeHidden(['password']),
+            'token' => $request->bearerToken(),
+        ]);
+    }
+
+    public function ssoLogout(Request $request): JsonResponse
+    {
+        $token = $request->user()?->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logged out',
+        ]);
+    }
+
+    private function normalizeAppUrl(string $url): string
+    {
+        if (str_starts_with($url, 'http://')) {
+            return 'https://'.substr($url, strlen('http://'));
+        }
+
+        return $url;
     }
 
     public function getManifest(Request $request): JsonResponse

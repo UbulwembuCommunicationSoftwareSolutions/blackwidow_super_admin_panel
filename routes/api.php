@@ -19,6 +19,7 @@ Route::get('customer/responder-functions', [CustomerSubscriptionController::clas
 Route::get('customer_cms_url', [CustomerSubscriptionController::class, 'getCmsUrl']);
 Route::get('app_manifest', [CustomerSubscriptionController::class, 'getManifest']);
 Route::middleware('auth:sanctum')->post('/token-user', [CustomerSubscriptionController::class, 'checkLoggedIn']);
+Route::middleware('auth:sanctum')->post('/sso-logout', [CustomerSubscriptionController::class, 'ssoLogout']);
 
 /*
  * Canonical user sync contract for tenant apps (CMS, firearm, ...).
