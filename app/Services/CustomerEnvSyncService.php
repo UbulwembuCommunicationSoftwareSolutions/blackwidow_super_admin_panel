@@ -9,17 +9,19 @@ use App\Models\EnvVariables;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Applies the customer-level configuration ({@see Customer::subscriptionEnvOverrides}) — the Google
- * Maps key and the SMTP credentials — to the {@see EnvVariables} of the customer's subscriptions.
+ * Applies the customer-level configuration ({@see Customer::subscriptionEnvOverrides}) — the
+ * shared SECURE_TOKEN, Google Maps key, and SMTP credentials — to the {@see EnvVariables}
+ * of the customer's subscriptions.
  *
  * Database only: pushing the result to Forge is {@see ForgeApi::sendEnv}.
+ *
+ * Most override keys are only written when the subscription already has that key (so a static
+ * site without mail never gains MAIL_* rows). SECURE_TOKEN is the exception: it is always
+ * upserted so every tenant that speaks the sync contract has the customer's shared secret.
  */
 class CustomerEnvSyncService
 {
     /**
-     * Only keys the subscription already has are written, so a subscription type whose template
-     * omits a key (e.g. a static site with no mail) never gains it.
-     *
      * @return list<string> the keys whose value changed
      */
     public function syncSubscription(CustomerSubscription $customerSubscription): array
@@ -32,6 +34,29 @@ class CustomerEnvSyncService
         }
 
         $changed = [];
+
+        if (isset($overrides['SECURE_TOKEN'])) {
+            $secureTokenChanged = $this->upsertSecureToken(
+                $customerSubscription,
+                $overrides['SECURE_TOKEN'],
+            );
+            if ($secureTokenChanged) {
+                $changed[] = 'SECURE_TOKEN';
+            }
+            unset($overrides['SECURE_TOKEN']);
+        }
+
+        if ($overrides === []) {
+            if ($changed !== []) {
+                Log::info('customer.env_sync.applied', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'keys' => $changed,
+                ]);
+            }
+
+            return $changed;
+        }
+
         $rows = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
             ->whereIn('key', array_keys($overrides))
             ->get();
@@ -66,5 +91,29 @@ class CustomerEnvSyncService
         }
 
         return $changed;
+    }
+
+    private function upsertSecureToken(CustomerSubscription $customerSubscription, string $token): bool
+    {
+        $row = EnvVariables::query()->firstOrNew([
+            'customer_subscription_id' => $customerSubscription->id,
+            'key' => 'SECURE_TOKEN',
+        ]);
+
+        if (! $row->exists) {
+            $row->value = $token;
+            $row->save();
+
+            return true;
+        }
+
+        if ($row->value === $token) {
+            return false;
+        }
+
+        $row->value = $token;
+        $row->save();
+
+        return true;
     }
 }

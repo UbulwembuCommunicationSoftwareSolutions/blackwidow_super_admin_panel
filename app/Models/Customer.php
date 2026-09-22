@@ -105,6 +105,7 @@ class Customer extends Model
      * @var list<string>
      */
     public const SUBSCRIPTION_ENV_FIELDS = [
+        'token',
         'google_api_key',
         'mail_mailer',
         'mail_transport',
@@ -190,17 +191,22 @@ class Customer extends Model
 
     /**
      * The .env keys this customer controls, mapped to the values every one of its subscriptions
-     * must run with (Google Maps key + SMTP credentials).
+     * must run with (shared API secret + Google Maps key + SMTP credentials).
      *
      * Blank fields are omitted so the subscription type's template default is left untouched.
      * MAIL_TRANSPORT and MAIL_URL are aliases Laravel's mail config also reads, so they fall back
      * to the mailer and host rather than being left pointing at a template default.
+     *
+     * SECURE_TOKEN is always included when the customer has a token — tenant sync (users,
+     * branding) authenticates with Bearer {customers.token}, which must match each site's
+     * SECURE_TOKEN.
      *
      * @return array<string, string>
      */
     public function subscriptionEnvOverrides(): array
     {
         $values = [
+            'SECURE_TOKEN' => $this->token,
             'GOOGLE_MAPS_API_KEY' => $this->google_api_key,
             'MAIL_MAILER' => $this->mail_mailer,
             'MAIL_TRANSPORT' => $this->mail_transport ?: $this->mail_mailer,

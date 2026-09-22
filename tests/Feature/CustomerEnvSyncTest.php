@@ -119,7 +119,36 @@ it('never adds a key the subscription env does not already have', function () {
         ->pluck('key')
         ->all();
 
-    expect($keys)->toBe(['APP_NAME']);
+    // SECURE_TOKEN is always upserted (tenant sync auth); other customer keys are not invented.
+    expect($keys)->toEqualCanonicalizing(['APP_NAME', 'SECURE_TOKEN']);
+    expect(envValue($subscription, 'SECURE_TOKEN'))->toBe($customer->token);
+});
+
+it('upserts SECURE_TOKEN from the customer token onto every subscription', function () {
+    Queue::fake();
+
+    $customer = Customer::factory()->create(['token' => 'customer-shared-secret']);
+    $subscription = subscriptionWithEnv($customer, [
+        'APP_NAME' => 'Firearm',
+        'SECURE_TOKEN' => 'token',
+    ]);
+
+    $changed = app(CustomerEnvSyncService::class)->syncSubscription($subscription);
+
+    expect($changed)->toContain('SECURE_TOKEN');
+    expect(envValue($subscription, 'SECURE_TOKEN'))->toBe('customer-shared-secret');
+});
+
+it('creates SECURE_TOKEN when the subscription is missing it', function () {
+    Queue::fake();
+
+    $customer = Customer::factory()->create(['token' => 'customer-shared-secret']);
+    $subscription = subscriptionWithEnv($customer, ['APP_NAME' => 'Firearm']);
+
+    $changed = app(CustomerEnvSyncService::class)->syncSubscription($subscription);
+
+    expect($changed)->toContain('SECURE_TOKEN');
+    expect(envValue($subscription, 'SECURE_TOKEN'))->toBe('customer-shared-secret');
 });
 
 it('leaves the env template default in place for fields the customer has not filled', function () {
@@ -138,19 +167,39 @@ it('leaves the env template default in place for fields the customer has not fil
 
     $changed = app(CustomerEnvSyncService::class)->syncSubscription($subscription);
 
-    expect($changed)->toBe(['GOOGLE_MAPS_API_KEY']);
+    expect($changed)->toContain('GOOGLE_MAPS_API_KEY', 'SECURE_TOKEN');
     expect(envValue($subscription, 'MAIL_HOST'))->toBe('mail.blackwidow.org.za');
     expect(envValue($subscription, 'MAIL_FROM_NAME'))->toBe('${APP_NAME}');
+    expect(envValue($subscription, 'SECURE_TOKEN'))->toBe($customer->token);
 });
 
-it('reports no changes for a customer with no google key or mail settings', function () {
+it('reports no changes for a customer with no google key or mail settings beyond SECURE_TOKEN', function () {
     Queue::fake();
 
-    $customer = Customer::factory()->create(['google_api_key' => null]);
-    $subscription = subscriptionWithEnv($customer, ['MAIL_HOST' => 'mail.blackwidow.org.za']);
+    $customer = Customer::factory()->create([
+        'token' => 'customer-shared-secret',
+        'google_api_key' => null,
+    ]);
+    $subscription = subscriptionWithEnv($customer, [
+        'MAIL_HOST' => 'mail.blackwidow.org.za',
+        'SECURE_TOKEN' => 'customer-shared-secret',
+    ]);
 
     expect(app(CustomerEnvSyncService::class)->syncSubscription($subscription))->toBe([]);
     expect(envValue($subscription, 'MAIL_HOST'))->toBe('mail.blackwidow.org.za');
+});
+
+it('queues an env sync when the customer token changes', function () {
+    Queue::fake();
+
+    $customer = Customer::factory()->create(['token' => 'old-token']);
+
+    $customer->update(['token' => 'new-token']);
+
+    Queue::assertPushed(
+        SyncCustomerEnvToSubscriptionsJob::class,
+        fn (SyncCustomerEnvToSubscriptionsJob $job) => $job->customerId === $customer->id
+    );
 });
 
 it('applies the customer config through addMissingEnv so deployments pick it up', function () {
@@ -179,6 +228,7 @@ it('applies the customer config through addMissingEnv so deployments pick it up'
 
     expect(envValue($subscription, 'GOOGLE_MAPS_API_KEY'))->toBe('gkey-live');
     expect(envValue($subscription, 'MAIL_HOST'))->toBe('mail.blackwidow.org.za');
+    expect(envValue($subscription, 'SECURE_TOKEN'))->toBe($customer->token);
 });
 
 it('queues an env sync when a mail setting changes', function () {
@@ -232,13 +282,20 @@ it('syncs every subscription and skips pushing the ones not on forge yet', funct
     expect($second->fresh()->last_deployment_error)->toBeNull();
 });
 
-it('does nothing when the customer has nothing configured to sync', function () {
+it('does nothing when the customer has nothing configured to sync beyond an already-matching token', function () {
     Queue::fake();
 
-    $customer = Customer::factory()->create(['google_api_key' => null]);
-    $subscription = subscriptionWithEnv($customer, ['MAIL_HOST' => 'CHANGE_ME']);
+    $customer = Customer::factory()->create([
+        'token' => 'customer-shared-secret',
+        'google_api_key' => null,
+    ]);
+    $subscription = subscriptionWithEnv($customer, [
+        'MAIL_HOST' => 'CHANGE_ME',
+        'SECURE_TOKEN' => 'customer-shared-secret',
+    ]);
 
     (new SyncCustomerEnvToSubscriptionsJob($customer->id))->handle(app(CustomerEnvSyncService::class));
 
     expect(envValue($subscription, 'MAIL_HOST'))->toBe('CHANGE_ME');
+    expect(envValue($subscription, 'SECURE_TOKEN'))->toBe('customer-shared-secret');
 });

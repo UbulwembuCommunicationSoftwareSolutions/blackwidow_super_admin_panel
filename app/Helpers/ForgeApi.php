@@ -1040,13 +1040,15 @@ class ForgeApi
                 $elasticSearch->save();
             }
 
-            $secureToken = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
-                ->where('key', 'SECURE_TOKEN')
-                ->first();
-            if ($secureToken) {
-                $secureToken->value = $customerSubscription->customer->token;
-                $secureToken->save();
-            }
+            EnvVariables::query()->updateOrCreate(
+                [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'key' => 'SECURE_TOKEN',
+                ],
+                [
+                    'value' => (string) $customerSubscription->customer->token,
+                ]
+            );
 
             $minioBucket = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
                 ->where('key', 'MINIO_BUCKET')

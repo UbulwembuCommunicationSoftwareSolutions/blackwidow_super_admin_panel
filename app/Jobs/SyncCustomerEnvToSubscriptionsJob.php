@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Writes the customer-level configuration (Google Maps key + SMTP credentials) into the env of
- * every subscription the customer owns, then pushes the changed envs to Forge.
+ * Writes the customer-level configuration (SECURE_TOKEN + Google Maps key + SMTP credentials)
+ * into the env of every subscription the customer owns, then pushes the changed envs to Forge.
  *
  * A failure on one subscription is recorded against that subscription and does not stop the rest.
  */

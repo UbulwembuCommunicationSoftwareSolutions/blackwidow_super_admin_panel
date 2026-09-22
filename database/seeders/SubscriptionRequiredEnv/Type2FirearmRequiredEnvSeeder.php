@@ -62,6 +62,7 @@ class Type2FirearmRequiredEnvSeeder extends Seeder
             ['key' => 'AWS_BUCKET', 'value' => ''],
             ['key' => 'AWS_USE_PATH_STYLE_ENDPOINT', 'value' => 'false'],
             ['key' => 'VITE_APP_NAME', 'value' => '${APP_NAME}'],
+            ['key' => 'SECURE_TOKEN', 'value' => 'token'],
         ]);
     }
 }
