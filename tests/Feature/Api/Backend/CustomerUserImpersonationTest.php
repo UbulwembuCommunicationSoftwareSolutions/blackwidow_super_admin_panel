@@ -52,21 +52,64 @@ it('returns the console impersonation link for a user with console access', func
     });
 });
 
-it('rejects impersonation for a non-console subscription', function () {
+it('returns the firearm impersonation link addressed by hub id only', function () {
     actingAsBackendUser();
-    $customer = Customer::factory()->create();
+    $customer = Customer::factory()->create(['token' => 'firearm-token']);
     SubscriptionType::factory()->create();
     $firearmType = SubscriptionType::factory()->create();
     $subscription = CustomerSubscription::factory()->create([
         'customer_id' => $customer->id,
         'subscription_type_id' => $firearmType->id,
+        'url' => 'https://firearm.example.test',
+    ]);
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'skip_sync' => true,
+        'cms_user_id' => null,
+        'firearm_access' => true,
+    ]);
+
+    expect($firearmType->id)->toBe(2);
+
+    Http::fake([
+        '*/admin-api/impersonate' => Http::response([
+            'message' => 'Impersonation link issued',
+            'impersonate_url' => 'https://firearm.example.test/impersonate/consume/firearm-token',
+            'expires_in_minutes' => 5,
+        ], 200),
+    ]);
+
+    $this->postJson("/api/backend/customer-users/{$user->id}/impersonate", [
+        'customer_subscription_id' => $subscription->id,
+    ])->assertOk()
+        ->assertJsonPath('impersonate_url', 'https://firearm.example.test/impersonate/consume/firearm-token');
+
+    Http::assertSent(function ($request) use ($user) {
+        return $request->url() === 'https://firearm.example.test/admin-api/impersonate'
+            && $request->hasHeader('Authorization', 'Bearer firearm-token')
+            && (int) $request['super_admin_user_id'] === $user->id
+            && ! array_key_exists('user_id', $request->data());
+    });
+});
+
+it('rejects impersonation for an unsupported subscription type', function () {
+    actingAsBackendUser();
+    $customer = Customer::factory()->create();
+    SubscriptionType::factory()->create();
+    SubscriptionType::factory()->create();
+    $responderType = SubscriptionType::factory()->create();
+    $subscription = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => $responderType->id,
     ]);
     $user = CustomerUser::factory()->create([
         'customer_id' => $customer->id,
         'skip_sync' => true,
         'cms_user_id' => 501,
-        'firearm_access' => true,
+        'responder_access' => true,
     ]);
+
+    expect($responderType->id)->toBe(3);
 
     Http::fake();
 

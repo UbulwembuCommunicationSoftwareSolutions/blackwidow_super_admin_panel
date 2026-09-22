@@ -191,9 +191,9 @@ class CustomerUserController extends Controller
             return response()->json(['message' => 'Subscription not found for this customer.'], 422);
         }
 
-        // Console only for now - other tenant apps don't expose the mint-token endpoint yet.
-        if ((int) $subscription->subscription_type_id !== 1) {
-            return response()->json(['message' => 'Impersonation currently only supports Console subscriptions.'], 422);
+        // Console and Firearm expose /admin-api/impersonate; other tenants do not yet.
+        if (! in_array((int) $subscription->subscription_type_id, [1, 2], true)) {
+            return response()->json(['message' => 'Impersonation currently only supports Console and Firearm subscriptions.'], 422);
         }
 
         if (! $row->checkAccess($subscription->subscription_type_id)) {

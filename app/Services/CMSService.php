@@ -214,9 +214,13 @@ class CMSService
     }
 
     /**
-     * Ask a customer's console install to mint a one-time login link for one
+     * Ask a customer's tenant install to mint a one-time login link for one
      * of its users, so an operator here can open a session as them without
-     * ever holding console credentials themselves.
+     * ever holding tenant credentials themselves.
+     *
+     * Console is addressed by the local cms_user_id we synced back. Firearm
+     * (and future tenants that store our hub id) are addressed by
+     * super_admin_user_id alone.
      *
      * @return array{impersonate_url: string, expires_in_minutes: int}
      */
@@ -228,44 +232,53 @@ class CMSService
             throw new \RuntimeException('This subscription is missing a URL or API token.');
         }
 
-        if (blank($customerUser->cms_user_id)) {
+        $isConsole = (int) $subscription->subscription_type_id === 1;
+
+        if ($isConsole && blank($customerUser->cms_user_id)) {
             throw new \RuntimeException('This user has not been synced to the console yet.');
         }
 
         $url = rtrim((string) $subscription->url, '/').'/admin-api/impersonate';
+
+        $payload = [
+            'super_admin_user_id' => $customerUser->id,
+        ];
+
+        if ($isConsole) {
+            $payload['user_id'] = $customerUser->cms_user_id;
+        }
 
         $response = Http::withToken((string) $subscription->customer->token)
             ->acceptJson()
             ->asJson()
             ->timeout(15)
             ->connectTimeout(10)
-            ->post($url, [
-                'user_id' => $customerUser->cms_user_id,
-                'super_admin_user_id' => $customerUser->id,
-            ]);
+            ->post($url, $payload);
 
         if (! $response->successful()) {
-            Log::warning('Console impersonation link request failed', [
+            Log::warning('Tenant impersonation link request failed', [
                 'customer_user_id' => $customerUser->id,
+                'subscription_type_id' => $subscription->subscription_type_id,
                 'url' => $url,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
             throw new \RuntimeException(
-                'Console impersonation link request failed with HTTP '.$response->status()
+                'Tenant impersonation link request failed with HTTP '.$response->status()
             );
         }
 
         $impersonateUrl = $response->json('impersonate_url');
 
         if (! is_string($impersonateUrl) || $impersonateUrl === '') {
-            throw new \RuntimeException('Console did not return an impersonation link.');
+            throw new \RuntimeException('Tenant did not return an impersonation link.');
         }
 
-        Log::info('Console impersonation link issued', [
+        Log::info('Tenant impersonation link issued', [
             'customer_user_id' => $customerUser->id,
             'subscription_id' => $subscription->id,
+            'subscription_type_id' => $subscription->subscription_type_id,
         ]);
 
         return [
