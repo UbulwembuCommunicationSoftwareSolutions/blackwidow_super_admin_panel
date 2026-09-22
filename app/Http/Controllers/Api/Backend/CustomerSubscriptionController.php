@@ -299,7 +299,10 @@ class CustomerSubscriptionController extends Controller
     }
 
     /**
-     * Manually re-push one or all CMS branding slots to the tenant.
+     * Manually re-push one or all branding slots to the tenant app.
+     *
+     * Allowed for subscription types listed in config('branding_sync.tenant_subscription_types')
+     * (CMS console and Firearm by default).
      */
     public function resyncBranding(Request $request, int $id): JsonResponse
     {
@@ -314,8 +317,10 @@ class CustomerSubscriptionController extends Controller
             ? [$validated['slot']]
             : BrandingSyncPayload::SLOTS;
 
-        if ((int) $row->subscription_type_id !== 1) {
-            return response()->json(['message' => 'Branding sync is only available for CMS subscriptions.'], 422);
+        if (! in_array((int) $row->subscription_type_id, $row->tenantBrandingTypeIds(), true)) {
+            return response()->json([
+                'message' => 'Branding sync is only available for CMS and Firearm subscriptions.',
+            ], 422);
         }
 
         PushBrandingToTenantsJob::dispatch(subscriptionId: $row->id, cmsSlots: $cmsSlots);

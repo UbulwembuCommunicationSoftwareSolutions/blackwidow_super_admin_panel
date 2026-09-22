@@ -242,3 +242,69 @@ it('dispatches PushBrandingToTenantsJob when uploading logos on a CMS subscripti
     expect($row->fresh()->logo_1_updated_at)->not->toBeNull()
         ->and($row->fresh()->logo_1_checksum)->not->toBeNull();
 });
+
+it('queues branding resync for firearm subscriptions', function () {
+    $customer = Customer::factory()->create(['token' => 'firearm-token']);
+    SubscriptionType::query()->where('id', 2)->delete();
+    SubscriptionType::factory()->create(['id' => 2, 'name' => 'Firearm', 'project_type' => 'php']);
+
+    $row = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => 2,
+        'url' => 'https://firearm-branding.example.test',
+    ]);
+
+    actingAsBackendUser();
+
+    $this->postJson("/api/backend/customer-subscriptions/{$row->id}/branding/resync")
+        ->assertOk()
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('queued', BrandingSyncPayload::SLOTS);
+
+    Queue::assertPushed(PushBrandingToTenantsJob::class, function (PushBrandingToTenantsJob $job) use ($row) {
+        return $job->subscriptionId === $row->id
+            && $job->cmsSlots === BrandingSyncPayload::SLOTS;
+    });
+});
+
+it('rejects branding resync for non-tenant subscription types', function () {
+    $customer = Customer::factory()->create(['token' => 'responder-token']);
+    SubscriptionType::query()->where('id', 3)->delete();
+    SubscriptionType::factory()->create(['id' => 3, 'name' => 'Responder', 'project_type' => 'php']);
+
+    $row = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => 3,
+        'url' => 'https://responder.example.test',
+    ]);
+
+    actingAsBackendUser();
+
+    $this->postJson("/api/backend/customer-subscriptions/{$row->id}/branding/resync")
+        ->assertStatus(422)
+        ->assertJsonPath('message', 'Branding sync is only available for CMS and Firearm subscriptions.');
+
+    Queue::assertNotPushed(PushBrandingToTenantsJob::class);
+});
+
+it('dispatches PushBrandingToTenantsJob when uploading logos on a firearm subscription', function () {
+    $customer = Customer::factory()->create(['token' => 'firearm-logo-token']);
+    SubscriptionType::query()->where('id', 2)->delete();
+    SubscriptionType::factory()->create(['id' => 2, 'name' => 'Firearm', 'project_type' => 'php']);
+
+    $row = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => 2,
+        'url' => 'https://firearm-logos.example.test',
+    ]);
+
+    actingAsBackendUser();
+
+    $this->post("/api/backend/customer-subscriptions/{$row->id}/logos", [
+        'logo_1' => UploadedFile::fake()->image('login.png'),
+    ])->assertOk();
+
+    Queue::assertPushed(PushBrandingToTenantsJob::class, function (PushBrandingToTenantsJob $job) use ($row) {
+        return $job->subscriptionId === $row->id && in_array('login_logo', $job->cmsSlots, true);
+    });
+});

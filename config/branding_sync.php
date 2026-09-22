@@ -17,7 +17,8 @@ return [
 
     /*
      * subscription_type_id of the tenant apps that speak the canonical branding
-     * sync contract. Only these are pushed to. 1 is the console CMS.
+     * sync contract. Only these are pushed to / may resync.
+     * 1 = console CMS, 2 = Firearm.
      */
     'tenant_subscription_types' => [1, 2],
 
