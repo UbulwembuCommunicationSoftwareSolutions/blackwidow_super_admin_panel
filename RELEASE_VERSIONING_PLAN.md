@@ -261,3 +261,39 @@ Tenants should also expose `APP_VERSION` via a tiny `/api/version` endpoint for 
 | 9 | Backfill command + observers for legacy columns | `app/Console/Commands`, `app/Observers` |
 | 10 | Tests: sync (fixtures), placeholder rendering, target resolution, confirm-after-deploy, webhook signature | `tests/Feature` |
 | 11 | Cleanup migration dropping legacy columns | `database/migrations` |
+
+## 12. Removing `master_version` / `deployed_version` from the console UI
+
+Status check (2026-09-22): the transitional state described in §9 step 2 is already in place — every Filament surface that used to show the free-text field now shows the release-based one *and* keeps the legacy value visible but inert. This section is the checklist for the final cut-over once the rollout gates below are met. **Do not do the "now" column until those gates pass** — the "later" column is safe to do at any time since it only touches display, not data.
+
+### 12.1 Rollout gates (must be true before doing anything in §12.3)
+
+- Every `subscription_types` row that has a `github_repo` has a non-null `current_release_id` (check: `SubscriptionType::whereNotNull('github_repo')->whereNull('current_release_id')->count() === 0`).
+- Every active `customer_subscriptions` row has a non-null `deployed_release_id` (confirmed post-deploy, not backfilled-guessed) — check `CustomerSubscription::whereNull('deployed_release_id')->whereHas('subscriptionType', fn ($q) => $q->whereNotNull('github_repo'))->count() === 0`.
+- At least one full deploy cycle has gone through `DeploySite`'s confirm-after-deploy path (§7) for each active subscription type, so `deployed_release_id` reflects reality, not backfill guesswork.
+- The external API contract (`app/Http/Controllers/CustomerSubscriptionController.php`, the `masterVersion`/`deployedVersion` keys returned to the customer portal / tenant apps) has been checked against its consumers — see §12.4.
+
+As of this check, `current_release_id` is still null for every subscription type in production — the gates aren't met yet. This section is safe to file away and revisit once a release has actually been promoted and deployed through the new pipeline.
+
+### 12.2 Inventory of every file touching the legacy fields
+
+| File | Current state | What "remove" means here |
+|---|---|---|
+| `app/Filament/Resources/SubscriptionTypes/Schemas/SubscriptionTypeForm.php` | `master_version` is a disabled, non-dehydrated `TextInput` labeled "(legacy mirror)"; `current_release_id` select is the real field | Delete the `master_version` `TextInput::make(...)` block entirely |
+| `app/Filament/Resources/SubscriptionTypes/Tables/SubscriptionTypesTable.php` | `master_version` column exists but `toggleable(isToggledHiddenByDefault: true)`; `currentRelease.tag` is the visible "Current release" column | Delete the `master_version` `TextColumn::make(...)` block |
+| `app/Filament/Resources/CustomerSubscriptions/Schemas/CustomerSubscriptionForm.php` | `deployed_version` is a disabled, non-dehydrated `TextInput` labeled "(legacy mirror)"; `pinned_release_id` select is the real field | Delete the `deployed_version` `TextInput::make(...)` block |
+| `app/Filament/Resources/CustomerSubscriptions/Tables/CustomerSubscriptionsTable.php` | Already release-based (`target_release`, `deployedRelease.tag`, `release_status` badge) — no legacy column shown | Nothing to do |
+| `app/Filament/Resources/Customers/RelationManagers/CustomerSubscriptionsRelationManager.php` | `deployedRelease.tag` column, falls back to legacy `deployed_version` only as a `placeholder()` when the release FK is null | Drop the `placeholder()` fallback once every row has `deployed_release_id` set (it becomes dead code) |
+| `app/Filament/Exports/CustomerSubscriptionExport.php` | Exports both: `deployedRelease.tag` / `subscriptionType.currentRelease.tag` (new) and `deployed_version` / `subscriptionType.master_version` labeled "(legacy)" (old) | Delete the two `ExportColumn::make(...)` blocks labeled "(legacy)" |
+| `app/Console/Commands/BackfillReleaseVersioningCommand.php`, `CanaryReleaseUpgradeCommand.php` | Read legacy columns only to *seed* the new FKs or show them in a diagnostic table | No change needed — these read legacy data by design, they don't need removal |
+
+### 12.3 Data-layer cleanup (only after §12.1 gates pass)
+
+1. Remove the mirror-writing logic in `app/Observers/SubscriptionTypeObserver.php` and `app/Observers/CustomerSubscriptionObserver.php` (the `saving()` methods that copy the release tag into `master_version`/`deployed_version`).
+2. Widen-then-drop the backend validators in `SubscriptionTypeController` (`master_version` in `SEARCHABLE`/`SORTABLE` and the two validation rules), `CustomerSubscriptionController` (the `deployed_version` fillable entries and validation rule).
+3. Drop `deployed_version`/`master_version` from `CrmController` and `McpSiteController`'s tenant self-report validators — **only** after confirming tenant apps have switched to sending `deployed_commit_sha` (§7b); these two are the tenant-facing contract, breaking them breaks every tenant heartbeat.
+4. Migration: `Schema::table('subscription_types', fn ($t) => $t->dropColumn('master_version'))` and the equivalent for `customer_subscriptions.deployed_version`. Write it, but don't run it against production until the above are all live for at least one full release cycle — this is destructive and has no rollback once run.
+
+### 12.4 The one thing that isn't just a UI decision
+
+`app/Http/Controllers/CustomerSubscriptionController.php` (lines ~304-328, **not** the `Backend` one) returns `masterVersion`/`deployedVersion` keys to whatever currently calls this endpoint (customer portal handoff / tenant login flow, per the class name). That's a public-ish API contract, not internal admin UI. Before touching it: grep the consumer (likely `blackwidow_super_admin_frontend` or a tenant app) for those exact key names. If a consumer depends on the key existing (even if the value becomes the release tag instead of the free-text version), keep the key and just change its source (`$customerSubscription->deployedRelease?->tag ?? $customerSubscription->deployed_version`) rather than deleting it outright.
