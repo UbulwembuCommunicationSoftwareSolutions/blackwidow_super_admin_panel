@@ -18,6 +18,17 @@ class GithubReleaseWebhookController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $event = (string) $request->header('X-GitHub-Event', '');
+
+        Log::info('github_webhook.request.received', [
+            'delivery' => (string) $request->header('X-GitHub-Delivery', ''),
+            'event' => $event,
+            'action' => (string) $request->input('action', ''),
+            'repository' => (string) data_get($request->all(), 'repository.full_name', ''),
+            'ip' => $request->ip(),
+            'user_agent' => (string) $request->userAgent(),
+            'payload' => $request->all(),
+        ]);
+
         if ($event === 'ping') {
             return response()->json(['ok' => true, 'pong' => true]);
         }

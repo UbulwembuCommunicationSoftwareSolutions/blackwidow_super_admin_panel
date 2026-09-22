@@ -3,6 +3,7 @@
 use App\Jobs\SyncGithubReleasesJob;
 use App\Models\SubscriptionType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
@@ -14,6 +15,26 @@ it('rejects github webhooks with invalid signatures', function () {
         'X-Hub-Signature-256' => 'sha256=deadbeef',
         'X-GitHub-Event' => 'ping',
     ])->assertUnauthorized();
+});
+
+it('logs rejected github webhooks', function () {
+    config(['services.github.webhook_secret' => 'super-secret']);
+    Log::spy();
+
+    $this->postJson('/api/webhooks/github/releases', ['zen' => 'hello'], [
+        'X-Hub-Signature-256' => 'sha256=deadbeef',
+        'X-GitHub-Event' => 'ping',
+        'X-GitHub-Delivery' => 'delivery-123',
+    ])->assertUnauthorized();
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'github_webhook.request.rejected'
+                && $context['reason'] === 'invalid_signature'
+                && $context['delivery'] === 'delivery-123'
+                && $context['event'] === 'ping';
+        });
 });
 
 it('accepts a signed ping', function () {
@@ -34,6 +55,39 @@ it('accepts a signed ping', function () {
         ],
         $payload
     )->assertOk()->assertJson(['pong' => true]);
+});
+
+it('logs every signed webhook request, including ignored events', function () {
+    config(['services.github.webhook_secret' => 'super-secret']);
+    Log::spy();
+
+    $payload = json_encode(['action' => 'opened'], JSON_THROW_ON_ERROR);
+    $sig = 'sha256='.hash_hmac('sha256', $payload, 'super-secret');
+
+    $this->call(
+        'POST',
+        '/api/webhooks/github/releases',
+        [],
+        [],
+        [],
+        [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_HUB_SIGNATURE_256' => $sig,
+            'HTTP_X_GITHUB_EVENT' => 'pull_request',
+            'HTTP_X_GITHUB_DELIVERY' => 'delivery-456',
+        ],
+        $payload
+    )->assertOk()->assertJson(['ignored' => true]);
+
+    Log::shouldHaveReceived('info')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'github_webhook.request.received'
+                && $context['event'] === 'pull_request'
+                && $context['action'] === 'opened'
+                && $context['delivery'] === 'delivery-456'
+                && $context['payload'] === ['action' => 'opened'];
+        });
 });
 
 it('dispatches sync jobs for matching subscription types on release published', function () {
