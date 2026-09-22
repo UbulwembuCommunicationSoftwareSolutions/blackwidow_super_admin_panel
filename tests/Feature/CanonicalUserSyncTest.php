@@ -114,6 +114,33 @@ it('grants access to the tenant the user was created from', function () {
         ->and($user->console_access)->toBeFalse();
 });
 
+it('does not let a stale tenant payload restore a revoked access flag', function () {
+    ['subscription' => $subscription, 'customer' => $customer] = canonicalTenant();
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'revoked@tenant.test',
+        'console_access' => false,
+        'skip_sync' => true,
+    ]);
+
+    $response = postCanonical('', [
+        'app_url' => $subscription->url,
+        'user' => [
+            'super_admin_user_id' => $user->id,
+            'email' => 'revoked@tenant.test',
+            'first_name' => 'Revoked',
+            'console_access' => true,
+            'updated_at' => now()->subDay()->toIso8601String(),
+        ],
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('outcome', 'stale');
+
+    expect($user->fresh()->console_access)->toBeFalse();
+});
+
 it('keeps our copy when the tenant sends an older record', function () {
     ['subscription' => $subscription, 'customer' => $customer] = canonicalTenant();
 
