@@ -43,6 +43,66 @@ it('renders website url and release tag placeholders from the template', functio
     expect($script->is_custom)->toBeFalse();
 });
 
+it('locks the site for the duration of the deploy, below the shebang', function () {
+    $type = SubscriptionType::factory()->create(['current_release_id' => null]);
+
+    DeploymentTemplate::query()->create([
+        'subscription_type_id' => $type->id,
+        'script' => "#!/bin/bash\n\ncd /home/forge/#WEBSITE_URL#\n\$FORGE_COMPOSER install\n",
+    ]);
+
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => $type->id,
+        'customer_id' => Customer::factory(),
+        'domain' => 'demo.example.test',
+    ]);
+
+    [$script] = app(DeploymentScriptRenderer::class)->render($sub);
+
+    expect($script->script)
+        ->toContain('exec 9>"/tmp/bw-deploy-lock-demo.example.test.lock"')
+        ->toContain('flock -w 180 9 || {');
+
+    $lines = explode("\n", $script->script);
+
+    expect($lines[0])->toBe('#!/bin/bash');
+    expect(array_search('cd /home/forge/demo.example.test', $lines, true))
+        ->toBeGreaterThan(array_search('exec 9>"/tmp/bw-deploy-lock-demo.example.test.lock"', $lines, true));
+});
+
+it('locks custom scripts too and never stacks a second lock when re-rendering', function () {
+    $type = SubscriptionType::factory()->create(['current_release_id' => null]);
+
+    DeploymentTemplate::query()->create([
+        'subscription_type_id' => $type->id,
+        'script' => "cd /home/forge/#WEBSITE_URL#\n",
+    ]);
+
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => $type->id,
+        'customer_id' => Customer::factory(),
+        'domain' => 'locked.example.test',
+    ]);
+
+    DeploymentScript::query()->create([
+        'customer_subscription_id' => $sub->id,
+        'script' => "cd /home/forge/#WEBSITE_URL#\nnpm run build\n",
+        'is_custom' => true,
+    ]);
+
+    $renderer = app(DeploymentScriptRenderer::class);
+
+    [$script] = $renderer->render($sub->fresh());
+
+    expect($script->script)->toStartWith('# bw-deploy-lock:');
+    expect(substr_count($script->script, 'exec 9>'))->toBe(1);
+
+    [$reRendered, $changed] = $renderer->render($sub->fresh());
+
+    expect(substr_count($reRendered->script, 'exec 9>'))->toBe(1);
+    expect($changed)->toBeFalse();
+});
+
 it('does not overwrite custom scripts from the template but still substitutes placeholders', function () {
     $type = SubscriptionType::factory()->create();
     $release = SubscriptionTypeRelease::factory()->create([
@@ -70,7 +130,7 @@ it('does not overwrite custom scripts from the template but still substitutes pl
 
     [$script] = app(DeploymentScriptRenderer::class)->render($sub->fresh());
 
-    expect($script->script)->toBe("CUSTOM custom.example.test v3.1.0\n");
+    expect($script->script)->toEndWith("CUSTOM custom.example.test v3.1.0\n");
     expect($script->is_custom)->toBeTrue();
 });
 

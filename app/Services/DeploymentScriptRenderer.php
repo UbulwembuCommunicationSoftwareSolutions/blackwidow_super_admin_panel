@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Helpers\ForgeApi;
+use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\CustomerSubscription;
 use App\Models\DeploymentScript;
 use App\Models\DeploymentTemplate;
@@ -10,6 +11,18 @@ use RuntimeException;
 
 class DeploymentScriptRenderer
 {
+    /**
+     * Identifies the lock preamble in an already rendered script so re-rendering never stacks a second one.
+     */
+    private const DEPLOY_LOCK_MARKER = 'bw-deploy-lock';
+
+    /**
+     * How long a queued deploy waits for the running one before giving up. Kept below the 240s
+     * {@see DeploySite} spends waiting on Forge, so a queued deploy still
+     * finishes inside the window its own pipeline step is watching.
+     */
+    private const DEPLOY_LOCK_WAIT_SECONDS = 180;
+
     /**
      * Render the deployment script for a subscription from its template (or custom script),
      * substituting #WEBSITE_URL# and #RELEASE_TAG#, and optionally push it to Forge.
@@ -80,6 +93,8 @@ class DeploymentScriptRenderer
             $source
         );
 
+        $rendered = $this->withDeploymentLock($rendered, $domain);
+
         $releaseId = $target?->id;
 
         if (
@@ -100,6 +115,39 @@ class DeploymentScriptRenderer
         );
 
         return [$script, true];
+    }
+
+    /**
+     * Hold a per-site lock for the duration of the deploy so a second Forge deployment for the
+     * same site waits instead of running git and composer in the directory at the same time. Two
+     * overlapping composer runs rewrite vendor/composer/autoload_classmap.php while the other is
+     * reading it, which aborts the deploy with a ClassLoader::addClassMap() TypeError.
+     */
+    private function withDeploymentLock(string $script, string $domain): string
+    {
+        if ($domain === '' || str_contains($script, self::DEPLOY_LOCK_MARKER)) {
+            return $script;
+        }
+
+        $marker = self::DEPLOY_LOCK_MARKER;
+        $lockFile = '/tmp/'.$marker.'-'.preg_replace('/[^A-Za-z0-9._-]/', '-', $domain).'.lock';
+        $waitSeconds = self::DEPLOY_LOCK_WAIT_SECONDS;
+
+        $preamble = <<<BASH
+        # {$marker}: one deploy at a time per site. Concurrent deploys run git and composer in the
+        # same directory, corrupting composer's generated autoload files and aborting the deploy.
+        exec 9>"{$lockFile}"
+        flock -w {$waitSeconds} 9 || { echo "Another deployment is already running for {$domain}; aborting."; exit 1; }
+
+        BASH;
+
+        $firstNewline = strpos($script, "\n");
+
+        if (str_starts_with($script, '#!') && $firstNewline !== false) {
+            return substr($script, 0, $firstNewline + 1)."\n".$preamble.substr($script, $firstNewline + 1);
+        }
+
+        return $preamble.$script;
     }
 
     private function websitePlaceholder(CustomerSubscription $customerSubscription): string
