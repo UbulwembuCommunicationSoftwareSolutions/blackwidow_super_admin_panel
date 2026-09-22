@@ -6,7 +6,6 @@ use App\Models\CustomerSubscription;
 use App\Models\SubscriptionType;
 use App\Models\User;
 use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -36,7 +35,6 @@ it('can create a customer subscription', function () {
             'url' => $newData->url,
             'domain' => $newData->domain,
             'app_name' => $newData->app_name,
-            'deployed_version' => $newData->deployed_version,
             'database_name' => $newData->database_name,
             'forge_site_id' => $newData->forge_site_id,
             'customer_id' => $customer->id,
@@ -95,7 +93,6 @@ it('can edit a customer subscription', function () {
             'url' => $newData->url,
             'domain' => $newData->domain,
             'app_name' => $newData->app_name,
-            'deployed_version' => $newData->deployed_version,
             'database_name' => $newData->database_name,
             'forge_site_id' => $newData->forge_site_id,
             'panic_button_enabled' => $newData->panic_button_enabled,

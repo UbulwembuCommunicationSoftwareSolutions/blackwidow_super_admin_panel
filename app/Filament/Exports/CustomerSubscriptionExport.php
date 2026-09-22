@@ -24,10 +24,14 @@ class CustomerSubscriptionExport extends Exporter
             ExportColumn::make('subscriptionType.name'),
             ExportColumn::make('deployed_at')
                 ->label('Deployed Date'),
-            ExportColumn::make('deployed_version')
+            ExportColumn::make('deployedRelease.tag')
                 ->label('Deployed Version'),
-            ExportColumn::make('subscriptionType.master_version')
+            ExportColumn::make('subscriptionType.currentRelease.tag')
                 ->label('Newest Version'),
+            ExportColumn::make('deployed_version')
+                ->label('Deployed Version (legacy)'),
+            ExportColumn::make('subscriptionType.master_version')
+                ->label('Newest Version (legacy)'),
             ExportColumn::make('panic_button_enabled')
                 ->label('Panic Button'),
             ExportColumn::make('forge_site_id'),
@@ -40,10 +44,10 @@ class CustomerSubscriptionExport extends Exporter
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your customer subscription export has been completed and ' . number_format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
+        $body = 'Your customer subscription export has been completed and '.number_format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
+            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
         }
 
         return $body;

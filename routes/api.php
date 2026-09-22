@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CrmController;
+use App\Http\Controllers\Api\GithubReleaseWebhookController;
 use App\Http\Controllers\Api\McpSiteController;
 use App\Http\Controllers\Api\V1\BrandingSyncController;
 use App\Http\Controllers\Api\V1\UserSyncController;
@@ -52,6 +53,9 @@ Route::middleware('customer.bearer')->group(function () {
 });
 
 Route::post('/google-places-proxy', [GooglePlacesProxyController::class, 'proxy']);
+
+Route::post('/webhooks/github/releases', GithubReleaseWebhookController::class)
+    ->middleware('github.webhook');
 
 // MCP / automation: JSON API (Sanctum bearer token; create via php artisan mcp:create-token).
 // customer-subscription POST: optional trigger_site_deployment, force_site_deployment to queue the Forge site pipeline.

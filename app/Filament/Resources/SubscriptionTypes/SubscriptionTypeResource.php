@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SubscriptionTypes;
 use App\Filament\Resources\SubscriptionTypes\Pages\CreateSubscriptionType;
 use App\Filament\Resources\SubscriptionTypes\Pages\EditSubscriptionType;
 use App\Filament\Resources\SubscriptionTypes\Pages\ListSubscriptionTypes;
+use App\Filament\Resources\SubscriptionTypes\RelationManagers\ReleasesRelationManager;
 use App\Filament\Resources\SubscriptionTypes\Schemas\SubscriptionTypeForm;
 use App\Filament\Resources\SubscriptionTypes\Tables\SubscriptionTypesTable;
 use App\Models\SubscriptionType;
@@ -40,7 +41,7 @@ class SubscriptionTypeResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ReleasesRelationManager::class,
         ];
     }
 

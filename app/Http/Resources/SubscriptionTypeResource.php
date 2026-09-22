@@ -16,6 +16,7 @@ class SubscriptionTypeResource extends JsonResource
             'updated_at' => $this->updated_at,
             'id' => $this->id,
             'name' => $this->name,
+            'url_slug' => $this->url_slug,
         ];
     }
 }

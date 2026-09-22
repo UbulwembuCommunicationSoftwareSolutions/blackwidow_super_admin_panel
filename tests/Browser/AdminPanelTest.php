@@ -89,7 +89,6 @@ it('can create a customer subscription through browser', function () {
         ->type('url', 'https://example.com')
         ->type('domain', 'example.com')
         ->type('app_name', 'Test App')
-        ->type('deployed_version', '1.0.0')
         ->type('database_name', 'test_db')
         ->type('forge_site_id', '12345')
         ->select('customer_id', $customer->id)
@@ -154,7 +153,6 @@ it('can create a subscription type through browser', function () {
         ->type('github_repo', 'laravel/laravel')
         ->type('branch', 'main')
         ->type('project_type', 'php')
-        ->type('master_version', '10.0.0')
         ->press('Create')
         ->assertSee('Subscription type created successfully')
         ->assertNoJavascriptErrors();
@@ -164,7 +162,6 @@ it('can create a subscription type through browser', function () {
         'github_repo' => 'laravel/laravel',
         'branch' => 'main',
         'project_type' => 'php',
-        'master_version' => '10.0.0',
     ]);
 });
 

@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Middleware\AuthenticateExternalTokenCookie;
 use App\Http\Middleware\EnsureActiveCustomerAdmin;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Middleware\VerifyCustomerBearerToken;
+use App\Http\Middleware\VerifyGithubWebhookSignature;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,6 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'external_token',
         ]);
 
+        $middleware->api(prepend: [
+            AuthenticateExternalTokenCookie::class,
+        ]);
+
         $middleware->web(remove: [
             Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         ]);
@@ -41,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => CheckForAnyAbility::class,
             'customer.bearer' => VerifyCustomerBearerToken::class,
             'customer.admin' => EnsureActiveCustomerAdmin::class,
+            'github.webhook' => VerifyGithubWebhookSignature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

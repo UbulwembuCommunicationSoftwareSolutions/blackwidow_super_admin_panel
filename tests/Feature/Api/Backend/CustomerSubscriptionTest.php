@@ -41,6 +41,30 @@ it('validates customer subscription create', function () {
         ->assertJsonValidationErrors(['url', 'domain', 'app_name', 'customer_id', 'subscription_type_id']);
 });
 
+it('rewrites firearm-module hosts to firearm when creating a firearm subscription', function () {
+    actingAsBackendUser();
+    SubscriptionType::factory()->create(['id' => 2, 'name' => 'Firearm Module']);
+    $customer = Customer::factory()->create();
+
+    $create = $this->postJson('/api/backend/customer-subscriptions', [
+        'url' => 'https://demo.firearm-module.blackwidow.org.za',
+        'domain' => 'demo.firearm-module.blackwidow.org.za',
+        'app_name' => 'Demo Firearm',
+        'database_name' => 'demo_firearm_module_blackwidow',
+        'subscription_type_id' => 2,
+        'customer_id' => $customer->id,
+    ])->assertCreated();
+
+    expect($create->json('data.url'))->toBe('https://demo.firearm.blackwidow.org.za')
+        ->and($create->json('data.domain'))->toBe('demo.firearm.blackwidow.org.za');
+
+    $this->assertDatabaseHas('customer_subscriptions', [
+        'id' => $create->json('data.id'),
+        'url' => 'https://demo.firearm.blackwidow.org.za',
+        'domain' => 'demo.firearm.blackwidow.org.za',
+    ]);
+});
+
 it('can crud a customer subscription and hide secrets', function () {
     actingAsBackendUser();
     $type = SubscriptionType::factory()->create(['project_type' => 'static']);
@@ -348,4 +372,62 @@ it('forbids verify-domain without Create:CustomerSubscription', function () {
     $this->postJson('/api/backend/customer-subscriptions/verify-domain', [
         'domain' => 'example.com',
     ])->assertForbidden();
+});
+
+it('bulk deploys the selected subscriptions and reports skipped ids', function () {
+    actingAsBackendUser();
+    $type = SubscriptionType::factory()->create(['project_type' => 'static']);
+    $a = CustomerSubscription::factory()->create(['subscription_type_id' => $type->id]);
+    $b = CustomerSubscription::factory()->create(['subscription_type_id' => $type->id]);
+
+    $this->postJson('/api/backend/customer-subscriptions/bulk/deploy', ['ids' => [$a->id, $b->id, 999999]])
+        ->assertOk()
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('queued', [$a->id, $b->id])
+        ->assertJsonPath('skipped.0.id', 999999)
+        ->assertJsonPath('skipped.0.reason', 'Not found');
+
+    Queue::assertPushed(DeploySite::class, 2);
+    Queue::assertPushed(DeploySite::class, fn (DeploySite $job) => $job->customerSubscriptionId === $a->id);
+    Queue::assertPushed(DeploySite::class, fn (DeploySite $job) => $job->customerSubscriptionId === $b->id);
+});
+
+it('validates bulk deploy requires ids', function () {
+    actingAsBackendUser();
+
+    $this->postJson('/api/backend/customer-subscriptions/bulk/deploy', [])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['ids']);
+
+    $this->postJson('/api/backend/customer-subscriptions/bulk/deploy', ['ids' => ['abc']])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['ids.0']);
+
+    Queue::assertNothingPushed();
+});
+
+it('forbids bulk deploy without Update:CustomerSubscription', function () {
+    actingAsBackendUser(['View:CustomerSubscription']);
+    $sub = CustomerSubscription::factory()->create([
+        'subscription_type_id' => SubscriptionType::factory()->create(['project_type' => 'static'])->id,
+    ]);
+
+    $this->postJson('/api/backend/customer-subscriptions/bulk/deploy', ['ids' => [$sub->id]])
+        ->assertForbidden();
+
+    Queue::assertNothingPushed();
+});
+
+it('forbids bulk deploy for a customer admin and queues nothing', function () {
+    $mine = Customer::factory()->create();
+    $other = Customer::factory()->create();
+    actingAsCustomerAdmin($mine);
+    $type = SubscriptionType::factory()->create(['project_type' => 'static']);
+    $own = CustomerSubscription::factory()->create(['customer_id' => $mine->id, 'subscription_type_id' => $type->id]);
+    $foreign = CustomerSubscription::factory()->create(['customer_id' => $other->id, 'subscription_type_id' => $type->id]);
+
+    $this->postJson('/api/backend/customer-subscriptions/bulk/deploy', ['ids' => [$own->id, $foreign->id]])
+        ->assertForbidden();
+
+    Queue::assertNotPushed(DeploySite::class);
 });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Backend;
 
 use App\Models\SubscriptionType;
+use App\Models\SubscriptionTypeRelease;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,7 @@ class SubscriptionTypeController extends Controller
             'trashed' => ['sometimes', 'in:with,only'],
         ], self::SORTABLE);
 
-        $query = SubscriptionType::query();
+        $query = SubscriptionType::query()->with('currentRelease:id,tag,commit_sha,is_prerelease,published_at');
         $this->applyTrashed($query, $validated['trashed'] ?? null);
         $this->applySearch($query, $validated['search'] ?? null, self::SEARCHABLE);
         $this->applySort($query, $validated, fn ($q) => $q->orderBy('id'));
@@ -32,7 +33,7 @@ class SubscriptionTypeController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $row = SubscriptionType::query()->findOrFail($id);
+        $row = SubscriptionType::query()->with('currentRelease')->findOrFail($id);
         $this->authorize('view', $row);
 
         return response()->json(['data' => $row]);
@@ -47,11 +48,13 @@ class SubscriptionTypeController extends Controller
             'github_repo' => ['required', 'string', 'max:255'],
             'branch' => ['required', 'string', 'max:255'],
             'project_type' => ['required', 'string', 'max:255'],
-            'master_version' => ['nullable', 'string', 'max:8'],
+            'master_version' => ['nullable', 'string', 'max:64'],
             'public_dir' => ['nullable', 'string', 'max:255'],
+            'current_release_id' => ['nullable', 'integer', 'exists:subscription_type_releases,id'],
+            'auto_promote_stable' => ['sometimes', 'boolean'],
         ]));
 
-        return response()->json(['data' => $row], 201);
+        return response()->json(['data' => $row->load('currentRelease')], 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -64,14 +67,33 @@ class SubscriptionTypeController extends Controller
             'github_repo' => ['sometimes', 'string', 'max:255'],
             'branch' => ['sometimes', 'string', 'max:255'],
             'project_type' => ['sometimes', 'string', 'max:255'],
-            'master_version' => ['nullable', 'string', 'max:8'],
+            'master_version' => ['nullable', 'string', 'max:64'],
             'public_dir' => ['nullable', 'string', 'max:255'],
+            'current_release_id' => ['nullable', 'integer', 'exists:subscription_type_releases,id'],
+            'auto_promote_stable' => ['sometimes', 'boolean'],
         ]);
-        if ($validated !== []) {
-            $row->update($validated);
+
+        if (array_key_exists('current_release_id', $validated) && $validated['current_release_id'] !== null) {
+            $belongs = SubscriptionTypeRelease::query()
+                ->whereKey($validated['current_release_id'])
+                ->where('subscription_type_id', $row->id)
+                ->exists();
+            if (! $belongs) {
+                return response()->json(['message' => 'current_release_id must belong to this subscription type.'], 422);
+            }
         }
 
-        return response()->json(['data' => $row->fresh()]);
+        if ($validated !== []) {
+            $row->update($validated);
+            if (array_key_exists('current_release_id', $validated)) {
+                $row->load('currentRelease');
+                if ($row->currentRelease) {
+                    $row->forceFill(['master_version' => $row->currentRelease->tag])->save();
+                }
+            }
+        }
+
+        return response()->json(['data' => $row->fresh(['currentRelease'])]);
     }
 
     public function destroy(int $id): JsonResponse

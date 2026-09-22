@@ -41,6 +41,7 @@ class CustomerUserForm
                 Toggle::make('survey_access')
                     ->required(),
                 Toggle::make('time_and_attendance_access')
+                    ->label('Timesheet Management Access')
                     ->required(),
                 Toggle::make('stock_access')
                     ->required(),

@@ -672,7 +672,8 @@ class McpSiteController extends Controller
             'ssl_deployed_at' => ['nullable', 'date'],
             'deployed_at' => ['nullable', 'date'],
             'panic_button_enabled' => ['nullable', 'boolean'],
-            'deployed_version' => ['nullable', 'string', 'max:100'],
+            'deployed_version' => ['nullable', 'string', 'max:64'],
+            'deployed_commit_sha' => ['nullable', 'string', 'size:40'],
             'trigger_site_deployment' => ['sometimes', 'boolean'],
             'force_site_deployment' => ['sometimes', 'boolean'],
         ];

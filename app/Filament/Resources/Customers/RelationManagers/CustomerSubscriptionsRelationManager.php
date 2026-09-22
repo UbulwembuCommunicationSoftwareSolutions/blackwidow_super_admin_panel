@@ -62,10 +62,28 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                     ->label('URL')
                     ->searchable(),
 
-                TextColumn::make('deployed_version')
-                    ->label('Deployed Version')
+                TextColumn::make('deployedRelease.tag')
+                    ->label('Deployed')
+                    ->placeholder(fn ($record): string => $record->deployed_version ?: '—')
                     ->searchable()
                     ->sortable(),
+
+                TextColumn::make('release_status')
+                    ->label('Status')
+                    ->badge()
+                    ->getStateUsing(fn (CustomerSubscription $record): string => $record->releaseStatus())
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'up_to_date' => 'Up to date',
+                        'outdated' => 'Outdated',
+                        'pinned' => 'Pinned',
+                        default => 'Unknown',
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'up_to_date' => 'success',
+                        'outdated' => 'warning',
+                        'pinned' => 'info',
+                        default => 'gray',
+                    }),
 
                 ToggleColumn::make('panic_button_enabled')
                     ->label('Panic Button')
@@ -119,21 +137,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                 ->relationship('subscriptionType', 'name')
                                 ->required()
                                 ->afterStateUpdated(function ($get, $set) {
-                                    $type = $get('subscription_type_id');
-                                    $theType = match ((int) $type) {
-                                        1 => 'console',
-                                        2 => 'firearm',
-                                        3 => 'responder',
-                                        4 => 'reporter',
-                                        5 => 'security',
-                                        6 => 'driver',
-                                        7 => 'survey',
-                                        8 => 'DONOTUSE',
-                                        9 => 'time',
-                                        10 => 'stock',
-                                        11 => 'information',
-                                        default => 'unknown',
-                                    };
+                                    $theType = SubscriptionType::urlSlugFor((int) $get('subscription_type_id'));
                                     $set('theType', $theType);
                                     $set('postfix', '.'.$theType.'.'.$get('vertical'));
 
@@ -163,20 +167,7 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                                         'siyaleader.org.za' => 'siyaleader',
                                         'aims.net.za' => 'aims_net_za',
                                     ];
-                                    $theType = match ((int) $type) {
-                                        1 => 'console',
-                                        2 => 'firearm',
-                                        3 => 'responder',
-                                        4 => 'reporter',
-                                        5 => 'security',
-                                        6 => 'driver',
-                                        7 => 'survey',
-                                        8 => 'DONOTUSE',
-                                        9 => 'time',
-                                        10 => 'stock',
-                                        11 => 'information',
-                                        default => 'unknown',
-                                    };
+                                    $theType = SubscriptionType::urlSlugFor((int) $type);
                                     $set('theVertical', $verticalMap[$get('vertical')] ?? 'unknown');
                                     $set('theType', $theType);
                                     $set('postfix', '.'.$theType.'.'.$get('vertical'));
@@ -308,7 +299,10 @@ class CustomerSubscriptionsRelationManager extends RelationManager
                         ]),
                     ])
                     ->using(function (array $data): Model {
-                        $domain = $data['url'].$data['postfix'];
+                        $domain = SubscriptionType::canonicalizeHost(
+                            $data['url'].$data['postfix'],
+                            isset($data['subscription_type_id']) ? (int) $data['subscription_type_id'] : null,
+                        );
                         if (! $this->domainResolvesToIp($domain)) {
                             throw ValidationException::withMessages([
                                 'url' => ['The domain does not resolve to a valid IP.'],

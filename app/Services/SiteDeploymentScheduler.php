@@ -13,6 +13,36 @@ class SiteDeploymentScheduler
     public const QUEUE_STEP_DELAY_SECONDS = 30;
 
     /**
+     * Queue an upgrade for an existing site: re-render the deploy script for the current
+     * target release, then trigger a Forge deploy. Does not re-run site creation.
+     *
+     * @throws \RuntimeException When a deployment is already in progress and force is false.
+     */
+    public function scheduleUpgrade(CustomerSubscription $customerSubscription, bool $force = false): string
+    {
+        $this->beginDeploymentRun($customerSubscription, $force);
+
+        $target = $customerSubscription->targetRelease();
+        $params = $target ? ['release_id' => $target->id, 'release_tag' => $target->tag] : [];
+
+        $batchId = (string) Str::uuid();
+        $build = [
+            [SiteDeploymentJobName::ADD_DEPLOYMENT_SCRIPT, $params],
+            [SiteDeploymentJobName::DEPLOY_SITE, $params],
+        ];
+        $this->persistBatchAndDispatchFirst($customerSubscription, $build, $batchId);
+
+        Log::info('site_deployment.scheduled_upgrade', [
+            'customer_subscription_id' => $customerSubscription->id,
+            'batch_id' => $batchId,
+            'release_id' => $target?->id,
+            'release_tag' => $target?->tag,
+        ]);
+
+        return $batchId;
+    }
+
+    /**
      * Schedules only Forge MySQL provision (if needed) and create site, so the run appears in
      * `customer_subscription_deployment_jobs` without the rest of the full pipeline.
      *

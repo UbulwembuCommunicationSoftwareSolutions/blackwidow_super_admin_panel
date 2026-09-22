@@ -28,7 +28,6 @@ it('can create a subscription type', function () {
             'github_repo' => $newData->github_repo,
             'branch' => $newData->branch,
             'project_type' => $newData->project_type,
-            'master_version' => $newData->master_version,
         ])
         ->call('create')
         ->assertHasNoFormErrors();
@@ -38,7 +37,6 @@ it('can create a subscription type', function () {
         'github_repo' => $newData->github_repo,
         'branch' => $newData->branch,
         'project_type' => $newData->project_type,
-        'master_version' => $newData->master_version,
     ]);
 });
 
@@ -54,7 +52,6 @@ it('can edit a subscription type', function () {
             'github_repo' => $newData->github_repo,
             'branch' => $newData->branch,
             'project_type' => $newData->project_type,
-            'master_version' => $newData->master_version,
         ])
         ->call('save')
         ->assertHasNoFormErrors();
@@ -63,8 +60,7 @@ it('can edit a subscription type', function () {
         ->name->toBe($newData->name)
         ->github_repo->toBe($newData->github_repo)
         ->branch->toBe($newData->branch)
-        ->project_type->toBe($newData->project_type)
-        ->master_version->toBe($newData->master_version);
+        ->project_type->toBe($newData->project_type);
 });
 
 it('can delete a subscription type', function () {
@@ -109,7 +105,6 @@ it('can view subscription type details', function () {
             'github_repo' => $subscriptionType->github_repo,
             'branch' => $subscriptionType->branch,
             'project_type' => $subscriptionType->project_type,
-            'master_version' => $subscriptionType->master_version,
         ]);
 });
 
@@ -120,7 +115,6 @@ it('validates required fields when creating subscription type', function () {
             'github_repo' => '',
             'branch' => '',
             'project_type' => '',
-            'master_version' => '',
         ])
         ->call('create')
         ->assertHasFormErrors(['name' => 'required']);
@@ -177,7 +171,7 @@ it('shows all subscription type fields in table', function () {
         ->assertTableColumnExists('github_repo')
         ->assertTableColumnExists('branch')
         ->assertTableColumnExists('project_type')
-        ->assertTableColumnExists('master_version');
+        ->assertTableColumnExists('currentRelease.tag');
 });
 
 it('can sort subscription types by name', function () {
@@ -199,7 +193,6 @@ it('validates unique subscription type name', function () {
             'github_repo' => 'test/repo',
             'branch' => 'main',
             'project_type' => 'php',
-            'master_version' => '1.0.0',
         ])
         ->call('create')
         ->assertHasFormErrors(['name' => 'unique']);

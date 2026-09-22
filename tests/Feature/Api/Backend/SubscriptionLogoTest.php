@@ -155,3 +155,13 @@ it('labels the mobile app slots differently to the web products', function () {
     expect($web->logo_descriptions)->toBe(['Login Logo', 'Menu Logo', 'Login Background', null, null]);
     expect($app->logo_descriptions)->toBe(['App Logo', 'Home Logo', 'Login Logo', null, null]);
 });
+
+it('exposes firearm as the url slug for the Firearm Module product', function () {
+    actingAsBackendUser();
+    $type = SubscriptionType::factory()->create(['id' => 2, 'name' => 'Firearm Module']);
+
+    $this->getJson("/api/backend/subscription-types/{$type->id}")
+        ->assertOk()
+        ->assertJsonPath('data.url_slug', 'firearm')
+        ->assertJsonPath('data.name', 'Firearm Module');
+});

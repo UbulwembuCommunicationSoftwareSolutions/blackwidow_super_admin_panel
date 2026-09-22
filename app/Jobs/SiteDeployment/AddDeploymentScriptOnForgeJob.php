@@ -2,12 +2,10 @@
 
 namespace App\Jobs\SiteDeployment;
 
-use App\Helpers\ForgeApi;
 use App\Jobs\Concerns\AdvancesDeploymentPipeline;
 use App\Jobs\Concerns\LogsSiteDeploymentFailure;
 use App\Models\CustomerSubscription;
-use App\Models\DeploymentScript;
-use App\Models\DeploymentTemplate;
+use App\Services\DeploymentScriptRenderer;
 use App\Services\DeploymentStepDispatcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -38,7 +36,7 @@ class AddDeploymentScriptOnForgeJob implements ShouldQueue
         public ?int $deploymentJobId = null
     ) {}
 
-    public function handle(): void
+    public function handle(DeploymentScriptRenderer $renderer): void
     {
         $customerSubscription = CustomerSubscription::query()->find($this->customerSubscriptionId);
         if (! $customerSubscription) {
@@ -58,29 +56,15 @@ class AddDeploymentScriptOnForgeJob implements ShouldQueue
         Log::info('site_deployment.add_deployment_script', [
             'customer_subscription_id' => $this->customerSubscriptionId,
         ]);
-        $forgeApi = new ForgeApi;
-        $script = DeploymentScript::where('customer_subscription_id', $customerSubscription->id)->first();
-        if (! $script) {
-            $deploymentTemplate = DeploymentTemplate::where('subscription_type_id', $customerSubscription->subscription_type_id)->first();
-            if (! $deploymentTemplate) {
-                throw new \RuntimeException(
-                    'No deployment template for subscription type '.$customerSubscription->subscription_type_id.' (customer subscription '.$customerSubscription->id.').'
-                );
-            }
-            $siteDeployment = str_replace('#WEBSITE_URL#', $customerSubscription->domain, $deploymentTemplate->script);
-            $script = DeploymentScript::updateOrCreate(
-                [
-                    'customer_subscription_id' => $customerSubscription->id,
-                ],
-                [
-                    'script' => $siteDeployment,
-                ]
-            );
-            $script->save();
-        }
-        if ($script) {
-            $forgeApi->sendDeploymentScript($customerSubscription);
-        }
+
+        [$script, $pushed] = $renderer->renderAndPush($customerSubscription, pushToForge: true);
+
+        Log::info('site_deployment.add_deployment_script.done', [
+            'customer_subscription_id' => $this->customerSubscriptionId,
+            'rendered_release_id' => $script->rendered_release_id,
+            'pushed' => $pushed,
+        ]);
+
         $this->advanceDeploymentPipelineAfterSuccess($this->deploymentJobId);
     }
 }

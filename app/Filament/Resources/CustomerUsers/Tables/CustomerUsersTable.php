@@ -49,6 +49,7 @@ class CustomerUsersTable
                 IconColumn::make('survey_access')
                     ->boolean(),
                 IconColumn::make('time_and_attendance_access')
+                    ->label('Timesheet Management Access')
                     ->boolean(),
                 IconColumn::make('stock_access')
                     ->boolean(),

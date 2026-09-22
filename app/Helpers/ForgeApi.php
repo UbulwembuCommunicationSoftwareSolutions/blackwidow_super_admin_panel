@@ -92,12 +92,20 @@ class ForgeApi
         $this->forge->createBackgroundProcess($organization, $customerSubscription->server_id, $data);
     }
 
-    public function sendDeploymentScript(CustomerSubscription $customerSubscription)
+    public function sendDeploymentScript(CustomerSubscription $customerSubscription): void
     {
         $customerSubscription = $this->assertForgeSiteReady($customerSubscription);
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
+        $script = $customerSubscription->deploymentScript;
+
+        if (! $script) {
+            throw new \RuntimeException(
+                'No deployment script for customer subscription '.$customerSubscription->id
+            );
+        }
+
         $this->forge->updateDeploymentScript($organization, $customerSubscription->server_id, $customerSubscription->forge_site_id, [
-            'content' => $customerSubscription->deploymentScript()->first()->script,
+            'content' => $script->script,
         ]);
     }
 
@@ -230,20 +238,67 @@ class ForgeApi
      */
     public function waitForDeploymentStatus(int $server_id, int $site_id, int $deployment_id, int $timeoutSeconds = 240): string
     {
+        return $this->waitForDeployment($server_id, $site_id, $deployment_id, $timeoutSeconds)->status
+            ?? 'pending';
+    }
+
+    /**
+     * Poll a deployment until terminal and return the full Forge Deployment resource.
+     */
+    public function waitForDeployment(int $server_id, int $site_id, int $deployment_id, int $timeoutSeconds = 240): Deployment
+    {
         $organization = $this->organizationSlugForServer($server_id);
         $terminal = ['finished', 'failed', 'failed-build', 'cancelled'];
         $deadline = microtime(true) + $timeoutSeconds;
-        $status = 'pending';
+        $deployment = $this->forge->deployment($organization, $server_id, $site_id, $deployment_id);
+
         do {
-            $deployment = $this->forge->deployment($organization, $server_id, $site_id, $deployment_id);
-            $status = $deployment->status ?? $status;
+            $status = $deployment->status ?? 'pending';
             if (in_array($status, $terminal, true)) {
-                return $status;
+                return $deployment;
             }
             usleep(2_000_000);
+            $deployment = $this->forge->deployment($organization, $server_id, $site_id, $deployment_id);
         } while (microtime(true) < $deadline);
 
-        return $status;
+        return $deployment;
+    }
+
+    /**
+     * Parse the machine-readable marker written at the end of our deploy script:
+     * BW_DEPLOYED_RELEASE v1.2.3 <40-char-sha>
+     *
+     * @return array{tag: string, commit_sha: string}|null
+     */
+    public function parseDeployedReleaseMarker(?string $log): ?array
+    {
+        if ($log === null || $log === '') {
+            return null;
+        }
+
+        if (! preg_match('/BW_DEPLOYED_RELEASE\s+(\S+)\s+([0-9a-f]{40})/i', $log, $matches)) {
+            return null;
+        }
+
+        return [
+            'tag' => $matches[1],
+            'commit_sha' => strtolower($matches[2]),
+        ];
+    }
+
+    /**
+     * Commit SHA from Forge's deployment resource, when present.
+     */
+    public function deploymentCommitSha(Deployment $deployment): ?string
+    {
+        $commit = $deployment->commit;
+        if (! is_array($commit)) {
+            return null;
+        }
+
+        $sha = $commit['hash'] ?? $commit['sha'] ?? $commit['commit_hash'] ?? null;
+
+        return is_string($sha) && strlen($sha) >= 7 ? $sha : null;
     }
 
     public function deploymentLog(int $server_id, int $site_id, int $deployment_id): string

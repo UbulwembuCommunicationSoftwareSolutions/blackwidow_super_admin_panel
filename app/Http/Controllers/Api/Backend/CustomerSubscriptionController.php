@@ -7,6 +7,7 @@ use App\Jobs\SiteDeployment\DeploySite;
 use App\Models\BrandingSyncLog;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerSubscriptionDeploymentJob;
+use App\Models\SubscriptionType;
 use App\Services\CustomerSubscriptionService;
 use App\Services\DomainDnsService;
 use App\Services\ForgeService;
@@ -16,6 +17,7 @@ use App\Support\BrandingSync\BrandingSyncPayload;
 use App\Support\CustomerAdminAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -137,6 +139,10 @@ class CustomerSubscriptionController extends Controller
         $triggerSiteDeployment = (bool) ($validated['trigger_site_deployment'] ?? false);
         $forceSiteDeployment = (bool) ($validated['force_site_deployment'] ?? false);
         unset($validated['trigger_site_deployment'], $validated['force_site_deployment']);
+
+        $typeId = (int) $validated['subscription_type_id'];
+        $validated['domain'] = SubscriptionType::canonicalizeHost($validated['domain'], $typeId);
+        $validated['url'] = SubscriptionType::canonicalizeHost($validated['url'], $typeId);
 
         $row = CustomerSubscription::query()->create($validated);
         $row->load(['subscriptionType:id,name', 'customer:id,company_name']);
@@ -370,6 +376,51 @@ class CustomerSubscriptionController extends Controller
         return response()->json(['ok' => true, 'data' => $this->present($row)]);
     }
 
+    /**
+     * Queue a site deployment for every selected subscription.
+     *
+     * Bulk actions report per-row outcomes instead of failing the whole batch:
+     * an id the operator cannot see or update is listed under `skipped` with a
+     * reason, and the rows that were accepted are listed under `queued`.
+     */
+    public function bulkDeploy(Request $request): JsonResponse
+    {
+        [$rows, $skipped] = $this->selectedForBulk($request);
+
+        foreach ($rows as $row) {
+            DeploySite::dispatch($row->id);
+        }
+
+        return $this->bulkResponse($rows, $skipped);
+    }
+
+    public function upgrade(Request $request, int $id): JsonResponse
+    {
+        $row = CustomerSubscription::query()
+            ->with(['subscriptionType.currentRelease', 'pinnedRelease', 'deployedRelease'])
+            ->findOrFail($id);
+        $this->authorize('update', $row);
+
+        $validated = $request->validate([
+            'force' => ['sometimes', 'boolean'],
+        ]);
+
+        try {
+            $batchId = app(SiteDeploymentScheduler::class)->scheduleUpgrade(
+                $row,
+                force: (bool) ($validated['force'] ?? true)
+            );
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'batch_id' => $batchId,
+            'data' => $this->present($row->fresh(['subscriptionType.currentRelease', 'pinnedRelease', 'deployedRelease'])),
+        ]);
+    }
+
     public function pullEnv(int $id): JsonResponse
     {
         $row = CustomerSubscription::query()->findOrFail($id);
@@ -510,6 +561,65 @@ class CustomerSubscriptionController extends Controller
     /**
      * @return array<string, mixed>
      */
+    /**
+     * Resolve the `ids` of a bulk request to the rows this user may update.
+     *
+     * Missing ids and ids outside a customer admin's scope both come back as
+     * "Not found" so a scoped user cannot probe for other customers' rows.
+     * When every requested row exists but none is updatable the request is
+     * refused outright, matching the single-row endpoints.
+     *
+     * @return array{0: Collection<int, CustomerSubscription>, 1: list<array{id: int, reason: string}>}
+     */
+    private function selectedForBulk(Request $request): array
+    {
+        $this->authorize('viewAny', CustomerSubscription::class);
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $query = CustomerSubscription::query()->whereIn('id', $validated['ids']);
+        $this->scopeToCustomerAdmin($query);
+        $found = $query->get()->keyBy('id');
+
+        $rows = collect();
+        $skipped = [];
+        $forbidden = 0;
+
+        foreach ($validated['ids'] as $id) {
+            $row = $found->get($id);
+            if ($row === null) {
+                $skipped[] = ['id' => (int) $id, 'reason' => 'Not found'];
+            } elseif (! $request->user()->can('update', $row)) {
+                $forbidden++;
+                $skipped[] = ['id' => (int) $id, 'reason' => 'Forbidden'];
+            } else {
+                $rows->push($row);
+            }
+        }
+
+        if ($rows->isEmpty() && $forbidden > 0) {
+            abort(403, 'You are not allowed to update these customer subscriptions.');
+        }
+
+        return [$rows, $skipped];
+    }
+
+    /**
+     * @param  Collection<int, CustomerSubscription>  $rows
+     * @param  list<array{id: int, reason: string}>  $skipped
+     */
+    private function bulkResponse($rows, array $skipped): JsonResponse
+    {
+        return response()->json([
+            'ok' => true,
+            'queued' => $rows->pluck('id')->values()->all(),
+            'skipped' => $skipped,
+        ]);
+    }
+
     private function storeRules(): array
     {
         return [
@@ -536,7 +646,8 @@ class CustomerSubscriptionController extends Controller
             'ssl_deployed_at' => ['nullable', 'date'],
             'deployed_at' => ['nullable', 'date'],
             'panic_button_enabled' => ['nullable', 'boolean'],
-            'deployed_version' => ['nullable', 'string', 'max:8'],
+            'deployed_version' => ['nullable', 'string', 'max:64'],
+            'pinned_release_id' => ['nullable', 'integer', 'exists:subscription_type_releases,id'],
             'trigger_site_deployment' => ['sometimes', 'boolean'],
             'force_site_deployment' => ['sometimes', 'boolean'],
         ];

@@ -3,9 +3,7 @@
 namespace App\Services;
 
 use App\Helpers\ForgeApi;
-use App\Jobs\SendDeploymentScriptToForge;
 use App\Models\CustomerSubscription;
-use App\Models\DeploymentScript;
 use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
 use Illuminate\Support\Facades\Log;
@@ -15,16 +13,15 @@ class ForgeService
     public static function getAllSiteEnvironments()
     {
         $subscriptions = CustomerSubscription::all();
-        foreach($subscriptions as $subscription)
-        {
-           self::getSiteEnvironment($subscription);
+        foreach ($subscriptions as $subscription) {
+            self::getSiteEnvironment($subscription);
         }
 
     }
 
     public static function getSiteEnvironment(CustomerSubscription $subscription): void
     {
-        $forgeApi = new ForgeApi();
+        $forgeApi = new ForgeApi;
         $organization = $forgeApi->organizationSlugForServer((int) $subscription->server_id);
         $response = $forgeApi->forge->siteEnvironment($organization, $subscription->server_id, $subscription->forge_site_id);
 
@@ -41,18 +38,18 @@ class ForgeService
         $string_env = self::resolveEnvFileContent($response);
         $subscription->env = $string_env;
         $env = $forgeApi->parseEnvContent($string_env);
-        foreach($env as $key=>$value){
-            if($key!=='FORGE_API_KEY'){
+        foreach ($env as $key => $value) {
+            if ($key !== 'FORGE_API_KEY') {
                 $envVar = EnvVariables::where('key', $key)
                     ->where('customer_subscription_id', $subscription->id)
                     ->first();
-                if(!$envVar){
-                    $envVar = new EnvVariables();
+                if (! $envVar) {
+                    $envVar = new EnvVariables;
                     $envVar->key = $key;
                     $envVar->value = $value;
                     $envVar->customer_subscription_id = $subscription->id;
                     $envVar->save();
-                }else{
+                } else {
                     $envVar->value = $value;
                     $envVar->save();
                 }
@@ -73,24 +70,25 @@ class ForgeService
         return is_string($response) ? $response : (string) $response;
     }
 
-    public static function setSitesDeploymentScripts(){
-        $customerSubscriptions = CustomerSubscription::get();
-        foreach($customerSubscriptions as $customerSubscription){
-            if(DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->exists()){
-                $forgeApi = new ForgeApi();
-                $deploymentTemplate = DeploymentTemplate::where('subscription_type_id',$customerSubscription->subscription_type_id)->first();
-                $baseUrl = str_replace('https://','',$customerSubscription->url);
-                $baseUrl = str_replace('http://','',$baseUrl);
-                $deploymentString = str_replace('#WEBSITE_URL#',$baseUrl,$deploymentTemplate->script);
-                $deploymentScript = DeploymentScript::updateOrCreate([
-                    'customer_subscription_id' => $customerSubscription->id
-                ],[
-                    'script' => $deploymentString
+    public static function setSitesDeploymentScripts(): void
+    {
+        $renderer = app(DeploymentScriptRenderer::class);
+        $customerSubscriptions = CustomerSubscription::query()->get();
+
+        foreach ($customerSubscriptions as $customerSubscription) {
+            if (! DeploymentTemplate::query()
+                ->where('subscription_type_id', $customerSubscription->subscription_type_id)
+                ->exists()) {
+                continue;
+            }
+
+            try {
+                $renderer->renderAndPush($customerSubscription, pushToForge: (bool) ($customerSubscription->server_id && $customerSubscription->forge_site_id));
+            } catch (\Throwable $e) {
+                Log::warning('forge.set_sites_deployment_scripts.failed', [
+                    'customer_subscription_id' => $customerSubscription->id,
+                    'message' => $e->getMessage(),
                 ]);
-                $deploymentScript->save();
-                if($customerSubscription->server_id && $customerSubscription->forge_site_id){
-                    SendDeploymentScriptToForge::dispatch($customerSubscription->id,$deploymentString);
-                }
             }
         }
     }

@@ -38,3 +38,29 @@ it('derives postfix and database name for the aims.net.za vertical', function ()
         ->and(data_get($component->instance(), "{$statePath}.theVertical"))
         ->toBe('aims_net_za');
 });
+
+it('uses firearm not firearm-module in the host for a Firearm Module subscription', function () {
+    $customer = Customer::factory()->create(['company_name' => 'Demo']);
+    SubscriptionType::factory()->create(['id' => 2, 'name' => 'Firearm Module']);
+
+    $component = Livewire::test(CustomerSubscriptionsRelationManager::class, [
+        'ownerRecord' => $customer,
+        'pageClass' => EditCustomer::class,
+    ])
+        ->mountTableAction('create');
+
+    $statePath = $component->instance()->{$component->instance()->getMountedActionSchemaName()}->getStatePath();
+
+    $component
+        ->set("{$statePath}.customer_id", $customer->id)
+        ->set("{$statePath}.subscription_type_id", 2)
+        ->set("{$statePath}.vertical", 'blackwidow.org.za')
+        ->set("{$statePath}.url", 'demo');
+
+    expect(data_get($component->instance(), "{$statePath}.postfix"))
+        ->toBe('.firearm.blackwidow.org.za')
+        ->and(data_get($component->instance(), "{$statePath}.theType"))
+        ->toBe('firearm')
+        ->and(data_get($component->instance(), "{$statePath}.database_name"))
+        ->toBe('demo_firearm_blackwidow');
+});

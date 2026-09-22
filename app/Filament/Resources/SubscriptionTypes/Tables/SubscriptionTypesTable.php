@@ -33,7 +33,13 @@ class SubscriptionTypesTable
                 TextColumn::make('project_type')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('currentRelease.tag')
+                    ->label('Current release')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('master_version')
+                    ->label('Master (legacy)')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable()
                     ->sortable(),
             ])

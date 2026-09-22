@@ -29,21 +29,37 @@ class CustomerSubscriptionForm
                 Select::make('subscription_type_id')
                     ->relationship('subscriptionType', 'name')
                     ->required(),
+                Select::make('pinned_release_id')
+                    ->label('Pinned release')
+                    ->relationship(
+                        name: 'pinnedRelease',
+                        titleAttribute: 'tag',
+                        modifyQueryUsing: fn ($query, $get) => $query
+                            ->when($get('subscription_type_id'), fn ($q, $typeId) => $q->where('subscription_type_id', $typeId))
+                            ->published()
+                            ->orderByDesc('published_at'),
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
                 TextInput::make('deployed_version')
-                    ->maxLength(8)
+                    ->label('Deployed version (legacy mirror)')
+                    ->maxLength(64)
+                    ->disabled()
+                    ->dehydrated(false)
                     ->nullable(),
                 FileUpload::make('logo_1')
                     ->live()
                     ->downloadable()
                     ->reactive()
-                    ->label(function($get){
+                    ->label(function ($get) {
                         $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
-                        if($types){
+                        if ($types) {
                             $result = $types[0];
-                        }
-                        else{
+                        } else {
                             $result = 'Logo 1';
                         }
+
                         return $result;
                     })
                     ->disk('public')
@@ -54,14 +70,14 @@ class CustomerSubscriptionForm
                     ->live()
                     ->reactive()
                     ->downloadable()
-                    ->label(function($get){
+                    ->label(function ($get) {
                         $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
-                        if($types){
+                        if ($types) {
                             $result = $types[1];
-                        }
-                        else{
+                        } else {
                             $result = 'Logo 2';
                         }
+
                         return $result;
                     })
                     ->disk('public')
@@ -72,14 +88,14 @@ class CustomerSubscriptionForm
                     ->live()
                     ->reactive()
                     ->downloadable()
-                    ->label(function($get){
+                    ->label(function ($get) {
                         $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
-                        if($types){
+                        if ($types) {
                             $result = $types[2];
-                        }
-                        else{
+                        } else {
                             $result = 'Logo 3';
                         }
+
                         return $result;
                     })
                     ->disk('public')
@@ -90,14 +106,14 @@ class CustomerSubscriptionForm
                     ->live()
                     ->reactive()
                     ->downloadable()
-                    ->label(function($get){
+                    ->label(function ($get) {
                         $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
-                        if($types){
+                        if ($types) {
                             $result = $types[3];
-                        }
-                        else{
+                        } else {
                             $result = 'Logo 4';
                         }
+
                         return $result;
                     })
                     ->disk('public')
@@ -108,14 +124,14 @@ class CustomerSubscriptionForm
                     ->live()
                     ->reactive()
                     ->downloadable()
-                    ->label(function($get){
+                    ->label(function ($get) {
                         $types = CustomerSubscriptionService::getLogoDescriptions($get('subscription_type_id'));
-                        if($types){
+                        if ($types) {
                             $result = $types[4];
-                        }
-                        else{
+                        } else {
                             $result = 'Logo 5';
                         }
+
                         return $result;
                     })
                     ->disk('public')
@@ -132,10 +148,10 @@ class CustomerSubscriptionForm
                     ->label('Panic Button'),
                 Placeholder::make('created_at')
                     ->label('Created Date')
-                    ->content(fn($record): string => $record?->created_at?->diffForHumans() ?? '-'),
+                    ->content(fn ($record): string => $record?->created_at?->diffForHumans() ?? '-'),
                 Placeholder::make('updated_at')
                     ->label('Last Modified Date')
-                    ->content(fn($record): string => $record?->updated_at?->diffForHumans() ?? '-'),
+                    ->content(fn ($record): string => $record?->updated_at?->diffForHumans() ?? '-'),
             ]);
     }
 }

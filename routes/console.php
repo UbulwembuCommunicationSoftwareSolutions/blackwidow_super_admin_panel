@@ -1,8 +1,7 @@
 <?php
 
+use App\Jobs\SyncAllGithubReleasesJob;
 use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
-
 //
 //
 // Artisan::command('sendCommandToAllConsoles',function (){
@@ -107,3 +106,10 @@ use Illuminate\Support\Facades\Artisan;
 //
 // })->purpose('Send Deploymeny Script To All Consoles')->daily();
 //
+
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+// Hourly sync is the source of truth for GitHub releases; the webhook is a fast path.
+// Requires a machine crontab entry: * * * * * php artisan schedule:run
+Schedule::job(new SyncAllGithubReleasesJob)->hourly();

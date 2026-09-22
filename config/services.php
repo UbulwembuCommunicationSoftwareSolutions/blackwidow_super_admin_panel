@@ -41,6 +41,11 @@ return [
         'organization' => env('FORGE_ORGANIZATION_SLUG', 'richard-hall-zbo'),
     ],
 
+    'github' => [
+        'token' => env('GITHUB_TOKEN'),
+        'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
+    ],
+
     'google' => [
         'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
     ],

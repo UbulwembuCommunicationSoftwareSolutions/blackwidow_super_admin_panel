@@ -2,35 +2,28 @@
 
 namespace App\Filament\Resources\Customers\RelationManagers;
 
-use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkAction;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
-use App\Models\Payment;
 use App\Models\SubscriptionType;
 use Filament\Actions\Action;
-use Filament\Forms;
-use Filament\Forms\Components\FileUpload;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Schema;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Schemas\Components\Section;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Illuminate\Validation\Rule;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
@@ -113,10 +106,11 @@ class CustomerUserRelationManager extends RelationManager
                         Toggle::make('survey_access')
                             ->required(),
                         Toggle::make('time_and_attendance_access')
+                            ->label('Timesheet Management Access')
                             ->required(),
                         Toggle::make('stock_access')
                             ->required(),
-                    ])->columns(2)
+                    ])->columns(2),
             ]);
     }
 
@@ -162,13 +156,14 @@ class CustomerUserRelationManager extends RelationManager
                             ->minLength(6),
                     ])
                     ->action(function (CustomerUser $record, array $data) {
-                        if($data['new_password'] !== $data['confirm_password']){
+                        if ($data['new_password'] !== $data['confirm_password']) {
                             Notification::make()
                                 ->title('Passwords do not match')
                                 ->danger()
                                 ->send();
+
                             return;
-                        }else{
+                        } else {
                             $record->password = $data['new_password'];
                             $record->save();
 
@@ -199,15 +194,15 @@ class CustomerUserRelationManager extends RelationManager
                             ->first();
 
                         if ($user && $subscription) {
-                            if($user->checkAccess($data['subscription_type_id'])){
+                            if ($user->checkAccess($data['subscription_type_id'])) {
                                 SendSubscriptionEmailJob::dispatch($user, $subscription);
-                            }else{
+                            } else {
                                 Notification::make()
                                     ->title('User does not have access to this subscription')
                                     ->danger()
                                     ->send();
                             }
-                        }else{
+                        } else {
                             Notification::make()
                                 ->title('Subscription not found')
                                 ->danger()
@@ -242,12 +237,12 @@ class CustomerUserRelationManager extends RelationManager
                                     ->label('Survey Access')
                                     ->required(),
                                 Toggle::make('time_and_attendance_access')
-                                    ->label('Time and Attendance Access')
+                                    ->label('Timesheet Management Access')
                                     ->required(),
                                 Toggle::make('stock_access')
                                     ->label('Stock Access')
                                     ->required(),
-                            ])->columns(2)
+                            ])->columns(2),
                     ])
                     ->fillForm(fn (CustomerUser $record): array => [
                         'console_access' => $record->console_access,
@@ -267,7 +262,7 @@ class CustomerUserRelationManager extends RelationManager
                             ->title('Access rights updated successfully')
                             ->success()
                             ->send();
-                    })
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -303,8 +298,8 @@ class CustomerUserRelationManager extends RelationManager
                                         ->send();
                                 }
                             }
-                        })
-                ])
+                        }),
+                ]),
             ]);
     }
 }

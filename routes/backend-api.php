@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Backend\NginxTemplateController;
 use App\Http\Controllers\Api\Backend\RoleController;
 use App\Http\Controllers\Api\Backend\SearchController;
 use App\Http\Controllers\Api\Backend\SubscriptionTypeController;
+use App\Http\Controllers\Api\Backend\SubscriptionTypeReleaseController;
 use App\Http\Controllers\Api\Backend\TemplateEnvVariablesController;
 use App\Http\Controllers\Api\Backend\UserController;
 use App\Http\Controllers\Api\Backend\UserCustomerController;
@@ -35,12 +36,14 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->whereNumber('id');
 
     Route::post('/customer-subscriptions/verify-domain', [CustomerSubscriptionController::class, 'verifyDomain']);
+    Route::post('/customer-subscriptions/bulk/deploy', [CustomerSubscriptionController::class, 'bulkDeploy']);
     Route::post('/customer-subscriptions/{id}/recreate-site', [CustomerSubscriptionController::class, 'recreateSite'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/logos', [CustomerSubscriptionController::class, 'uploadLogos'])->whereNumber('id');
     Route::get('/customer-subscriptions/{id}/branding', [CustomerSubscriptionController::class, 'branding'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/branding/resync', [CustomerSubscriptionController::class, 'resyncBranding'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/generate-logos', [CustomerSubscriptionController::class, 'generateLogos'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/deploy', [CustomerSubscriptionController::class, 'deploy'])->whereNumber('id');
+    Route::post('/customer-subscriptions/{id}/upgrade', [CustomerSubscriptionController::class, 'upgrade'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/pull-env', [CustomerSubscriptionController::class, 'pullEnv'])->whereNumber('id');
     Route::put('/customer-subscriptions/{id}/server', [CustomerSubscriptionController::class, 'updateServer'])->whereNumber('id');
     Route::get('/customer-subscriptions/{id}/pipeline-steps', [CustomerSubscriptionController::class, 'pipelineSteps'])->whereNumber('id');
@@ -129,6 +132,9 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
 
     Route::post('/subscription-types/{id}/restore', [SubscriptionTypeController::class, 'restore'])->whereNumber('id');
     Route::delete('/subscription-types/{id}/force', [SubscriptionTypeController::class, 'forceDestroy'])->whereNumber('id');
+    Route::get('/subscription-types/{id}/releases', [SubscriptionTypeReleaseController::class, 'index'])->whereNumber('id');
+    Route::post('/subscription-types/{id}/releases/sync', [SubscriptionTypeReleaseController::class, 'sync'])->whereNumber('id');
+    Route::post('/subscription-types/{id}/releases/{release}/promote', [SubscriptionTypeReleaseController::class, 'promote'])->whereNumber(['id', 'release']);
     Route::get('/subscription-types', [SubscriptionTypeController::class, 'index']);
     Route::post('/subscription-types', [SubscriptionTypeController::class, 'store']);
     Route::get('/subscription-types/{id}', [SubscriptionTypeController::class, 'show'])->whereNumber('id');

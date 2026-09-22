@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Jobs\PushBrandingToTenantsJob;
 use App\Services\LogoSyncService;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use stdClass;
@@ -95,6 +97,11 @@ class CustomerSubscription extends Model
         'deployed_at',
         'panic_button_enabled',
         'deployed_version',
+        'pinned_release_id',
+        'deployed_release_id',
+        'deployed_commit_sha',
+        'deployed_tag_raw',
+        'deployed_confirmed_at',
     ];
 
     protected static function booted(): void
@@ -203,6 +210,7 @@ class CustomerSubscription extends Model
         'logo_3_updated_at' => 'datetime',
         'logo_4_updated_at' => 'datetime',
         'logo_5_updated_at' => 'datetime',
+        'deployed_confirmed_at' => 'datetime',
     ];
 
     public $appends = ['null_variable_count', 'logo_urls'];
@@ -212,9 +220,107 @@ class CustomerSubscription extends Model
         return $this->belongsTo(SubscriptionType::class);
     }
 
-    public function deploymentScript()
+    public function pinnedRelease(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionTypeRelease::class, 'pinned_release_id');
+    }
+
+    public function deployedRelease(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionTypeRelease::class, 'deployed_release_id');
+    }
+
+    public function targetRelease(): ?SubscriptionTypeRelease
+    {
+        $this->loadMissing(['pinnedRelease', 'subscriptionType.currentRelease']);
+
+        return $this->pinnedRelease ?? $this->subscriptionType?->currentRelease;
+    }
+
+    public function isOutdated(): bool
+    {
+        $target = $this->targetRelease();
+
+        return $target !== null && (int) $this->deployed_release_id !== (int) $target->id;
+    }
+
+    /**
+     * Human-readable release status for the console: up_to_date | outdated | unknown | pinned.
+     */
+    public function releaseStatus(): string
+    {
+        if ($this->pinned_release_id) {
+            if ($this->deployed_release_id === null) {
+                return 'pinned';
+            }
+
+            return (int) $this->deployed_release_id === (int) $this->pinned_release_id
+                ? 'pinned'
+                : 'outdated';
+        }
+
+        if ($this->deployed_release_id === null && $this->deployed_commit_sha) {
+            return 'unknown';
+        }
+
+        $target = $this->targetRelease();
+        if ($target === null) {
+            return $this->deployed_release_id ? 'unknown' : 'unknown';
+        }
+
+        if ($this->deployed_release_id === null) {
+            return 'unknown';
+        }
+
+        return (int) $this->deployed_release_id === (int) $target->id
+            ? 'up_to_date'
+            : 'outdated';
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeWhereOutdated(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('subscription_type_id')
+            ->where(function (Builder $outer): void {
+                $outer->where(function (Builder $pinned): void {
+                    $pinned->whereNotNull('pinned_release_id')
+                        ->whereColumn('deployed_release_id', '!=', 'pinned_release_id');
+                })->orWhere(function (Builder $unpinned): void {
+                    $unpinned->whereNull('pinned_release_id')
+                        ->whereHas('subscriptionType', function (Builder $type): void {
+                            $type->whereNotNull('current_release_id');
+                        })
+                        ->where(function (Builder $deployed): void {
+                            $deployed->whereNull('deployed_release_id')
+                                ->orWhereRaw('deployed_release_id != (
+                                    select current_release_id from subscription_types
+                                    where subscription_types.id = customer_subscriptions.subscription_type_id
+                                )');
+                        });
+                });
+            });
+    }
+
+    /**
+     * @return HasMany<DeploymentScript, $this>
+     */
+    public function deploymentScripts(): HasMany
     {
         return $this->hasMany(DeploymentScript::class);
+    }
+
+    /**
+     * Preferred single deployment script for a subscription (one row in practice).
+     *
+     * @return HasOne<DeploymentScript, $this>
+     */
+    public function deploymentScript(): HasOne
+    {
+        return $this->hasOne(DeploymentScript::class);
     }
 
     public function deploymentJobs(): HasMany

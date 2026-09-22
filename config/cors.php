@@ -35,12 +35,23 @@ return [
         'http://*.bvigilant.co.za',
         'https://*.aims.net.za',
         'http://*.aims.net.za',
+        'https://*.aims.world',
+        'http://*.aims.world',
+        'https://*.siyaleader.org.za',
+        'http://*.siyaleader.org.za',
 
         /*
-        | Vue admin SPA (Reseller Console). Listed as an exact origin on
-        | purpose — on-forge.com is shared across all Forge customers, so
-        | https://*.on-forge.com would open this API to every site on it.
+        | Vue admin SPA (Reseller Console). Listed as exact origins so branded
+        | production hosts are allowed even if a domain family is missing from
+        | the wildcards above. The Forge preview is listed exactly because
+        | on-forge.com is shared across all Forge customers — a
+        | https://*.on-forge.com wildcard would open this API to every site on it.
         */
+        'https://superadmin.aims.world',
+        'https://superadmin.bvigilant.co.za',
+        'https://superadmin.blackwidow.org.za',
+        'https://superadmin.siyaleader.org.za',
+        'https://superadmin.aims.net.za',
         'https://super_admin_frontend-eumaqzrf.on-forge.com',
     ],
 

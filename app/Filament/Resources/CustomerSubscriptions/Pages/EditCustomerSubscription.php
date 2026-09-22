@@ -73,6 +73,28 @@ class EditCustomerSubscription extends EditRecord
                 ->modalHeading('Deploy Site')
                 ->modalDescription('This will trigger a site deployment. Continue?')
                 ->modalSubmitActionLabel('Deploy'),
+            Action::make('upgradeToTarget')
+                ->label('Upgrade to target release')
+                ->icon('heroicon-o-arrow-up-circle')
+                ->requiresConfirmation()
+                ->modalHeading('Upgrade to target release')
+                ->modalDescription(fn (CustomerSubscription $record): string => 'Re-render the deploy script for '.($record->targetRelease()?->tag ?? 'the current target').' and deploy. Continue?')
+                ->action(function (CustomerSubscription $record): void {
+                    try {
+                        $batchId = app(SiteDeploymentScheduler::class)->scheduleUpgrade($record, force: true);
+                        Notification::make()
+                            ->title('Upgrade queued')
+                            ->body('Batch '.$batchId)
+                            ->success()
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Could not queue upgrade')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
             Action::make('pullEnvFromServer')
                 ->label('Pull env from server')
                 ->icon('heroicon-o-arrow-down-tray')
