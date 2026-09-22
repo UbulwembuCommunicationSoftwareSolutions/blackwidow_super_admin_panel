@@ -50,4 +50,13 @@ return [
         'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
+    /*
+     * Bearer token the shared LMS uses when calling GET /api/v1/sync/customers and
+     * that Super Admin uses when POSTing customer upserts to the LMS admin-api.
+     * Must match the LMS app SECURE_TOKEN.
+     */
+    'lms' => [
+        'sync_token' => env('LMS_SYNC_TOKEN'),
+    ],
+
 ];

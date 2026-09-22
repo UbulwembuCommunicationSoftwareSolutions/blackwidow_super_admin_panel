@@ -7,6 +7,7 @@ use App\Http\Requests\CustomerSubscriptionRequest;
 use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Support\BrandingSync\BrandingSyncPayload;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -226,17 +227,45 @@ class CustomerSubscriptionController extends Controller
         }
 
         return response()->json([
-            'logo_1' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_1),
-            'logo_2' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_2),
-            'logo_3' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_3),
+            'logo_1' => $this->resolveBrandedLogoUrl($customerSubscription, 'logo_1'),
+            'logo_2' => $this->resolveBrandedLogoUrl($customerSubscription, 'logo_2'),
+            'logo_3' => $this->resolveBrandedLogoUrl($customerSubscription, 'logo_3'),
             'logo_4' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_4),
             'logo_5' => $this->logoPathToAbsoluteUrl($customerSubscription->logo_5),
-            'logo_1_updated_at' => $customerSubscription->logo_1_updated_at?->toIso8601String(),
-            'logo_2_updated_at' => $customerSubscription->logo_2_updated_at?->toIso8601String(),
-            'logo_3_updated_at' => $customerSubscription->logo_3_updated_at?->toIso8601String(),
+            'logo_1_updated_at' => $this->resolveBrandedLogoUpdatedAt($customerSubscription, 'logo_1'),
+            'logo_2_updated_at' => $this->resolveBrandedLogoUpdatedAt($customerSubscription, 'logo_2'),
+            'logo_3_updated_at' => $this->resolveBrandedLogoUpdatedAt($customerSubscription, 'logo_3'),
             'logo_4_updated_at' => $customerSubscription->logo_4_updated_at?->toIso8601String(),
             'logo_5_updated_at' => $customerSubscription->logo_5_updated_at?->toIso8601String(),
         ]);
+    }
+
+    private function resolveBrandedLogoUrl(CustomerSubscription $subscription, string $saSlot): ?string
+    {
+        $cmsSlot = array_search($saSlot, BrandingSyncPayload::CMS_TO_SA_SLOT, true);
+        if ($cmsSlot !== false) {
+            $media = $subscription->effectiveBrandingMedia($cmsSlot);
+            if ($media !== null) {
+                return $media->url();
+            }
+        }
+
+        return $this->logoPathToAbsoluteUrl($subscription->getAttribute($saSlot));
+    }
+
+    private function resolveBrandedLogoUpdatedAt(CustomerSubscription $subscription, string $saSlot): ?string
+    {
+        $cmsSlot = array_search($saSlot, BrandingSyncPayload::CMS_TO_SA_SLOT, true);
+        if ($cmsSlot !== false) {
+            $payload = BrandingSyncPayload::fromSubscription($subscription, $cmsSlot);
+            if ($payload->url !== null) {
+                return $payload->updatedAt?->toIso8601String();
+            }
+        }
+
+        $column = $saSlot.'_updated_at';
+
+        return $subscription->getAttribute($column)?->toIso8601String();
     }
 
     public function getCmsUrl(Request $request): JsonResponse

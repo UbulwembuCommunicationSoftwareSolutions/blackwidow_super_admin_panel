@@ -4,6 +4,7 @@ namespace App\Services\UserSync;
 
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Models\SubscriptionType;
 use App\Models\UserSyncLog;
 use App\Support\UserSync\UserSyncPayload;
 use Illuminate\Http\Client\PendingRequest;
@@ -70,8 +71,21 @@ class TenantUserPusher
         }
 
         foreach ($subscriptions as $subscription) {
+            if (! $this->shouldPushToSubscription($user, $subscription)) {
+                continue;
+            }
+
             $this->push($user, $subscription, $path, $payload, $extra);
         }
+    }
+
+    private function shouldPushToSubscription(CustomerUser $user, CustomerSubscription $subscription): bool
+    {
+        if ((int) $subscription->subscription_type_id !== SubscriptionType::LMS_TYPE_ID) {
+            return true;
+        }
+
+        return (bool) $user->lms_access || (bool) $user->is_system_admin;
     }
 
     /**
@@ -141,13 +155,29 @@ class TenantUserPusher
             ->where('url', '!=', '')
             ->with('customer')
             ->get()
-            ->filter(fn (CustomerSubscription $subscription) => filled($subscription->customer?->token))
+            ->filter(fn (CustomerSubscription $subscription) => $this->subscriptionHasAuth($subscription))
             ->values();
+    }
+
+    private function subscriptionHasAuth(CustomerSubscription $subscription): bool
+    {
+        if ((int) $subscription->subscription_type_id === SubscriptionType::LMS_TYPE_ID) {
+            return filled(config('services.lms.sync_token'))
+                || filled($subscription->customer?->token);
+        }
+
+        return filled($subscription->customer?->token);
     }
 
     private function client(CustomerSubscription $subscription): PendingRequest
     {
-        return Http::withToken((string) $subscription->customer->token)
+        $token = (string) ($subscription->customer?->token ?? '');
+
+        if ((int) $subscription->subscription_type_id === SubscriptionType::LMS_TYPE_ID) {
+            $token = (string) (config('services.lms.sync_token') ?: $token);
+        }
+
+        return Http::withToken($token)
             ->acceptJson()
             ->asJson()
             ->timeout((int) config('user_sync.timeout', 15))

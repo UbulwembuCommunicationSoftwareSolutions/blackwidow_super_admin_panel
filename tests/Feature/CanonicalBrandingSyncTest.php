@@ -2,7 +2,9 @@
 
 use App\Jobs\PushBrandingToTenantsJob;
 use App\Models\Customer;
+use App\Models\CustomerBrandingMedia;
 use App\Models\CustomerSubscription;
+use App\Models\CustomerSubscriptionBrandSlot;
 use App\Models\SubscriptionType;
 use App\Support\BrandingSync\BrandingSyncPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,19 +74,27 @@ it('creates branding from a tenant push and stores the file', function () {
         ->assertJsonPath('branding.slot', 'login_logo');
 
     $fresh = $subscription->fresh();
-    expect($fresh->logo_1)->not->toBeNull()
-        ->and($fresh->logo_1_checksum)->toBe($checksum)
-        ->and($fresh->logo_1_updated_at)->not->toBeNull();
+    $override = $fresh->brandSlots()->where('slot', 'login_logo')->first();
+    expect($override)->not->toBeNull()
+        ->and($override->is_override)->toBeTrue()
+        ->and($override->cleared)->toBeFalse()
+        ->and($override->media?->checksum)->toBe($checksum);
 });
 
 it('returns stale when the inbound record is older', function () {
-    ['subscription' => $subscription] = brandingTenant();
-    Storage::disk('public')->put('existing.png', pngBytes());
-    $subscription->forceFill([
-        'logo_1' => 'existing.png',
-        'logo_1_updated_at' => now(),
-        'logo_1_checksum' => BrandingSyncPayload::computeChecksum(pngBytes()),
-    ])->saveQuietly();
+    ['subscription' => $subscription, 'customer' => $customer] = brandingTenant();
+    $media = CustomerBrandingMedia::factory()
+        ->for($customer)
+        ->withPngFile(pngBytes())
+        ->create();
+    CustomerSubscriptionBrandSlot::factory()->create([
+        'customer_subscription_id' => $subscription->id,
+        'slot' => 'login_logo',
+        'customer_branding_media_id' => $media->id,
+        'is_override' => true,
+        'cleared' => false,
+        'updated_at' => now(),
+    ]);
 
     $olderBytes = pngBytes().'different';
     Http::fake([
@@ -106,17 +116,19 @@ it('returns stale when the inbound record is older', function () {
     $response->assertSuccessful()
         ->assertJsonPath('outcome', 'stale');
 
-    expect($subscription->fresh()->logo_1)->toBe('existing.png');
+    expect($subscription->fresh()->effectiveBrandingMedia('login_logo')?->id)->toBe($media->id);
 });
 
 it('clears a slot when cleared is true', function () {
-    ['subscription' => $subscription] = brandingTenant();
-    Storage::disk('public')->put('to-clear.png', pngBytes());
-    $subscription->forceFill([
-        'logo_1' => 'to-clear.png',
-        'logo_1_updated_at' => now()->subHour(),
-        'logo_1_checksum' => 'sha256:abc',
-    ])->saveQuietly();
+    ['subscription' => $subscription, 'customer' => $customer] = brandingTenant();
+    $media = CustomerBrandingMedia::factory()->for($customer)->withPngFile()->create();
+    CustomerSubscriptionBrandSlot::factory()->create([
+        'customer_subscription_id' => $subscription->id,
+        'slot' => 'login_logo',
+        'customer_branding_media_id' => $media->id,
+        'is_override' => true,
+        'cleared' => false,
+    ]);
 
     $response = $this->withToken('branding-token')->postJson('/api/v1/sync/branding', [
         'app_url' => $subscription->url,
@@ -134,19 +146,25 @@ it('clears a slot when cleared is true', function () {
         ->assertJsonPath('outcome', 'cleared')
         ->assertJsonPath('branding.cleared', true);
 
-    expect($subscription->fresh()->logo_1)->toBeNull()
-        ->and($subscription->fresh()->logo_1_checksum)->toBeNull();
+    $slot = $subscription->fresh()->brandSlots()->where('slot', 'login_logo')->first();
+    expect($slot?->cleared)->toBeTrue()
+        ->and($slot?->customer_branding_media_id)->toBeNull();
 });
 
 it('returns unchanged when checksum matches', function () {
-    ['subscription' => $subscription] = brandingTenant();
+    ['subscription' => $subscription, 'customer' => $customer] = brandingTenant();
     $checksum = BrandingSyncPayload::computeChecksum(pngBytes());
-    Storage::disk('public')->put('same.png', pngBytes());
-    $subscription->forceFill([
-        'logo_1' => 'same.png',
-        'logo_1_updated_at' => now()->subDay(),
-        'logo_1_checksum' => $checksum,
-    ])->saveQuietly();
+    $media = CustomerBrandingMedia::factory()
+        ->for($customer)
+        ->create(['checksum' => $checksum]);
+    $media->addMediaFromString(pngBytes())->usingFileName('same.png')->toMediaCollection('file');
+    CustomerSubscriptionBrandSlot::factory()->create([
+        'customer_subscription_id' => $subscription->id,
+        'slot' => 'login_logo',
+        'customer_branding_media_id' => $media->id,
+        'is_override' => true,
+        'cleared' => false,
+    ]);
 
     $response = $this->withToken('branding-token')->postJson('/api/v1/sync/branding', [
         'app_url' => $subscription->url,
@@ -165,13 +183,15 @@ it('returns unchanged when checksum matches', function () {
 });
 
 it('lists all branding slots for reconciliation', function () {
-    ['subscription' => $subscription] = brandingTenant();
-    Storage::disk('public')->put('login.png', pngBytes());
-    $subscription->forceFill([
-        'logo_1' => 'login.png',
-        'logo_1_updated_at' => now(),
-        'logo_1_checksum' => BrandingSyncPayload::computeChecksum(pngBytes()),
-    ])->saveQuietly();
+    ['subscription' => $subscription, 'customer' => $customer] = brandingTenant();
+    $media = CustomerBrandingMedia::factory()->for($customer)->withPngFile()->create();
+    CustomerSubscriptionBrandSlot::factory()->create([
+        'customer_subscription_id' => $subscription->id,
+        'slot' => 'login_logo',
+        'customer_branding_media_id' => $media->id,
+        'is_override' => true,
+        'cleared' => false,
+    ]);
 
     $response = $this->withToken('branding-token')->getJson(
         '/api/v1/sync/branding?app_url='.urlencode($subscription->url)

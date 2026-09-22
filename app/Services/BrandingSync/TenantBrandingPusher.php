@@ -3,6 +3,7 @@
 namespace App\Services\BrandingSync;
 
 use App\Models\BrandingSyncLog;
+use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Support\BrandingSync\BrandingSyncPayload;
 use Illuminate\Http\Client\PendingRequest;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Pushes a single branding slot to tenant CMS apps that speak the canonical contract.
+ * Pushes branding slots to tenant apps (CMS, Firearm) and the shared LMS hub.
  */
 class TenantBrandingPusher
 {
@@ -32,7 +33,7 @@ class TenantBrandingPusher
         if ($targets->isEmpty()) {
             $subscription->loadMissing('customer');
             $reason = match (true) {
-                ! in_array((int) $subscription->subscription_type_id, array_map('intval', (array) config('branding_sync.tenant_subscription_types', [1])), true) => 'subscription_type_id not a tenant type',
+                ! in_array((int) $subscription->subscription_type_id, $this->tenantTypeIds(), true) => 'subscription_type_id not a tenant type',
                 blank($subscription->url) => 'subscription has no url',
                 blank($subscription->customer?->token) => 'customer has no token',
                 default => 'unknown',
@@ -60,12 +61,68 @@ class TenantBrandingPusher
             $payload = BrandingSyncPayload::fromSubscription($subscription, $cmsSlot);
 
             foreach ($targets as $target) {
-                $this->push($subscription, $target, $payload);
+                $this->pushToTenant($subscription, $target, $payload);
             }
         }
     }
 
-    private function push(
+    /**
+     * @param  list<string>  $cmsSlots
+     */
+    public function pushCustomerDefaultsToTenants(Customer $customer, array $cmsSlots): void
+    {
+        if (! config('branding_sync.enabled', true)) {
+            return;
+        }
+
+        $subscriptions = CustomerSubscription::query()
+            ->where('customer_id', $customer->id)
+            ->whereIn('subscription_type_id', $this->tenantTypeIds())
+            ->whereNotNull('url')
+            ->where('url', '!=', '')
+            ->get();
+
+        foreach ($subscriptions as $subscription) {
+            $this->pushSlots($subscription, $cmsSlots);
+        }
+    }
+
+    /**
+     * @param  list<string>  $cmsSlots
+     */
+    public function pushCustomerDefaultsToLmsHub(Customer $customer, array $cmsSlots): void
+    {
+        if (! config('branding_sync.enabled', true)) {
+            return;
+        }
+
+        if (! config('branding_sync.lms_hub_enabled', true)) {
+            return;
+        }
+
+        $targets = $this->lmsSubscriptions($customer);
+        if ($targets->isEmpty()) {
+            Log::info('No LMS hub to push customer branding to', [
+                'customer_id' => $customer->id,
+            ]);
+
+            return;
+        }
+
+        foreach ($cmsSlots as $cmsSlot) {
+            if (! in_array($cmsSlot, BrandingSyncPayload::SLOTS, true)) {
+                continue;
+            }
+
+            $payload = BrandingSyncPayload::fromCustomerDefault($customer, $cmsSlot);
+
+            foreach ($targets as $target) {
+                $this->pushToLmsHub($customer, $target, $payload);
+            }
+        }
+    }
+
+    private function pushToTenant(
         CustomerSubscription $source,
         CustomerSubscription $target,
         BrandingSyncPayload $payload,
@@ -79,7 +136,7 @@ class TenantBrandingPusher
         ];
 
         try {
-            $response = $this->client($target)->post($url, $body);
+            $response = $this->tenantClient($target)->post($url, $body);
         } catch (\Throwable $e) {
             $this->log($source, $payload->slot, 'failed', $e->getMessage(), [
                 'url' => $url,
@@ -134,16 +191,65 @@ class TenantBrandingPusher
         ]);
     }
 
+    private function pushToLmsHub(
+        Customer $customer,
+        CustomerSubscription $lmsSubscription,
+        BrandingSyncPayload $payload,
+    ): void {
+        $url = rtrim((string) $lmsSubscription->url, '/').'/admin-api/v1/sync/branding';
+
+        $body = [
+            'app_url' => $lmsSubscription->url,
+            'origin' => 'super_admin',
+            'branding' => $payload->toLmsArray($customer->id),
+        ];
+
+        try {
+            $response = $this->lmsClient()->post($url, $body);
+        } catch (\Throwable $e) {
+            $this->log($lmsSubscription, $payload->slot, 'failed', $e->getMessage(), [
+                'url' => $url,
+                'request' => $body,
+                'target' => 'lms',
+            ]);
+
+            Log::error('Branding push to LMS hub threw', [
+                'customer_id' => $customer->id,
+                'slot' => $payload->slot,
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+
+        if (! $response->successful()) {
+            $this->log($lmsSubscription, $payload->slot, 'failed', 'HTTP '.$response->status().' '.$response->body(), [
+                'url' => $url,
+                'request' => $body,
+                'target' => 'lms',
+                'status' => $response->status(),
+                'response_body' => $response->body(),
+            ]);
+
+            throw new \RuntimeException('LMS branding sync failed with HTTP '.$response->status().' for '.$url);
+        }
+
+        $this->log($lmsSubscription, $payload->slot, 'success', null, [
+            'url' => $url,
+            'request' => $body,
+            'target' => 'lms',
+            'response' => $response->json(),
+        ]);
+    }
+
     /**
      * @return Collection<int, CustomerSubscription>
      */
     private function targetSubscriptions(CustomerSubscription $subscription): Collection
     {
-        // Push to the same subscription's URL when it is a CMS tenant.
-        $types = (array) config('branding_sync.tenant_subscription_types', [1]);
-
         if (
-            in_array((int) $subscription->subscription_type_id, array_map('intval', $types), true)
+            in_array((int) $subscription->subscription_type_id, $this->tenantTypeIds(), true)
             && filled($subscription->url)
         ) {
             $subscription->loadMissing('customer');
@@ -155,11 +261,49 @@ class TenantBrandingPusher
         return collect();
     }
 
-    private function client(CustomerSubscription $subscription): PendingRequest
+    /**
+     * @return Collection<int, CustomerSubscription>
+     */
+    private function lmsSubscriptions(Customer $customer): Collection
+    {
+        $typeId = (int) config('branding_sync.lms_subscription_type_id');
+
+        return CustomerSubscription::query()
+            ->where('customer_id', $customer->id)
+            ->where('subscription_type_id', $typeId)
+            ->whereNotNull('url')
+            ->where('url', '!=', '')
+            ->get()
+            ->values();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function tenantTypeIds(): array
+    {
+        return array_map('intval', (array) config('branding_sync.tenant_subscription_types', [1]));
+    }
+
+    private function tenantClient(CustomerSubscription $subscription): PendingRequest
     {
         $subscription->loadMissing('customer');
 
         return Http::withToken((string) $subscription->customer->token)
+            ->acceptJson()
+            ->asJson()
+            ->timeout((int) config('branding_sync.timeout', 30))
+            ->connectTimeout(10);
+    }
+
+    private function lmsClient(): PendingRequest
+    {
+        $token = config('services.lms.sync_token');
+        if (! is_string($token) || $token === '') {
+            throw new \RuntimeException('LMS sync token is not configured (services.lms.sync_token).');
+        }
+
+        return Http::withToken($token)
             ->acceptJson()
             ->asJson()
             ->timeout((int) config('branding_sync.timeout', 30))

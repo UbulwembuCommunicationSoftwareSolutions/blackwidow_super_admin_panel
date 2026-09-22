@@ -168,10 +168,40 @@ class CustomerSubscription extends Model
                 }
             }
 
-            if ($cmsSlots !== [] && (int) $model->subscription_type_id === 1) {
-                PushBrandingToTenantsJob::dispatch($model->id, $cmsSlots);
+            if ($cmsSlots === [] || $model->usesBrandSlotBranding()) {
+                return;
+            }
+
+            if (in_array((int) $model->subscription_type_id, $model->tenantBrandingTypeIds(), true)) {
+                PushBrandingToTenantsJob::dispatch(subscriptionId: $model->id, cmsSlots: $cmsSlots);
             }
         });
+    }
+
+    /**
+     * True when branding is stored in customer/subscription brand-slot media (not legacy logo_* columns).
+     */
+    public function usesBrandSlotBranding(): bool
+    {
+        if ($this->brandSlots()->exists()) {
+            return true;
+        }
+
+        if ($this->customer_id === null) {
+            return false;
+        }
+
+        return CustomerBrandingMedia::query()
+            ->where('customer_id', $this->customer_id)
+            ->exists();
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function tenantBrandingTypeIds(): array
+    {
+        return array_map('intval', (array) config('branding_sync.tenant_subscription_types', [1]));
     }
 
     public function brandingSyncLogs(): HasMany
@@ -190,7 +220,7 @@ class CustomerSubscription extends Model
             return;
         }
 
-        if ((int) $this->subscription_type_id !== 1) {
+        if (! in_array((int) $this->subscription_type_id, $this->tenantBrandingTypeIds(), true)) {
             return;
         }
 
@@ -199,7 +229,7 @@ class CustomerSubscription extends Model
             return;
         }
 
-        PushBrandingToTenantsJob::dispatch($this->id, $cmsSlots);
+        PushBrandingToTenantsJob::dispatch(subscriptionId: $this->id, cmsSlots: $cmsSlots);
     }
 
     protected $casts = [
@@ -390,6 +420,38 @@ class CustomerSubscription extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function brandSlots(): HasMany
+    {
+        return $this->hasMany(CustomerSubscriptionBrandSlot::class);
+    }
+
+    public function effectiveBrandingMedia(string $cmsSlot): ?CustomerBrandingMedia
+    {
+        $subscriptionSlot = $this->brandSlots()->where('slot', $cmsSlot)->first();
+
+        if ($subscriptionSlot !== null && $subscriptionSlot->is_override) {
+            if ($subscriptionSlot->cleared) {
+                return null;
+            }
+
+            if ($subscriptionSlot->customer_branding_media_id !== null) {
+                return $subscriptionSlot->media;
+            }
+        }
+
+        $customer = $this->relationLoaded('customer')
+            ? $this->customer
+            : $this->customer()->first();
+
+        if ($customer === null) {
+            return null;
+        }
+
+        $customerSlot = $customer->brandSlots()->where('slot', $cmsSlot)->first();
+
+        return $customerSlot?->media;
     }
 
     /**

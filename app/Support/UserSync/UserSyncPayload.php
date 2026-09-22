@@ -4,6 +4,7 @@ namespace App\Support\UserSync;
 
 use App\Models\CustomerUser;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * The canonical wire shape for a customer user.
@@ -34,6 +35,7 @@ final class UserSyncPayload
         'survey_access' => 7,
         'time_and_attendance_access' => 9,
         'stock_access' => 10,
+        'lms_access' => 12,
     ];
 
     /**
@@ -51,10 +53,14 @@ final class UserSyncPayload
         public readonly ?bool $superAdminPanelAccess,
         public readonly ?Carbon $deleteScheduled,
         public readonly ?Carbon $updatedAt,
+        public readonly ?int $superAdminCustomerId = null,
+        public readonly ?string $customerSlug = null,
     ) {}
 
     public static function fromCustomerUser(CustomerUser $user): self
     {
+        $user->loadMissing('customer');
+
         $access = [];
         foreach (array_keys(self::ACCESS_FLAGS) as $flag) {
             $access[$flag] = (bool) $user->{$flag};
@@ -72,6 +78,8 @@ final class UserSyncPayload
             superAdminPanelAccess: null,
             deleteScheduled: $user->delete_scheduled,
             updatedAt: $user->updated_at,
+            superAdminCustomerId: $user->customer_id,
+            customerSlug: Str::slug((string) ($user->customer?->company_name ?? '')),
         );
     }
 
@@ -103,6 +111,8 @@ final class UserSyncPayload
                 : null,
             deleteScheduled: isset($data['delete_scheduled']) ? Carbon::parse($data['delete_scheduled']) : null,
             updatedAt: isset($data['updated_at']) ? Carbon::parse($data['updated_at']) : null,
+            superAdminCustomerId: isset($data['super_admin_customer_id']) ? (int) $data['super_admin_customer_id'] : null,
+            customerSlug: isset($data['customer_slug']) ? (string) $data['customer_slug'] : null,
         );
     }
 
@@ -126,6 +136,14 @@ final class UserSyncPayload
 
         if ($this->superAdminPanelAccess !== null) {
             $payload['super_admin_panel_access'] = $this->superAdminPanelAccess;
+        }
+
+        if ($this->superAdminCustomerId !== null) {
+            $payload['super_admin_customer_id'] = $this->superAdminCustomerId;
+        }
+
+        if ($this->customerSlug !== null && $this->customerSlug !== '') {
+            $payload['customer_slug'] = $this->customerSlug;
         }
 
         return array_merge($payload, $this->access, [
@@ -191,6 +209,8 @@ final class UserSyncPayload
             $key.'super_admin_panel_access' => 'nullable|boolean',
             $key.'delete_scheduled' => 'nullable|date',
             $key.'updated_at' => 'nullable|date',
+            $key.'super_admin_customer_id' => 'nullable|integer',
+            $key.'customer_slug' => 'nullable|string|max:255',
         ];
 
         foreach (array_keys(self::ACCESS_FLAGS) as $flag) {

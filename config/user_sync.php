@@ -24,6 +24,6 @@ return [
      * contract. Only these are pushed to; add an app here once it exposes
      * /admin-api/v1/sync/users. 1 is the console CMS.
      */
-    'tenant_subscription_types' => [1],
+    'tenant_subscription_types' => [1, 12],
 
 ];

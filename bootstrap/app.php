@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureActiveCustomerAdmin;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Middleware\VerifyCustomerBearerToken;
 use App\Http\Middleware\VerifyGithubWebhookSignature;
+use App\Http\Middleware\VerifyLmsBearerToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'customer.bearer' => VerifyCustomerBearerToken::class,
+            'lms.bearer' => VerifyLmsBearerToken::class,
             'customer.admin' => EnsureActiveCustomerAdmin::class,
             'github.webhook' => VerifyGithubWebhookSignature::class,
         ]);

@@ -10,6 +10,15 @@ it('uses firearm as the host slug for type 2 even when named Firearm Module', fu
         ->and(SubscriptionType::urlSlugFor(2, 'Firearm Module'))->toBe('firearm');
 });
 
+it('uses precase as the host slug for a Pre Case type resolved by name', function () {
+    $type = new SubscriptionType(['name' => 'Pre Case']);
+    $type->id = 99;
+
+    expect($type->url_slug)->toBe('precase')
+        ->and(SubscriptionType::urlSlugFor(99, 'Pre Case'))->toBe('precase')
+        ->and(SubscriptionType::urlSlugFor(null, 'Pre Case'))->toBe('precase');
+});
+
 it('rewrites a firearm-module host onto the canonical firearm label', function () {
     expect(SubscriptionType::canonicalizeHost(
         'https://demo.firearm-module.blackwidow.org.za',
@@ -24,6 +33,24 @@ it('rewrites a firearm-module host onto the canonical firearm label', function (
             'demo.firearm.blackwidow.org.za',
             2,
         ))->toBe('demo.firearm.blackwidow.org.za');
+});
+
+it('rewrites a pre-case host onto the canonical precase label', function () {
+    expect(SubscriptionType::canonicalizeHost(
+        'https://demo.pre-case.blackwidow.org.za',
+        null,
+        'Pre Case',
+    ))->toBe('https://demo.precase.blackwidow.org.za')
+        ->and(SubscriptionType::canonicalizeHost(
+            'demo.pre-case.blackwidow.org.za',
+            99,
+            'Pre Case',
+        ))->toBe('demo.precase.blackwidow.org.za')
+        ->and(SubscriptionType::canonicalizeHost(
+            'demo.precase.blackwidow.org.za',
+            null,
+            'Pre Case',
+        ))->toBe('demo.precase.blackwidow.org.za');
 });
 
 it('does not rewrite hosts for other subscription types', function () {

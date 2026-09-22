@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Backend;
 
 use App\Jobs\PushBrandingToTenantsJob;
 use App\Jobs\SiteDeployment\DeploySite;
-use App\Models\BrandingSyncLog;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerSubscriptionDeploymentJob;
 use App\Models\SubscriptionType;
@@ -141,8 +140,9 @@ class CustomerSubscriptionController extends Controller
         unset($validated['trigger_site_deployment'], $validated['force_site_deployment']);
 
         $typeId = (int) $validated['subscription_type_id'];
-        $validated['domain'] = SubscriptionType::canonicalizeHost($validated['domain'], $typeId);
-        $validated['url'] = SubscriptionType::canonicalizeHost($validated['url'], $typeId);
+        $typeName = SubscriptionType::query()->whereKey($typeId)->value('name');
+        $validated['domain'] = SubscriptionType::canonicalizeHost($validated['domain'], $typeId, $typeName);
+        $validated['url'] = SubscriptionType::canonicalizeHost($validated['url'], $typeId, $typeName);
 
         $row = CustomerSubscription::query()->create($validated);
         $row->load(['subscriptionType:id,name', 'customer:id,company_name']);
@@ -170,6 +170,18 @@ class CustomerSubscriptionController extends Controller
 
         $validated = $request->validate($this->updateRules());
         if ($validated !== []) {
+            $typeId = isset($validated['subscription_type_id'])
+                ? (int) $validated['subscription_type_id']
+                : (int) $row->subscription_type_id;
+            $typeName = SubscriptionType::query()->whereKey($typeId)->value('name');
+
+            if (array_key_exists('domain', $validated)) {
+                $validated['domain'] = SubscriptionType::canonicalizeHost($validated['domain'], $typeId, $typeName);
+            }
+            if (array_key_exists('url', $validated)) {
+                $validated['url'] = SubscriptionType::canonicalizeHost($validated['url'], $typeId, $typeName);
+            }
+
             $row->update($validated);
         }
 
@@ -287,44 +299,6 @@ class CustomerSubscriptionController extends Controller
     }
 
     /**
-     * Per-slot branding status for the SPA Branding tab (url, timestamp, checksum, last sync).
-     */
-    public function branding(int $id): JsonResponse
-    {
-        $row = CustomerSubscription::query()->findOrFail($id);
-        $this->authorize('view', $row);
-
-        $slots = [];
-        foreach (BrandingSyncPayload::SLOTS as $cmsSlot) {
-            $saSlot = BrandingSyncPayload::CMS_TO_SA_SLOT[$cmsSlot];
-            $path = $row->getAttribute($saSlot);
-            $lastLog = BrandingSyncLog::query()
-                ->where('customer_subscription_id', $row->id)
-                ->where('slot', $cmsSlot)
-                ->where('direction', 'outbound')
-                ->latest('synced_at')
-                ->first();
-
-            $slots[$cmsSlot] = [
-                'sa_slot' => $saSlot,
-                'url' => filled($path) ? LogoSyncService::absolutePublicUrl((string) $path) : null,
-                'updated_at' => optional($row->getAttribute(LogoSyncService::timestampColumn($saSlot)))?->toIso8601String(),
-                'checksum' => $row->getAttribute(BrandingSyncPayload::checksumColumn($saSlot)),
-                'sync_status' => $lastLog?->status,
-                'sync_error' => $lastLog?->error_message,
-                'synced_at' => optional($lastLog?->synced_at)?->toIso8601String(),
-            ];
-        }
-
-        return response()->json([
-            'data' => [
-                'logo_urls' => $row->logo_urls,
-                'slots' => $slots,
-            ],
-        ]);
-    }
-
-    /**
      * Manually re-push one or all CMS branding slots to the tenant.
      */
     public function resyncBranding(Request $request, int $id): JsonResponse
@@ -344,7 +318,7 @@ class CustomerSubscriptionController extends Controller
             return response()->json(['message' => 'Branding sync is only available for CMS subscriptions.'], 422);
         }
 
-        PushBrandingToTenantsJob::dispatch($row->id, $cmsSlots);
+        PushBrandingToTenantsJob::dispatch(subscriptionId: $row->id, cmsSlots: $cmsSlots);
 
         return response()->json([
             'ok' => true,

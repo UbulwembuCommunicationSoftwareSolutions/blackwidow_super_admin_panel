@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Jobs\PushCustomerToTenantsJob;
 use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use App\Jobs\SyncCustomerEnvToSubscriptionsJob;
+use App\Support\BrandingSync\CustomerBrandSlots;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +42,14 @@ class Customer extends Model
                 $model->uuid = Str::uuid();
                 $model->save();
             }
+        });
+
+        static::created(function ($model) {
+            CustomerBrandSlots::ensureDefaults($model);
+        });
+
+        static::created(function ($model) {
+            PushCustomerToTenantsJob::dispatch($model->id);
         });
 
         static::updating(function ($model) {
@@ -83,6 +93,8 @@ class Customer extends Model
             if ($model->wasChanged(self::SUBSCRIPTION_ENV_FIELDS)) {
                 SyncCustomerEnvToSubscriptionsJob::dispatch($model->id);
             }
+
+            PushCustomerToTenantsJob::dispatch($model->id);
         });
     }
 
@@ -164,6 +176,16 @@ class Customer extends Model
     public function customerUsers(): HasMany
     {
         return $this->hasMany(CustomerUser::class);
+    }
+
+    public function brandingMedia(): HasMany
+    {
+        return $this->hasMany(CustomerBrandingMedia::class);
+    }
+
+    public function brandSlots(): HasMany
+    {
+        return $this->hasMany(CustomerBrandSlot::class);
     }
 
     /**

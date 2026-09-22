@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Services\BrandingSync\TenantBrandingPusher;
+use App\Support\BrandingSync\BrandingSyncPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -23,12 +25,38 @@ class PushBrandingToTenantsJob implements ShouldQueue
      * @param  list<string>  $cmsSlots  CMS slot names: login_logo, menu_logo, login_background
      */
     public function __construct(
-        public int $subscriptionId,
+        public ?int $subscriptionId = null,
         public array $cmsSlots = ['login_logo', 'menu_logo', 'login_background'],
-    ) {}
+        public ?int $customerId = null,
+    ) {
+        if ($this->subscriptionId === null && $this->customerId === null) {
+            throw new \InvalidArgumentException('PushBrandingToTenantsJob requires subscriptionId or customerId.');
+        }
+    }
 
     public function handle(TenantBrandingPusher $pusher): void
     {
+        $cmsSlots = array_values(array_intersect($this->cmsSlots, BrandingSyncPayload::SLOTS));
+        if ($cmsSlots === []) {
+            return;
+        }
+
+        if ($this->customerId !== null) {
+            $customer = Customer::query()->find($this->customerId);
+            if (! $customer) {
+                Log::warning('Branding push skipped: customer no longer exists', [
+                    'customer_id' => $this->customerId,
+                ]);
+
+                return;
+            }
+
+            $pusher->pushCustomerDefaultsToTenants($customer, $cmsSlots);
+            $pusher->pushCustomerDefaultsToLmsHub($customer, $cmsSlots);
+
+            return;
+        }
+
         $subscription = CustomerSubscription::query()->find($this->subscriptionId);
 
         if (! $subscription) {
@@ -39,13 +67,14 @@ class PushBrandingToTenantsJob implements ShouldQueue
             return;
         }
 
-        $pusher->pushSlots($subscription, $this->cmsSlots);
+        $pusher->pushSlots($subscription, $cmsSlots);
     }
 
     public function failed(\Throwable $exception): void
     {
         Log::error('Branding push to tenants failed permanently', [
             'subscription_id' => $this->subscriptionId,
+            'customer_id' => $this->customerId,
             'slots' => $this->cmsSlots,
             'error' => $exception->getMessage(),
         ]);

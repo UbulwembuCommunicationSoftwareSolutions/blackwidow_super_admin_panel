@@ -2,17 +2,19 @@
 
 namespace App\Services\BrandingSync;
 
+use App\Models\CustomerBrandingMedia;
+use App\Models\CustomerBrandSlot;
 use App\Models\CustomerSubscription;
-use App\Services\LogoSyncService;
+use App\Models\CustomerSubscriptionBrandSlot;
 use App\Support\BrandingSync\BrandingSyncOutcome;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use App\Support\BrandingSync\CustomerBrandSlots;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Applies an inbound branding payload from a tenant onto a CustomerSubscription.
+ * Applies an inbound branding payload from a tenant onto brand-slot media.
  */
 class CustomerBrandingSyncService
 {
@@ -21,11 +23,11 @@ class CustomerBrandingSyncService
      */
     public function upsertFromTenant(CustomerSubscription $subscription, BrandingSyncPayload $incoming): array
     {
-        $saSlot = $incoming->saSlot();
-        if ($saSlot === null) {
+        if ($incoming->saSlot() === null) {
             throw new \InvalidArgumentException('Unknown branding slot: '.$incoming->slot);
         }
 
+        $subscription->loadMissing('customer');
         $local = BrandingSyncPayload::fromSubscription($subscription, $incoming->slot);
 
         if (
@@ -44,11 +46,11 @@ class CustomerBrandingSyncService
             return ['outcome' => BrandingSyncOutcome::Stale, 'payload' => $local];
         }
 
-        $hadLocal = filled($subscription->getAttribute($saSlot));
+        $hadLocal = filled($local->url) && ! $local->cleared;
         $subscription->skipSync = true;
 
         if ($incoming->cleared) {
-            $this->clearSlot($subscription, $saSlot, $remoteTs);
+            $this->clearSubscriptionSlot($subscription, $incoming->slot, $remoteTs);
 
             return [
                 'outcome' => BrandingSyncOutcome::Cleared,
@@ -67,7 +69,9 @@ class CustomerBrandingSyncService
             throw new \RuntimeException('Branding checksum mismatch for slot '.$incoming->slot);
         }
 
-        $this->storeSlot($subscription, $saSlot, $contents, $checksum, $remoteTs);
+        $media = $this->findOrCreateMedia($subscription, $contents, $checksum, $incoming->slot);
+        $this->applyMediaToSubscriptionSlot($subscription, $incoming->slot, $media, $remoteTs);
+        $this->applyMediaToCustomerDefaultIfEmpty($subscription, $incoming->slot, $media, $remoteTs);
 
         $fresh = BrandingSyncPayload::fromSubscription($subscription->fresh(), $incoming->slot);
 
@@ -77,46 +81,104 @@ class CustomerBrandingSyncService
         ];
     }
 
-    private function clearSlot(CustomerSubscription $subscription, string $saSlot, mixed $remoteTs): void
+    private function clearSubscriptionSlot(CustomerSubscription $subscription, string $cmsSlot, mixed $remoteTs): void
     {
-        $disk = Storage::disk('public');
-        $oldPath = $subscription->getAttribute($saSlot);
-
-        $subscription->fill([
-            $saSlot => null,
-            LogoSyncService::timestampColumn($saSlot) => $remoteTs,
-            BrandingSyncPayload::checksumColumn($saSlot) => null,
+        $row = CustomerSubscriptionBrandSlot::query()->firstOrNew([
+            'customer_subscription_id' => $subscription->id,
+            'slot' => $cmsSlot,
         ]);
-        $subscription->save();
-
-        if (filled($oldPath)) {
-            $disk->delete($oldPath);
-        }
+        $row->skipSync = true;
+        $row->fill([
+            'is_override' => true,
+            'cleared' => true,
+            'customer_branding_media_id' => null,
+            'updated_at' => $remoteTs,
+        ]);
+        $row->save();
     }
 
-    private function storeSlot(
+    private function findOrCreateMedia(
         CustomerSubscription $subscription,
-        string $saSlot,
         string $contents,
         string $checksum,
+        string $cmsSlot,
+    ): CustomerBrandingMedia {
+        $customer = $subscription->customer;
+        if ($customer === null) {
+            throw new \RuntimeException('Subscription has no customer for branding media.');
+        }
+
+        $existing = CustomerBrandingMedia::query()
+            ->where('customer_id', $customer->id)
+            ->where('checksum', $checksum)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $extension = $this->guessExtension($contents) ?? 'bin';
+        $mediaRecord = CustomerBrandingMedia::query()->create([
+            'customer_id' => $customer->id,
+            'name' => $cmsSlot,
+            'checksum' => $checksum,
+        ]);
+
+        $mediaRecord
+            ->addMediaFromString($contents)
+            ->usingFileName(Str::uuid()->toString().'.'.$extension)
+            ->toMediaCollection('file');
+
+        return $mediaRecord->fresh();
+    }
+
+    private function applyMediaToSubscriptionSlot(
+        CustomerSubscription $subscription,
+        string $cmsSlot,
+        CustomerBrandingMedia $media,
         mixed $remoteTs,
     ): void {
-        $disk = Storage::disk('public');
-        $oldPath = $subscription->getAttribute($saSlot);
-        $extension = $this->guessExtension($contents) ?? 'bin';
-        $newPath = Str::uuid()->toString().'.'.$extension;
-        $disk->put($newPath, $contents);
-
-        $subscription->fill([
-            $saSlot => $newPath,
-            LogoSyncService::timestampColumn($saSlot) => $remoteTs,
-            BrandingSyncPayload::checksumColumn($saSlot) => $checksum,
+        $row = CustomerSubscriptionBrandSlot::query()->firstOrNew([
+            'customer_subscription_id' => $subscription->id,
+            'slot' => $cmsSlot,
         ]);
-        $subscription->save();
+        $row->skipSync = true;
+        $row->fill([
+            'is_override' => true,
+            'cleared' => false,
+            'customer_branding_media_id' => $media->id,
+            'updated_at' => $remoteTs,
+        ]);
+        $row->save();
+    }
 
-        if (filled($oldPath) && $oldPath !== $newPath) {
-            $disk->delete($oldPath);
+    private function applyMediaToCustomerDefaultIfEmpty(
+        CustomerSubscription $subscription,
+        string $cmsSlot,
+        CustomerBrandingMedia $media,
+        mixed $remoteTs,
+    ): void {
+        $customer = $subscription->customer;
+        if ($customer === null) {
+            return;
         }
+
+        CustomerBrandSlots::ensureDefaults($customer);
+
+        $slot = CustomerBrandSlot::query()
+            ->where('customer_id', $customer->id)
+            ->where('slot', $cmsSlot)
+            ->first();
+
+        if ($slot === null || $slot->customer_branding_media_id !== null) {
+            return;
+        }
+
+        $slot->skipSync = true;
+        $slot->forceFill([
+            'customer_branding_media_id' => $media->id,
+            'updated_at' => $remoteTs,
+        ])->save();
     }
 
     private function download(string $url): string

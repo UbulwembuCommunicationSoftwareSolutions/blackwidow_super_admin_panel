@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\GithubReleaseWebhookController;
 use App\Http\Controllers\Api\McpSiteController;
 use App\Http\Controllers\Api\V1\BrandingSyncController;
+use App\Http\Controllers\Api\V1\CustomerSyncController;
 use App\Http\Controllers\Api\V1\UserSyncController;
 use App\Http\Controllers\CustomerSubscriptionController;
 use App\Http\Controllers\GooglePlacesProxyController;
@@ -36,6 +37,10 @@ Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
     Route::post('users/password-reset-email', [UserSyncController::class, 'passwordResetEmail']);
     Route::get('branding', [BrandingSyncController::class, 'index']);
     Route::post('branding', [BrandingSyncController::class, 'upsert']);
+});
+
+Route::middleware('lms.bearer')->prefix('v1/sync')->group(function () {
+    Route::get('customers', [CustomerSyncController::class, 'index']);
 });
 
 Route::middleware('customer.bearer')->group(function () {

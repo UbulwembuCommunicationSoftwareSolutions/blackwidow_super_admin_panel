@@ -65,6 +65,41 @@ it('rewrites firearm-module hosts to firearm when creating a firearm subscriptio
     ]);
 });
 
+it('rewrites pre-case hosts to precase when creating a Pre Case subscription', function () {
+    actingAsBackendUser();
+    $type = SubscriptionType::factory()->create(['id' => 99, 'name' => 'Pre Case']);
+    $customer = Customer::factory()->create();
+
+    $create = $this->postJson('/api/backend/customer-subscriptions', [
+        'url' => 'https://demo.pre-case.blackwidow.org.za',
+        'domain' => 'demo.pre-case.blackwidow.org.za',
+        'app_name' => 'Demo PreCase',
+        'database_name' => 'demo_precase_blackwidow',
+        'subscription_type_id' => $type->id,
+        'customer_id' => $customer->id,
+    ])->assertCreated();
+
+    expect($create->json('data.url'))->toBe('https://demo.precase.blackwidow.org.za')
+        ->and($create->json('data.domain'))->toBe('demo.precase.blackwidow.org.za');
+});
+
+it('rewrites pre-case hosts to precase when updating a Pre Case subscription', function () {
+    actingAsBackendUser();
+    $type = SubscriptionType::factory()->create(['id' => 99, 'name' => 'Pre Case']);
+    $row = CustomerSubscription::factory()->create([
+        'subscription_type_id' => $type->id,
+        'url' => 'https://demo.pre-case.blackwidow.org.za',
+        'domain' => 'demo.pre-case.blackwidow.org.za',
+    ]);
+
+    $this->putJson("/api/backend/customer-subscriptions/{$row->id}", [
+        'url' => 'https://demo.pre-case.blackwidow.org.za',
+        'domain' => 'demo.pre-case.blackwidow.org.za',
+    ])->assertOk()
+        ->assertJsonPath('data.url', 'https://demo.precase.blackwidow.org.za')
+        ->assertJsonPath('data.domain', 'demo.precase.blackwidow.org.za');
+});
+
 it('can crud a customer subscription and hide secrets', function () {
     actingAsBackendUser();
     $type = SubscriptionType::factory()->create(['project_type' => 'static']);

@@ -17,11 +17,15 @@ class SubscriptionType extends Model
 
     /**
      * Host label for each product id. Display names like "Firearm Module"
-     * must not leak into tenant URLs (demo.firearm.blackwidow.org.za, not
-     * demo.firearm-module.blackwidow.org.za).
+     * or "Pre Case" must not leak into tenant URLs
+     * (demo.firearm.blackwidow.org.za, not demo.firearm-module.…;
+     * demo.precase.…, not demo.pre-case.…).
      *
      * @var array<int, string>
      */
+    /** Shared multi-tenant LMS (Academy) product id in production seed data. */
+    public const LMS_TYPE_ID = 12;
+
     public const URL_SLUGS = [
         1 => 'console',
         2 => 'firearm',
@@ -34,6 +38,18 @@ class SubscriptionType extends Model
         9 => 'time',
         10 => 'stock',
         11 => 'information',
+        self::LMS_TYPE_ID => 'lms',
+    ];
+
+    /**
+     * Legacy host labels that still appear in stored URLs, keyed by the
+     * canonical product slug they should rewrite to.
+     *
+     * @var array<string, string>
+     */
+    public const LEGACY_URL_SLUGS = [
+        'firearm' => 'firearm-module',
+        'precase' => 'pre-case',
     ];
 
     protected $fillable = [
@@ -109,6 +125,7 @@ class SubscriptionType extends Model
 
         return match ($slug) {
             'firearm-module' => 'firearm',
+            'pre-case' => 'precase',
             '' => 'unknown',
             default => $slug,
         };
@@ -116,16 +133,17 @@ class SubscriptionType extends Model
 
     /**
      * Rewrite a host or URL that still uses a display-name slug (e.g.
-     * firearm-module) onto the canonical product label.
+     * firearm-module, pre-case) onto the canonical product label.
      */
     public static function canonicalizeHost(string $host, ?int $subscriptionTypeId, ?string $name = null): string
     {
         $slug = self::urlSlugFor($subscriptionTypeId, $name);
+        $legacy = self::LEGACY_URL_SLUGS[$slug] ?? null;
 
-        if ($slug === 'firearm') {
-            return str_replace('.firearm-module.', '.firearm.', $host);
+        if ($legacy === null) {
+            return $host;
         }
 
-        return $host;
+        return str_replace('.'.$legacy.'.', '.'.$slug.'.', $host);
     }
 }

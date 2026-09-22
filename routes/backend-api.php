@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\Backend\AuthController;
+use App\Http\Controllers\Api\Backend\CustomerBrandingController;
 use App\Http\Controllers\Api\Backend\CustomerController;
+use App\Http\Controllers\Api\Backend\CustomerSubscriptionBrandingController;
 use App\Http\Controllers\Api\Backend\CustomerSubscriptionController;
 use App\Http\Controllers\Api\Backend\CustomerUserController;
 use App\Http\Controllers\Api\Backend\DeploymentScriptController;
@@ -34,12 +36,17 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::get('/customers/{id}', [CustomerController::class, 'show'])->whereNumber('id');
     Route::match(['put', 'patch'], '/customers/{id}', [CustomerController::class, 'update'])->whereNumber('id');
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->whereNumber('id');
+    Route::get('/customers/{id}/branding', [CustomerBrandingController::class, 'show'])->whereNumber('id');
+    Route::post('/customers/{id}/branding-media', [CustomerBrandingController::class, 'storeMedia'])->whereNumber('id');
+    Route::put('/customers/{id}/brand-slots/{slot}', [CustomerBrandingController::class, 'updateBrandSlot'])->whereNumber('id');
+    Route::delete('/customers/{id}/branding-media/{mediaId}', [CustomerBrandingController::class, 'destroyMedia'])->whereNumber(['id', 'mediaId']);
 
     Route::post('/customer-subscriptions/verify-domain', [CustomerSubscriptionController::class, 'verifyDomain']);
     Route::post('/customer-subscriptions/bulk/deploy', [CustomerSubscriptionController::class, 'bulkDeploy']);
     Route::post('/customer-subscriptions/{id}/recreate-site', [CustomerSubscriptionController::class, 'recreateSite'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/logos', [CustomerSubscriptionController::class, 'uploadLogos'])->whereNumber('id');
-    Route::get('/customer-subscriptions/{id}/branding', [CustomerSubscriptionController::class, 'branding'])->whereNumber('id');
+    Route::get('/customer-subscriptions/{id}/branding', [CustomerSubscriptionBrandingController::class, 'show'])->whereNumber('id');
+    Route::put('/customer-subscriptions/{id}/brand-slots/{slot}', [CustomerSubscriptionBrandingController::class, 'updateBrandSlot'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/branding/resync', [CustomerSubscriptionController::class, 'resyncBranding'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/generate-logos', [CustomerSubscriptionController::class, 'generateLogos'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/deploy', [CustomerSubscriptionController::class, 'deploy'])->whereNumber('id');

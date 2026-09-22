@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\SubscriptionType;
+
 return [
 
     /*
@@ -17,6 +19,16 @@ return [
      * subscription_type_id of the tenant apps that speak the canonical branding
      * sync contract. Only these are pushed to. 1 is the console CMS.
      */
-    'tenant_subscription_types' => [1],
+    'tenant_subscription_types' => [1, 2],
+
+    /*
+     * When true, customer-default branding changes are also POSTed to the shared LMS hub.
+     */
+    'lms_hub_enabled' => env('BRANDING_SYNC_LMS_HUB', true),
+
+    /*
+     * subscription_type_id of the shared LMS hub (same as customer_sync).
+     */
+    'lms_subscription_type_id' => (int) env('LMS_SUBSCRIPTION_TYPE_ID', SubscriptionType::LMS_TYPE_ID),
 
 ];
