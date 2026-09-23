@@ -325,6 +325,13 @@ Response:
 
 All non–soft-deleted customers are returned (not scoped to the caller’s customer id).
 
+**Hub reconcile (LMS only, `lms.bearer`):**
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v1/sync/users/hub?app_url={LMS_APP_URL}` | All `CustomerUser` rows with `lms_access` or `is_system_admin` |
+| `GET` | `/api/v1/sync/branding/hub?app_url={LMS_APP_URL}` | Every customer's default branding slots |
+
 ### Super Admin → LMS (push on change)
 
 When a `Customer` is created or updated, `PushCustomerToTenantsJob` POSTs to each of that customer’s LMS subscriptions:
@@ -379,7 +386,7 @@ Body (note `super_admin_customer_id` **inside** `branding`, not `app_url` + per-
 
 The LMS maps `super_admin_customer_id` → local `customers.super_admin_customer_id`, then upserts **`branding_settings`** for that customer (`logo_path` / `menu_logo_path` / `login_background_path` plus checksum + timestamp columns). Same three wire slots as §5; LWW + checksum rules apply.
 
-**LMS → panel (outbound):** when an LMS admin uploads customer-scoped login, menu, or login-background assets, the hub queues `PushBrandingToSuperAdminJob` → `POST {SUPERADMIN_API}/api/v1/sync/branding` with `app_url` = LMS subscription URL and the usual canonical `branding` object (no `super_admin_customer_id` on that direction).
+**LMS → panel (outbound):** when an LMS admin uploads customer-scoped login, menu, or login-background assets, the hub queues `PushBrandingToSuperAdminJob` → `POST {SUPERADMIN_API}/api/v1/sync/branding` with `app_url` = LMS subscription URL, `origin: lms`, and `branding.super_admin_customer_id` so the panel updates that customer's default slots (not the hub subscription overrides). Auth may use `LMS_SYNC_TOKEN` when the subscription type is LMS.
 
 User sync on the LMS still uses per-tenant bearer where applicable; **branding push to the LMS hub always uses `LMS_SYNC_TOKEN`** (falls back to `customers.token` only if the token env is empty).
 

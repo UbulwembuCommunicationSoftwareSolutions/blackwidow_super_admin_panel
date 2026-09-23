@@ -2,6 +2,7 @@
 
 namespace App\Services\BrandingSync;
 
+use App\Models\Customer;
 use App\Models\CustomerBrandingMedia;
 use App\Models\CustomerBrandSlot;
 use App\Models\CustomerSubscription;
@@ -81,6 +82,68 @@ class CustomerBrandingSyncService
         ];
     }
 
+    /**
+     * Apply branding from the shared LMS hub onto a customer's default slots.
+     *
+     * @return array{outcome: BrandingSyncOutcome, payload: BrandingSyncPayload}
+     */
+    public function upsertFromLmsHub(Customer $customer, BrandingSyncPayload $incoming): array
+    {
+        if ($incoming->saSlot() === null) {
+            throw new \InvalidArgumentException('Unknown branding slot: '.$incoming->slot);
+        }
+
+        CustomerBrandSlots::ensureDefaults($customer);
+
+        $local = BrandingSyncPayload::fromCustomerDefault($customer, $incoming->slot);
+
+        if (
+            filled($incoming->checksum)
+            && filled($local->checksum)
+            && hash_equals((string) $local->checksum, (string) $incoming->checksum)
+            && $incoming->cleared === $local->cleared
+        ) {
+            return ['outcome' => BrandingSyncOutcome::Unchanged, 'payload' => $local];
+        }
+
+        $remoteTs = $incoming->updatedAt ?? now();
+        $localTs = $local->updatedAt;
+
+        if ($localTs && $remoteTs->lt($localTs)) {
+            return ['outcome' => BrandingSyncOutcome::Stale, 'payload' => $local];
+        }
+
+        $hadLocal = filled($local->url) && ! $local->cleared;
+
+        if ($incoming->cleared) {
+            $this->clearCustomerDefaultSlot($customer, $incoming->slot, $remoteTs);
+
+            return [
+                'outcome' => BrandingSyncOutcome::Cleared,
+                'payload' => BrandingSyncPayload::fromCustomerDefault($customer->fresh(), $incoming->slot),
+            ];
+        }
+
+        if (! filled($incoming->url)) {
+            throw new \InvalidArgumentException('Branding url is required when cleared is false.');
+        }
+
+        $contents = $this->download($incoming->url);
+        $checksum = BrandingSyncPayload::computeChecksum($contents);
+
+        if (filled($incoming->checksum) && ! hash_equals($checksum, (string) $incoming->checksum)) {
+            throw new \RuntimeException('Branding checksum mismatch for slot '.$incoming->slot);
+        }
+
+        $media = $this->findOrCreateMediaForCustomer($customer, $contents, $checksum, $incoming->slot);
+        $this->applyMediaToCustomerDefault($customer, $incoming->slot, $media, $remoteTs);
+
+        return [
+            'outcome' => $hadLocal ? BrandingSyncOutcome::Updated : BrandingSyncOutcome::Created,
+            'payload' => BrandingSyncPayload::fromCustomerDefault($customer->fresh(), $incoming->slot),
+        ];
+    }
+
     private function clearSubscriptionSlot(CustomerSubscription $subscription, string $cmsSlot, mixed $remoteTs): void
     {
         $row = CustomerSubscriptionBrandSlot::query()->firstOrNew([
@@ -108,6 +171,15 @@ class CustomerBrandingSyncService
             throw new \RuntimeException('Subscription has no customer for branding media.');
         }
 
+        return $this->findOrCreateMediaForCustomer($customer, $contents, $checksum, $cmsSlot);
+    }
+
+    private function findOrCreateMediaForCustomer(
+        Customer $customer,
+        string $contents,
+        string $checksum,
+        string $cmsSlot,
+    ): CustomerBrandingMedia {
         $existing = CustomerBrandingMedia::query()
             ->where('customer_id', $customer->id)
             ->where('checksum', $checksum)
@@ -150,6 +222,50 @@ class CustomerBrandingSyncService
             'updated_at' => $remoteTs,
         ]);
         $row->save();
+    }
+
+    private function applyMediaToCustomerDefault(
+        Customer $customer,
+        string $cmsSlot,
+        CustomerBrandingMedia $media,
+        mixed $remoteTs,
+    ): void {
+        CustomerBrandSlots::ensureDefaults($customer);
+
+        $slot = CustomerBrandSlot::query()
+            ->where('customer_id', $customer->id)
+            ->where('slot', $cmsSlot)
+            ->first();
+
+        if ($slot === null) {
+            return;
+        }
+
+        $slot->skipSync = true;
+        $slot->forceFill([
+            'customer_branding_media_id' => $media->id,
+            'updated_at' => $remoteTs,
+        ])->save();
+    }
+
+    private function clearCustomerDefaultSlot(Customer $customer, string $cmsSlot, mixed $remoteTs): void
+    {
+        CustomerBrandSlots::ensureDefaults($customer);
+
+        $slot = CustomerBrandSlot::query()
+            ->where('customer_id', $customer->id)
+            ->where('slot', $cmsSlot)
+            ->first();
+
+        if ($slot === null) {
+            return;
+        }
+
+        $slot->skipSync = true;
+        $slot->forceFill([
+            'customer_branding_media_id' => null,
+            'updated_at' => $remoteTs,
+        ])->save();
     }
 
     private function applyMediaToCustomerDefaultIfEmpty(

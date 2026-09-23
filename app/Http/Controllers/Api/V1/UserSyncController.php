@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\CustomerSyncIndexRequest;
 use App\Http\Requests\Api\V1\UserSyncIndexRequest;
 use App\Http\Requests\Api\V1\UserSyncLocateRequest;
 use App\Http\Requests\Api\V1\UserSyncPasswordRequest;
@@ -33,6 +34,25 @@ class UserSyncController extends Controller
     {
         $users = CustomerUser::withTrashed()
             ->where('customer_id', $request->subscription()->customer_id)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'users' => $users->map(fn (CustomerUser $user) => $this->serialize($user, includePasswordHash: true))->all(),
+        ]);
+    }
+
+    /**
+     * All LMS-eligible users across customers, for the shared hub reconcile.
+     */
+    public function hubIndex(CustomerSyncIndexRequest $request): JsonResponse
+    {
+        $users = CustomerUser::withTrashed()
+            ->where(function ($query): void {
+                $query->where('lms_access', true)
+                    ->orWhere('is_system_admin', true);
+            })
+            ->orderBy('id')
             ->get();
 
         return response()->json([

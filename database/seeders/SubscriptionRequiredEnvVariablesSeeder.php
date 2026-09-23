@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Database\Seeders\SubscriptionRequiredEnv\PreCaseRequiredEnvSeeder;
 use Database\Seeders\SubscriptionRequiredEnv\Type10StockRequiredEnvSeeder;
 use Database\Seeders\SubscriptionRequiredEnv\Type11InformationCollectorRequiredEnvSeeder;
+use Database\Seeders\SubscriptionRequiredEnv\Type12LmsRequiredEnvSeeder;
 use Database\Seeders\SubscriptionRequiredEnv\Type1ConsoleRequiredEnvSeeder;
 use Database\Seeders\SubscriptionRequiredEnv\Type2FirearmRequiredEnvSeeder;
 use Database\Seeders\SubscriptionRequiredEnv\Type3ResponderAppRequiredEnvSeeder;
@@ -34,6 +35,7 @@ class SubscriptionRequiredEnvVariablesSeeder extends Seeder
                 Type9TimeAndAttendanceRequiredEnvSeeder::class,
                 Type10StockRequiredEnvSeeder::class,
                 Type11InformationCollectorRequiredEnvSeeder::class,
+                Type12LmsRequiredEnvSeeder::class,
                 PreCaseRequiredEnvSeeder::class,
             ]);
         });

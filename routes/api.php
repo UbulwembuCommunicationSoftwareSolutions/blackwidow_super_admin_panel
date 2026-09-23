@@ -41,6 +41,8 @@ Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
 
 Route::middleware('lms.bearer')->prefix('v1/sync')->group(function () {
     Route::get('customers', [CustomerSyncController::class, 'index']);
+    Route::get('users/hub', [UserSyncController::class, 'hubIndex']);
+    Route::get('branding/hub', [BrandingSyncController::class, 'hubIndex']);
 });
 
 Route::middleware('customer.bearer')->group(function () {
