@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\GithubReleaseWebhookController;
 use App\Http\Controllers\Api\McpSiteController;
 use App\Http\Controllers\Api\V1\BrandingSyncController;
 use App\Http\Controllers\Api\V1\CustomerSyncController;
+use App\Http\Controllers\Api\V1\UserFieldSyncController;
 use App\Http\Controllers\Api\V1\UserSyncController;
 use App\Http\Controllers\CustomerSubscriptionController;
 use App\Http\Controllers\GooglePlacesProxyController;
@@ -37,12 +38,20 @@ Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
     Route::post('users/password-reset-email', [UserSyncController::class, 'passwordResetEmail']);
     Route::get('branding', [BrandingSyncController::class, 'index']);
     Route::post('branding', [BrandingSyncController::class, 'upsert']);
+    Route::get('user-fields', [UserFieldSyncController::class, 'index']);
+    Route::post('user-fields', [UserFieldSyncController::class, 'upsert']);
+    Route::post('user-fields/archive', [UserFieldSyncController::class, 'archive']);
+    Route::post('user-fields/restore', [UserFieldSyncController::class, 'restore']);
+    Route::get('user-field-values', [UserFieldSyncController::class, 'valuesIndex']);
+    Route::post('user-field-values', [UserFieldSyncController::class, 'valuesUpsert']);
 });
 
 Route::middleware('lms.bearer')->prefix('v1/sync')->group(function () {
     Route::get('customers', [CustomerSyncController::class, 'index']);
     Route::get('users/hub', [UserSyncController::class, 'hubIndex']);
     Route::get('branding/hub', [BrandingSyncController::class, 'hubIndex']);
+    Route::get('user-fields/hub', [UserFieldSyncController::class, 'hubIndex']);
+    Route::get('user-field-values/hub', [UserFieldSyncController::class, 'valuesHubIndex']);
 });
 
 Route::middleware('customer.bearer')->group(function () {

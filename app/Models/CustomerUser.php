@@ -9,6 +9,7 @@ use App\Support\UserSync\PushOperation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -286,6 +287,11 @@ class CustomerUser extends Authenticatable
     public function syncLogs()
     {
         return $this->hasMany(UserSyncLog::class);
+    }
+
+    public function fieldValues(): HasMany
+    {
+        return $this->hasMany(CustomerUserFieldValue::class);
     }
 
     public function setPasswordAttribute($value)

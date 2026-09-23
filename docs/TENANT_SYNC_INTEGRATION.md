@@ -282,6 +282,69 @@ Example inbound body:
 
 ---
 
+## 5b. Custom user field sync
+
+Custom field **definitions** and per-user **values** sync separately from `UserSyncPayload`. Do not put custom fields on the user wire object.
+
+### Storage (Super Admin)
+
+| Table | Role |
+| --- | --- |
+| `customer_user_fields` | Definitions per customer (`name` unique per customer) |
+| `customer_user_field_values` | Values keyed by `customer_user_id` + `customer_user_field_id` |
+| `user_field_sync_logs` | Outbound push audit |
+
+### Wire: definition (`user_field`)
+
+```json
+{
+  "super_admin_user_field_id": 12,
+  "name": "id_number",
+  "label": "ID Number",
+  "type": "text",
+  "rules": "nullable|digits:13",
+  "options": null,
+  "sort_order": 0,
+  "active": true,
+  "updated_at": "2026-09-23T08:00:00+00:00",
+  "deleted": false
+}
+```
+
+`type` ∈ `text`, `textarea`, `select`, `checkbox`, `date`. LMS payloads also include `super_admin_customer_id`.
+
+Locate: `super_admin_user_field_id` within the customer, else `name`. LWW on `updated_at`. Soft-delete via archive/restore endpoints.
+
+### Wire: values (`user_field_values`)
+
+```json
+{
+  "super_admin_user_id": 456,
+  "values": [
+    { "name": "id_number", "value": "9107283832323", "updated_at": "2026-09-23T08:01:00+00:00" }
+  ]
+}
+```
+
+Null/empty `value` clears that row (`cleared`). If the hub user or field name is missing → outcome `unresolved` (do not invent a user). Checkbox values are `'1'` / `'0'`.
+
+### Endpoints
+
+| Method | Path | Auth |
+| --- | --- | --- |
+| `GET/POST` | `/api/v1/sync/user-fields` | `customer.bearer` |
+| `POST` | `/api/v1/sync/user-fields/archive` | `customer.bearer` |
+| `POST` | `/api/v1/sync/user-fields/restore` | `customer.bearer` |
+| `GET/POST` | `/api/v1/sync/user-field-values` | `customer.bearer` |
+| `GET` | `/api/v1/sync/user-fields/hub` | `lms.bearer` |
+| `GET` | `/api/v1/sync/user-field-values/hub` | `lms.bearer` |
+
+Tenant inbound: `POST /admin-api/v1/sync/user-fields` (+ archive/restore) and `POST /admin-api/v1/sync/user-field-values`.
+
+**Outbound tenant types:** `config/user_field_sync.php` → `tenant_subscription_types` = **`[1, 2]`** (CMS, Firearm). LMS uses the hub path when `lms_hub_enabled` is true (Bearer `LMS_SYNC_TOKEN`).
+
+---
+
 ## 6. Customer sync (shared LMS hub)
 
 The Academy / LMS app is **multi-tenant**: one deployment serves every customer. User and branding sync still use per-tenant `customer.bearer` auth (`app_url` + that customer’s `customers.token`). Customer directory sync uses a dedicated middleware because the LMS pulls **all** customers in one call.
@@ -331,6 +394,8 @@ All non–soft-deleted customers are returned (not scoped to the caller’s cust
 | --- | --- | --- |
 | `GET` | `/api/v1/sync/users/hub?app_url={LMS_APP_URL}` | All `CustomerUser` rows with `lms_access` or `is_system_admin` |
 | `GET` | `/api/v1/sync/branding/hub?app_url={LMS_APP_URL}` | Every customer's default branding slots |
+| `GET` | `/api/v1/sync/user-fields/hub?app_url={LMS_APP_URL}` | Every customer's custom user field definitions |
+| `GET` | `/api/v1/sync/user-field-values/hub?app_url={LMS_APP_URL}` | Every customer's custom user field values |
 
 ### Super Admin → LMS (push on change)
 
@@ -423,8 +488,10 @@ User sync on the LMS still uses per-tenant bearer where applicable; **branding p
 | Panel routes | `routes/api.php` → `v1/sync` group (`customer.bearer`) |
 | Panel user payload | `app/Support/UserSync/UserSyncPayload.php` |
 | Panel branding payload | `app/Support/BrandingSync/BrandingSyncPayload.php` |
+| Panel user-field payload | `app/Support/UserFieldSync/UserFieldSyncPayload.php` |
 | Panel outbound users | `app/Services/UserSync/TenantUserPusher.php` |
 | Panel outbound branding | `app/Services/BrandingSync/TenantBrandingPusher.php` |
+| Panel outbound user fields | `app/Services/UserFieldSync/TenantUserFieldPusher.php` |
 | Panel customer list (LMS) | `app/Http/Controllers/Api/V1/CustomerSyncController.php` (`lms.bearer`) |
 | Panel outbound customers | `app/Services/CustomerSync/TenantCustomerPusher.php` |
 | CMS inbound routes | `routes/api/api-super-admin.php` → `admin-api/v1/sync` |
