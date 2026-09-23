@@ -13,7 +13,7 @@ class UserSyncUpsertRequest extends TenantSyncRequest
     {
         return array_merge([
             'app_url' => 'required|string',
-            'origin' => 'nullable|string|in:cms,firearm,responder,super_admin',
+            'origin' => 'nullable|string|in:cms,firearm,responder,super_admin,lms',
             'user' => 'required|array',
             'password' => 'nullable|string|min:8',
         ], UserSyncPayload::validationRules());

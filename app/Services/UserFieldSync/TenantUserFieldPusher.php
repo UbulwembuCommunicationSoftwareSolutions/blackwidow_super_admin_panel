@@ -7,8 +7,10 @@ use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Models\CustomerUserField;
 use App\Models\UserFieldSyncLog;
+use App\Support\CustomerSync\LmsHub;
 use App\Support\UserFieldSync\UserFieldSyncPayload;
 use App\Support\UserFieldSync\UserFieldValueSyncPayload;
+use App\Support\UserSync\TenantResolver;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -51,12 +53,13 @@ class TenantUserFieldPusher
         }
 
         if (config('user_field_sync.lms_hub_enabled', true)) {
-            foreach ($this->lmsSubscriptions($customer) as $lms) {
+            foreach ($this->lmsTargets($customer) as $target) {
                 $this->postToLms(
-                    $lms,
+                    $target['subscription'],
+                    $target['url'],
                     $path,
                     [
-                        'app_url' => $lms->url,
+                        'app_url' => $target['url'],
                         'origin' => 'super_admin',
                         'user_field' => $payload->toLmsArray($customer->id),
                     ],
@@ -103,12 +106,13 @@ class TenantUserFieldPusher
         }
 
         if (config('user_field_sync.lms_hub_enabled', true)) {
-            foreach ($this->lmsSubscriptions($customer) as $lms) {
+            foreach ($this->lmsTargets($customer) as $target) {
                 $this->postToLms(
-                    $lms,
+                    $target['subscription'],
+                    $target['url'],
                     $path,
                     [
-                        'app_url' => $lms->url,
+                        'app_url' => $target['url'],
                         'origin' => 'super_admin',
                         'user_field_values' => $payload->toLmsArray($customer->id),
                     ],
@@ -154,6 +158,38 @@ class TenantUserFieldPusher
     }
 
     /**
+     * @return list<array{url: string, subscription: ?CustomerSubscription}>
+     */
+    private function lmsTargets(Customer $customer): array
+    {
+        $subscriptions = $this->lmsSubscriptions($customer);
+        $targets = [];
+
+        $configured = LmsHub::configuredUrl();
+        if ($configured !== null) {
+            $targets[TenantResolver::normalise($configured)] = [
+                'url' => $configured,
+                'subscription' => $subscriptions->first(
+                    fn (CustomerSubscription $row): bool => TenantResolver::normalise($row->url) === TenantResolver::normalise($configured)
+                ),
+            ];
+        }
+
+        foreach ($subscriptions as $subscription) {
+            $url = rtrim((string) $subscription->url, '/');
+            $key = TenantResolver::normalise($url);
+            if (! isset($targets[$key])) {
+                $targets[$key] = [
+                    'url' => $url,
+                    'subscription' => $subscription,
+                ];
+            }
+        }
+
+        return array_values($targets);
+    }
+
+    /**
      * @param  array<string, mixed>  $body
      */
     private function postToTenant(
@@ -196,14 +232,15 @@ class TenantUserFieldPusher
      * @param  array<string, mixed>  $body
      */
     private function postToLms(
-        CustomerSubscription $lmsSubscription,
+        ?CustomerSubscription $lmsSubscription,
+        string $hubUrl,
         string $path,
         array $body,
         string $entityType,
         string $entityKey,
         int $customerId,
     ): void {
-        $url = rtrim((string) $lmsSubscription->url, '/').$path;
+        $url = rtrim($hubUrl, '/').$path;
 
         try {
             $response = $this->lmsClient()->post($url, $body);
@@ -261,7 +298,7 @@ class TenantUserFieldPusher
      * @param  array<string, mixed>|null  $data
      */
     private function log(
-        CustomerSubscription $subscription,
+        ?CustomerSubscription $subscription,
         int $customerId,
         string $entityType,
         string $entityKey,
@@ -270,7 +307,7 @@ class TenantUserFieldPusher
         ?array $data = null,
     ): void {
         UserFieldSyncLog::create([
-            'customer_subscription_id' => $subscription->id,
+            'customer_subscription_id' => $subscription?->id,
             'customer_id' => $customerId,
             'entity_type' => $entityType,
             'entity_key' => $entityKey,

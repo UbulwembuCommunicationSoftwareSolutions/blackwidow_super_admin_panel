@@ -353,10 +353,10 @@ The Academy / LMS app is **multi-tenant**: one deployment serves every customer.
 
 | Setting | Purpose |
 | --- | --- |
+| `LMS_HUB_URL` | Public URL of the shared LMS (`https://demo.lms.blackwidow.org.za`). This is what authorises `app_url`. No customer subscription is required. |
 | `LMS_SYNC_TOKEN` | Shared secret; must match the LMS `SECURE_TOKEN`. Used for LMS → panel `GET` and panel → LMS `POST`. |
-| `customer_subscriptions` with `subscription_type_id` **12** (`lms`) | Registers the LMS hub URL on `app_url` so auth knows which host is allowed. |
 
-Add subscription type **12** / slug `lms` in `SubscriptionType::URL_SLUGS` when provisioning Forge hostnames (`{customer}.lms.{vertical}`).
+A type-12 subscription URL is only a legacy fallback when `LMS_HUB_URL` is empty.
 
 ### LMS → Super Admin (pull / reconcile)
 
@@ -399,7 +399,7 @@ All non–soft-deleted customers are returned (not scoped to the caller’s cust
 
 ### Super Admin → LMS (push on change)
 
-When a `Customer` is created or updated, `PushCustomerToTenantsJob` POSTs to each of that customer’s LMS subscriptions:
+When a `Customer` is created or updated, `PushCustomerToTenantsJob` POSTs to `LMS_HUB_URL`:
 
 ```
 POST {lms_url}/admin-api/v1/sync/customers
@@ -416,7 +416,7 @@ LMS admin users (`App\Models\User`, not Members) use the same canonical user con
 - `customer_slug` — fallback lookup on the LMS `customers` table
 - `lms_access` — boolean on `customer_users` (subscription type **12**)
 
-**Panel → LMS:** `TenantUserPusher` includes subscription type **12** in `config/user_sync.php`. Outbound calls use `Authorization: Bearer {LMS_SYNC_TOKEN}` (falls back to `customers.token`). Users are pushed to the LMS subscription URL only when `lms_access` is true or `is_system_admin` is true.
+**Panel → LMS:** `TenantUserPusher` posts eligible users to `LMS_HUB_URL` with `Authorization: Bearer {LMS_SYNC_TOKEN}`. Users are pushed only when `lms_access` is true or `is_system_admin` is true. A type-12 subscription is not required.
 
 **LMS inbound:** `POST {LMS_APP_URL}/admin-api/v1/sync/users` (+ archive / restore / password), Bearer = LMS `SECURE_TOKEN`.
 

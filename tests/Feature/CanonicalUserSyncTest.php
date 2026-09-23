@@ -45,6 +45,21 @@ function postCanonical(string $path, array $body)
     return test()->withToken('canonical-token')->postJson('/api/v1/sync/users'.$path, $body);
 }
 
+it('accepts origin lms on a user upsert', function () {
+    ['subscription' => $subscription] = canonicalTenant();
+
+    postCanonical('', [
+        'app_url' => $subscription->url,
+        'origin' => 'lms',
+        'user' => [
+            'cms_user_id' => 92,
+            'email' => 'lms-origin@tenant.test',
+            'first_name' => 'Lms',
+        ],
+    ])->assertCreated()
+        ->assertJsonPath('outcome', 'created');
+});
+
 it('creates a customer user from a tenant and records both ids', function () {
     ['subscription' => $subscription] = canonicalTenant();
 

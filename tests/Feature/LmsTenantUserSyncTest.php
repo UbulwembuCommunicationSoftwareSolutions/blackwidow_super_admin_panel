@@ -56,6 +56,42 @@ it('posts lms users to the hub with super_admin_customer_id and lms sync token',
     expect($user->fresh()->cms_user_id)->toBe(55);
 });
 
+it('posts lms users to the configured hub without an lms subscription', function (): void {
+    config([
+        'services.lms.sync_token' => 'lms-hub-token',
+        'services.lms.hub_url' => 'https://lms-hub.example.test',
+    ]);
+
+    Http::fake([
+        'https://lms-hub.example.test/*' => Http::response([
+            'success' => true,
+            'user' => ['cms_user_id' => 77],
+        ], 200),
+    ]);
+
+    $customer = Customer::factory()->create([
+        'token' => 'customer-token',
+        'company_name' => 'Acme Academy',
+    ]);
+
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'lms-admin@example.test',
+        'lms_access' => false,
+        'is_system_admin' => true,
+        'skip_sync' => true,
+    ]);
+
+    app(TenantUserPusher::class)->upsert($user);
+
+    Http::assertSent(function ($request) use ($customer) {
+        return $request->url() === 'https://lms-hub.example.test/admin-api/v1/sync/users'
+            && $request->hasHeader('Authorization', 'Bearer lms-hub-token')
+            && $request['user']['super_admin_customer_id'] === $customer->id
+            && $request['user']['is_system_admin'] === true;
+    });
+});
+
 it('skips lms push when user has no lms access', function (): void {
     config(['services.lms.sync_token' => 'lms-hub-token']);
 

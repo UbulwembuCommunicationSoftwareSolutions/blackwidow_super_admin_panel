@@ -6,6 +6,8 @@ use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Models\SubscriptionType;
 use App\Models\UserSyncLog;
+use App\Support\CustomerSync\LmsHub;
+use App\Support\UserSync\TenantResolver;
 use App\Support\UserSync\UserSyncPayload;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -56,27 +58,78 @@ class TenantUserPusher
     private function dispatchToTenants(CustomerUser $user, string $path, array $payload, array $extra = []): void
     {
         if (! config('user_sync.enabled', true)) {
-            return;
-        }
-
-        $subscriptions = $this->targetSubscriptions($user);
-
-        if ($subscriptions->isEmpty()) {
-            Log::info('No tenant apps to push customer user to', [
+            Log::debug('sync: user push skipped, user_sync disabled', [
                 'customer_user_id' => $user->id,
-                'customer_id' => $user->customer_id,
             ]);
 
             return;
         }
+
+        $subscriptions = $this->targetSubscriptions($user);
+        $pushed = [];
 
         foreach ($subscriptions as $subscription) {
             if (! $this->shouldPushToSubscription($user, $subscription)) {
                 continue;
             }
 
-            $this->push($user, $subscription, $path, $payload, $extra);
+            $this->push($user, rtrim((string) $subscription->url, '/'), $this->tokenFor($subscription), $path, $payload, $extra);
+            $pushed[] = TenantResolver::normalise($subscription->url);
         }
+
+        $this->pushConfiguredHub($user, $path, $payload, $extra, $pushed);
+
+        Log::debug('sync: user push dispatch finished', [
+            'customer_user_id' => $user->id,
+            'path' => $path,
+            'lms_access' => (bool) $user->lms_access,
+            'is_system_admin' => (bool) $user->is_system_admin,
+            'subscription_targets' => $subscriptions->count(),
+            'configured_hub_url' => LmsHub::configuredUrl(),
+            'already_pushed' => $pushed,
+        ]);
+
+        if ($subscriptions->isEmpty() && ! $this->shouldPushToConfiguredHub($user)) {
+            Log::info('No tenant apps to push customer user to', [
+                'customer_user_id' => $user->id,
+                'customer_id' => $user->customer_id,
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $extra
+     * @param  list<string>  $alreadyPushed
+     */
+    private function pushConfiguredHub(CustomerUser $user, string $path, array $payload, array $extra, array $alreadyPushed): void
+    {
+        $hubUrl = LmsHub::configuredUrl();
+
+        if ($hubUrl === null || in_array(TenantResolver::normalise($hubUrl), $alreadyPushed, true)) {
+            return;
+        }
+
+        if (! $this->shouldPushToConfiguredHub($user)) {
+            return;
+        }
+
+        $token = (string) (config('services.lms.sync_token') ?: $user->customer?->token ?? '');
+
+        if ($token === '') {
+            return;
+        }
+
+        $this->push($user, $hubUrl, $token, $path, $payload, $extra);
+    }
+
+    private function shouldPushToConfiguredHub(CustomerUser $user): bool
+    {
+        if (LmsHub::configuredUrl() === null) {
+            return false;
+        }
+
+        return (bool) $user->lms_access || (bool) $user->is_system_admin;
     }
 
     private function shouldPushToSubscription(CustomerUser $user, CustomerSubscription $subscription): bool
@@ -94,21 +147,22 @@ class TenantUserPusher
      */
     private function push(
         CustomerUser $user,
-        CustomerSubscription $subscription,
+        string $baseUrl,
+        string $token,
         string $path,
         array $payload,
         array $extra,
     ): void {
-        $url = rtrim((string) $subscription->url, '/').'/admin-api/v1/sync/'.$path;
+        $url = rtrim($baseUrl, '/').'/admin-api/v1/sync/'.$path;
 
         $body = array_merge([
-            'app_url' => $subscription->url,
+            'app_url' => $baseUrl,
             'origin' => 'super_admin',
             'user' => $payload,
         ], $extra);
 
         try {
-            $response = $this->client($subscription)->post($url, $body);
+            $response = $this->client($token)->post($url, $body);
         } catch (\Throwable $e) {
             $this->log($user, 'failed', $e->getMessage(), ['url' => $url]);
 
@@ -169,7 +223,7 @@ class TenantUserPusher
         return filled($subscription->customer?->token);
     }
 
-    private function client(CustomerSubscription $subscription): PendingRequest
+    private function tokenFor(CustomerSubscription $subscription): string
     {
         $token = (string) ($subscription->customer?->token ?? '');
 
@@ -177,6 +231,11 @@ class TenantUserPusher
             $token = (string) (config('services.lms.sync_token') ?: $token);
         }
 
+        return $token;
+    }
+
+    private function client(string $token): PendingRequest
+    {
         return Http::withToken($token)
             ->acceptJson()
             ->asJson()

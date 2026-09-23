@@ -56,6 +56,7 @@ return [
      * Must match the LMS app SECURE_TOKEN.
      */
     'lms' => [
+        'hub_url' => env('LMS_HUB_URL'),
         'sync_token' => env('LMS_SYNC_TOKEN'),
     ],
 

@@ -6,6 +6,8 @@ use App\Models\BrandingSyncLog;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use App\Support\CustomerSync\LmsHub;
+use App\Support\UserSync\TenantResolver;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -100,14 +102,16 @@ class TenantBrandingPusher
             return;
         }
 
-        $targets = $this->lmsSubscriptions($customer);
-        if ($targets->isEmpty()) {
+        $targets = $this->lmsHubUrls($customer);
+        if ($targets === []) {
             Log::info('No LMS hub to push customer branding to', [
                 'customer_id' => $customer->id,
             ]);
 
             return;
         }
+
+        $subscriptions = $this->lmsSubscriptions($customer);
 
         foreach ($cmsSlots as $cmsSlot) {
             if (! in_array($cmsSlot, BrandingSyncPayload::SLOTS, true)) {
@@ -116,8 +120,12 @@ class TenantBrandingPusher
 
             $payload = BrandingSyncPayload::fromCustomerDefault($customer, $cmsSlot);
 
-            foreach ($targets as $target) {
-                $this->pushToLmsHub($customer, $target, $payload);
+            foreach ($targets as $hubUrl) {
+                $subscription = $subscriptions->first(
+                    fn (CustomerSubscription $row): bool => TenantResolver::normalise($row->url) === TenantResolver::normalise($hubUrl)
+                );
+
+                $this->pushToLmsHub($customer, $hubUrl, $payload, $subscription);
             }
         }
     }
@@ -193,13 +201,14 @@ class TenantBrandingPusher
 
     private function pushToLmsHub(
         Customer $customer,
-        CustomerSubscription $lmsSubscription,
+        string $hubUrl,
         BrandingSyncPayload $payload,
+        ?CustomerSubscription $lmsSubscription = null,
     ): void {
-        $url = rtrim((string) $lmsSubscription->url, '/').'/admin-api/v1/sync/branding';
+        $url = rtrim($hubUrl, '/').'/admin-api/v1/sync/branding';
 
         $body = [
-            'app_url' => $lmsSubscription->url,
+            'app_url' => $hubUrl,
             'origin' => 'super_admin',
             'branding' => $payload->toLmsArray($customer->id),
         ];
@@ -207,7 +216,7 @@ class TenantBrandingPusher
         try {
             $response = $this->lmsClient()->post($url, $body);
         } catch (\Throwable $e) {
-            $this->log($lmsSubscription, $payload->slot, 'failed', $e->getMessage(), [
+            $this->logLms($lmsSubscription, $payload->slot, 'failed', $e->getMessage(), [
                 'url' => $url,
                 'request' => $body,
                 'target' => 'lms',
@@ -224,7 +233,7 @@ class TenantBrandingPusher
         }
 
         if (! $response->successful()) {
-            $this->log($lmsSubscription, $payload->slot, 'failed', 'HTTP '.$response->status().' '.$response->body(), [
+            $this->logLms($lmsSubscription, $payload->slot, 'failed', 'HTTP '.$response->status().' '.$response->body(), [
                 'url' => $url,
                 'request' => $body,
                 'target' => 'lms',
@@ -235,12 +244,49 @@ class TenantBrandingPusher
             throw new \RuntimeException('LMS branding sync failed with HTTP '.$response->status().' for '.$url);
         }
 
-        $this->log($lmsSubscription, $payload->slot, 'success', null, [
+        $this->logLms($lmsSubscription, $payload->slot, 'success', null, [
             'url' => $url,
             'request' => $body,
             'target' => 'lms',
             'response' => $response->json(),
         ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function lmsHubUrls(Customer $customer): array
+    {
+        $urls = [];
+
+        $configured = LmsHub::configuredUrl();
+        if ($configured !== null) {
+            $urls[TenantResolver::normalise($configured)] = $configured;
+        }
+
+        foreach ($this->lmsSubscriptions($customer) as $subscription) {
+            $url = rtrim((string) $subscription->url, '/');
+            $urls[TenantResolver::normalise($url)] = $url;
+        }
+
+        return array_values($urls);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $data
+     */
+    private function logLms(
+        ?CustomerSubscription $subscription,
+        string $slot,
+        string $status,
+        ?string $error = null,
+        ?array $data = null,
+    ): void {
+        if ($subscription === null) {
+            return;
+        }
+
+        $this->log($subscription, $slot, $status, $error, $data);
     }
 
     /**

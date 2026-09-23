@@ -14,7 +14,7 @@ class UserSyncLocateRequest extends TenantSyncRequest
     {
         return [
             'app_url' => 'required|string',
-            'origin' => 'nullable|string|in:cms,firearm,responder,super_admin',
+            'origin' => 'nullable|string|in:cms,firearm,responder,super_admin,lms',
             'user' => 'required|array',
             'user.super_admin_user_id' => 'nullable|integer|required_without_all:user.cms_user_id,user.email',
             'user.cms_user_id' => 'nullable|integer|required_without_all:user.super_admin_user_id,user.email',

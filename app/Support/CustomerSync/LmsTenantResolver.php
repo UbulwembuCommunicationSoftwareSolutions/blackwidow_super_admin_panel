@@ -35,6 +35,10 @@ class LmsTenantResolver
 
     public static function hasHubAtAppUrl(?string $appUrl): bool
     {
+        if (LmsHub::matches($appUrl)) {
+            return true;
+        }
+
         return self::subscriptionsAtAppUrl($appUrl)->isNotEmpty();
     }
 }

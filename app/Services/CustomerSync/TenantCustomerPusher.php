@@ -5,6 +5,8 @@ namespace App\Services\CustomerSync;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Support\CustomerSync\CustomerSyncPayload;
+use App\Support\CustomerSync\LmsHub;
+use App\Support\UserSync\TenantResolver;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -15,12 +17,22 @@ class TenantCustomerPusher
     public function upsert(Customer $customer): void
     {
         if (! config('customer_sync.enabled', true)) {
+            Log::debug('sync: customer push skipped, customer_sync disabled', [
+                'customer_id' => $customer->id,
+            ]);
+
             return;
         }
 
-        $targets = $this->targetSubscriptions($customer);
+        $targets = $this->targetUrls($customer);
 
-        if ($targets->isEmpty()) {
+        Log::debug('sync: customer push targets', [
+            'customer_id' => $customer->id,
+            'targets' => $targets,
+            'configured_hub_url' => LmsHub::configuredUrl(),
+        ]);
+
+        if ($targets === []) {
             Log::info('No LMS tenants to push customer to', [
                 'customer_id' => $customer->id,
             ]);
@@ -30,20 +42,20 @@ class TenantCustomerPusher
 
         $payload = CustomerSyncPayload::fromCustomer($customer);
 
-        foreach ($targets as $subscription) {
-            $this->push($customer, $subscription, $payload);
+        foreach ($targets as $hubUrl) {
+            $this->push($customer, $hubUrl, $payload);
         }
     }
 
     private function push(
         Customer $customer,
-        CustomerSubscription $subscription,
+        string $hubUrl,
         CustomerSyncPayload $payload,
     ): void {
-        $url = rtrim((string) $subscription->url, '/').'/admin-api/v1/sync/customers';
+        $url = rtrim($hubUrl, '/').'/admin-api/v1/sync/customers';
 
         $body = array_merge($payload->toArray(), [
-            'app_url' => $subscription->url,
+            'app_url' => $hubUrl,
             'origin' => 'super_admin',
         ]);
 
@@ -78,9 +90,30 @@ class TenantCustomerPusher
     }
 
     /**
-     * @return Collection<int, CustomerSubscription>
+     * Configured shared hub first, then any legacy per-customer LMS subscription URLs.
+     *
+     * @return list<string>
      */
-    private function targetSubscriptions(Customer $customer): Collection
+    private function targetUrls(Customer $customer): array
+    {
+        $urls = [];
+
+        $configured = LmsHub::configuredUrl();
+        if ($configured !== null) {
+            $urls[TenantResolver::normalise($configured)] = $configured;
+        }
+
+        foreach ($this->legacySubscriptionUrls($customer) as $url) {
+            $urls[TenantResolver::normalise($url)] = $url;
+        }
+
+        return array_values($urls);
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function legacySubscriptionUrls(Customer $customer): Collection
     {
         $typeId = (int) config('customer_sync.lms_subscription_type_id');
 
@@ -89,7 +122,8 @@ class TenantCustomerPusher
             ->where('subscription_type_id', $typeId)
             ->whereNotNull('url')
             ->where('url', '!=', '')
-            ->get()
+            ->pluck('url')
+            ->map(fn (string $url): string => rtrim($url, '/'))
             ->values();
     }
 

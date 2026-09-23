@@ -15,6 +15,7 @@ use App\Services\UserSync\CustomerUserSyncService;
 use App\Support\UserSync\SyncOutcome;
 use App\Support\UserSync\UserSyncPayload;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 /**
  * The canonical sync surface for tenant apps.
@@ -54,6 +55,12 @@ class UserSyncController extends Controller
             })
             ->orderBy('id')
             ->get();
+
+        Log::debug('sync: user hub list', [
+            'app_url' => $request->input('app_url'),
+            'count' => $users->count(),
+            'emails' => $users->pluck('email_address')->all(),
+        ]);
 
         return response()->json([
             'success' => true,

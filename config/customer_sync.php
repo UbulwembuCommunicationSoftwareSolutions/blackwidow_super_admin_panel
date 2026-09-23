@@ -15,7 +15,8 @@ return [
     'timeout' => env('CUSTOMER_SYNC_TIMEOUT', 30),
 
     /*
-     * subscription_type_id of the shared LMS hub that consumes GET /api/v1/sync/customers.
+     * Optional legacy target: a type-12 subscription URL is still pushed to when
+     * LMS_HUB_URL is empty. The shared hub itself is services.lms.hub_url.
      */
     'lms_subscription_type_id' => (int) env('LMS_SUBSCRIPTION_TYPE_ID', SubscriptionType::LMS_TYPE_ID),
 

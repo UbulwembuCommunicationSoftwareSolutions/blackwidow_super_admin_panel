@@ -3,8 +3,10 @@
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\SubscriptionType;
+use App\Services\CustomerSync\TenantCustomerPusher;
 use App\Support\CustomerSync\CustomerSyncPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
@@ -105,6 +107,38 @@ it('allows customer sync list with a customer token tied to the LMS hub url', fu
         ->getJson('/api/v1/sync/customers?app_url='.urlencode($lmsUrl))
         ->assertSuccessful()
         ->assertJsonPath('success', true);
+});
+
+it('lists customers for a configured hub url without an lms subscription', function () {
+    config(['services.lms.hub_url' => 'https://lms-hub.example.test']);
+
+    Customer::factory()->create(['company_name' => 'Beta Ltd']);
+
+    $this->withToken('lms-shared-sync-token')
+        ->getJson('/api/v1/sync/customers?app_url='.urlencode('http://lms-hub.example.test/'))
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data');
+});
+
+it('pushes a customer to the configured hub without an lms subscription', function () {
+    config([
+        'services.lms.hub_url' => 'https://lms-hub.example.test',
+        'customer_sync.enabled' => true,
+    ]);
+
+    $customer = Customer::factory()->create(['company_name' => 'Acme Corp']);
+
+    Http::fake([
+        'https://lms-hub.example.test/admin-api/v1/sync/customers' => Http::response(['success' => true], 200),
+    ]);
+
+    app(TenantCustomerPusher::class)->upsert($customer);
+
+    Http::assertSent(function ($request) use ($customer) {
+        return $request->url() === 'https://lms-hub.example.test/admin-api/v1/sync/customers'
+            && $request->hasHeader('Authorization', 'Bearer lms-shared-sync-token')
+            && $request['super_admin_customer_id'] === $customer->id;
+    });
 });
 
 it('uses lms as the url slug for subscription type 12', function () {
