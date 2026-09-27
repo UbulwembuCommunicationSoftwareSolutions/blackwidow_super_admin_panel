@@ -8,6 +8,7 @@ use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use App\Support\CustomerSync\LmsTenantResolver;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,10 +42,9 @@ class CustomerSubscriptionController extends Controller
             ], 401);
         }
 
-        $url = $this->normalizeAppUrl($validated['app_url']);
-        $subscription = CustomerSubscription::query()->where('url', $url)->first();
+        $subscription = $this->subscriptionForUser($user, $this->normalizeAppUrl($validated['app_url']));
 
-        if (! $subscription || (int) $subscription->customer_id !== (int) $user->customer_id) {
+        if (! $subscription) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Access Denied',
@@ -78,6 +78,21 @@ class CustomerSubscriptionController extends Controller
             'status' => 'success',
             'message' => 'Logged out',
         ]);
+    }
+
+    /**
+     * The user's own subscription at the app URL. The shared LMS hub has one
+     * subscription per customer at the same URL, so the lookup is scoped to
+     * the user's customer instead of taking the first match.
+     */
+    private function subscriptionForUser(CustomerUser $user, string $url): ?CustomerSubscription
+    {
+        return CustomerSubscription::query()
+            ->where('url', $url)
+            ->where('customer_id', $user->customer_id)
+            ->first()
+            ?? LmsTenantResolver::subscriptionsAtAppUrl($url)
+                ->first(fn (CustomerSubscription $subscription) => (int) $subscription->customer_id === (int) $user->customer_id);
     }
 
     private function normalizeAppUrl(string $url): string

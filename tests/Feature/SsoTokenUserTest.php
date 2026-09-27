@@ -97,3 +97,45 @@ it('deletes the current sanctum token on sso logout', function () {
 
     expect(PersonalAccessToken::query()->find($tokenId))->toBeNull();
 });
+
+it('resolves the user own subscription on the shared lms hub url', function () {
+    $hubUrl = 'https://lms.example.test';
+    ['user' => $other] = ssoCustomerUser(12, $hubUrl, [
+        'email_address' => 'other-lms@example.test',
+        'lms_access' => true,
+    ]);
+    $customer = Customer::factory()->create();
+    CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => 12,
+        'url' => $hubUrl,
+    ]);
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'email_address' => 'second-lms@example.test',
+        'password' => 'secret-password',
+        'lms_access' => true,
+        'skip_sync' => true,
+    ]);
+
+    foreach ([$other, $user] as $customerUser) {
+        $token = $customerUser->createToken('customer-user-token')->plainTextToken;
+
+        $this->withToken($token)->postJson('/api/token-user', [
+            'app_url' => $hubUrl,
+        ])->assertSuccessful()
+            ->assertJsonPath('user.email_address', $customerUser->email_address)
+            ->assertJsonPath('user.customer_id', $customerUser->customer_id);
+    }
+});
+
+it('rejects the shared lms hub for a user without lms access', function () {
+    ['user' => $user, 'subscription' => $subscription] = ssoCustomerUser(12, 'https://lms.example.test', [
+        'lms_access' => false,
+    ]);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => $subscription->url,
+    ])->assertUnauthorized();
+});
