@@ -8,9 +8,11 @@ use App\Http\Requests\Api\V1\UserSyncIndexRequest;
 use App\Http\Requests\Api\V1\UserSyncLocateRequest;
 use App\Http\Requests\Api\V1\UserSyncPasswordRequest;
 use App\Http\Requests\Api\V1\UserSyncPasswordResetEmailRequest;
+use App\Http\Requests\Api\V1\UserSyncSsoTokenRequest;
 use App\Http\Requests\Api\V1\UserSyncUpsertRequest;
 use App\Jobs\SendWelcomeEmailJob;
 use App\Models\CustomerUser;
+use App\Models\SubscriptionType;
 use App\Services\UserSync\CustomerUserSyncService;
 use App\Support\UserSync\SyncOutcome;
 use App\Support\UserSync\UserSyncPayload;
@@ -135,6 +137,49 @@ class UserSyncController extends Controller
             'message' => 'Password reset email queued.',
             'user' => $this->serialize($user),
         ], 202);
+    }
+
+    /**
+     * A fresh hub token for a user the tenant has already signed in, so its
+     * cross-app links recover when the shared cookie's token was revoked. The
+     * user must still be allowed into the calling app.
+     */
+    public function ssoToken(UserSyncSsoTokenRequest $request): JsonResponse
+    {
+        $subscription = $request->subscription();
+        $user = $this->sync->locate($subscription, $request->payload());
+
+        if (! $user || $user->trashed() || $user->isDeleteScheduled()) {
+            return $this->notFound();
+        }
+
+        $typeId = (int) $subscription->subscription_type_id;
+        $allowed = $typeId === SubscriptionType::LMS_TYPE_ID
+            ? (bool) $user->lms_access || (bool) $user->is_system_admin
+            : $user->checkAccess($typeId);
+
+        if (! $allowed) {
+            Log::info('sso.token.refused', [
+                'customer_user_id' => $user->id,
+                'subscription_id' => $subscription->id,
+                'reason' => 'no_access',
+            ]);
+
+            return response()->json(['success' => false, 'message' => 'Access Denied'], 403);
+        }
+
+        $token = $user->createToken('customer-user-token')->plainTextToken;
+
+        Log::info('sso.token.minted', [
+            'customer_user_id' => $user->id,
+            'subscription_id' => $subscription->id,
+            'token_id' => (int) explode('|', $token)[0],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'token' => $token,
+        ]);
     }
 
     private function ok(SyncOutcome $outcome, CustomerUser $user): JsonResponse

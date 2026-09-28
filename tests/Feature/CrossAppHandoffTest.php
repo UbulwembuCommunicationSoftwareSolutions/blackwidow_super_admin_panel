@@ -195,6 +195,67 @@ it('sends a revoked token to the app login', function () {
     assertHandoffRefused('token_not_found');
 });
 
+it('sends a revoked token to the customer cms to be renewed', function () {
+    $customer = Customer::factory()->create();
+    handoffSubscription($customer, 2, 'https://firearm.example.test');
+    handoffSubscription($customer, 1, 'cms.example.test');
+
+    $this->withUnencryptedCookie('external_token', '1|not-a-real-token')
+        ->get('/go?to='.urlencode('https://firearm.example.test/page'))
+        ->assertRedirect('https://cms.example.test/sso/go?'.http_build_query(['to' => 'https://firearm.example.test/page']));
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === SsoHandoffLog::REFUSED
+        && $context['reason'] === 'token_not_found'
+        && $context['recovery'] === 'cms_renew'
+        && $context['renew_host'] === 'cms.example.test');
+});
+
+it('sends a visitor without a cookie to the customer cms to be renewed', function () {
+    $customer = Customer::factory()->create();
+    handoffSubscription($customer, 2, 'https://firearm.example.test');
+    handoffSubscription($customer, 1, 'https://cms.example.test');
+
+    $this->get('/go?to='.urlencode('https://firearm.example.test'))
+        ->assertRedirect('https://cms.example.test/sso/go?'.http_build_query(['to' => 'https://firearm.example.test']));
+});
+
+it('renews an lms handoff through the cms the link was clicked in', function () {
+    handoffSubscription(Customer::factory()->create(), 1, 'https://cms.example.test');
+
+    $this->withUnencryptedCookie('external_token', '1|not-a-real-token')
+        ->withHeader('Referer', 'https://cms.example.test/dashboard')
+        ->get('/go?to='.urlencode('https://lms-hub.example.test'))
+        ->assertRedirect('https://cms.example.test/sso/go?'.http_build_query(['to' => 'https://lms-hub.example.test']));
+});
+
+it('does not renew twice once the cms has tried', function () {
+    $customer = Customer::factory()->create();
+    handoffSubscription($customer, 2, 'https://firearm.example.test');
+    handoffSubscription($customer, 1, 'https://cms.example.test');
+
+    $this->withUnencryptedCookie('external_token', '1|not-a-real-token')
+        ->get('/go?renewed=1&to='.urlencode('https://firearm.example.test'))
+        ->assertRedirect('https://firearm.example.test');
+
+    assertHandoffRefused('token_not_found');
+});
+
+it('sends a revoked token for the cms itself to the cms login', function () {
+    handoffSubscription(Customer::factory()->create(), 1, 'https://cms.example.test');
+
+    $this->withUnencryptedCookie('external_token', '1|not-a-real-token')
+        ->get('/go?to='.urlencode('https://cms.example.test/dockets'))
+        ->assertRedirect('https://cms.example.test');
+});
+
+it('sends a revoked lms token to the lms login when no cms is known', function () {
+    $this->withUnencryptedCookie('external_token', '1|not-a-real-token')
+        ->get('/go?to='.urlencode('https://lms-hub.example.test'))
+        ->assertRedirect('https://lms-hub.example.test');
+
+    assertHandoffRefused('token_not_found');
+});
+
 it('sends a delete-scheduled user to the app login', function () {
     ['customer' => $customer, 'token' => $token] = handoffUser(['firearm_access' => true, 'delete_scheduled' => now()]);
     handoffSubscription($customer, 2, 'https://firearm.example.test');

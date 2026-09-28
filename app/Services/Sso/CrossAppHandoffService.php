@@ -17,8 +17,9 @@ use Laravel\Sanctum\PersonalAccessToken;
 /**
  * Sends a user from one suite app to another through Super Admin: the shared
  * `external_token` cookie identifies them, and the target app mints a one-time
- * sign-in link. When that is not possible the user is sent to the target app
- * unauthenticated (its login page) and the reason is logged.
+ * sign-in link. A missing or revoked token is sent once to the user's CMS to be
+ * renewed. Otherwise, when a link is not possible, the user is sent to the
+ * target app unauthenticated (its login page) and the reason is logged.
  */
 class CrossAppHandoffService
 {
@@ -26,6 +27,8 @@ class CrossAppHandoffService
     private const TENANT_LINK_TYPES = [1, 2];
 
     private const LMS_TYPE = 12;
+
+    private const CMS_TYPE = 1;
 
     public function __construct(
         private readonly LmsImpersonationService $lms,
@@ -53,16 +56,28 @@ class CrossAppHandoffService
             return $fallback;
         };
 
+        $renewOrRefuse = function (string $reason) use ($request, $targetUrl, $targetHost, $refuse): string {
+            $renewUrl = $request->boolean('renewed') ? null : $this->cmsRenewUrl($request, $targetUrl, $targetHost);
+
+            if ($renewUrl === null) {
+                return $refuse($reason);
+            }
+
+            $refuse($reason, extra: ['recovery' => 'cms_renew', 'renew_host' => self::hostOf($renewUrl)]);
+
+            return $renewUrl;
+        };
+
         $token = $request->cookie((string) config('sso.cookie'));
 
         if (! is_string($token) || $token === '') {
-            return $refuse('no_cookie');
+            return $renewOrRefuse('no_cookie');
         }
 
         $accessToken = PersonalAccessToken::findToken($token);
 
         if ($accessToken === null) {
-            return $refuse('token_not_found');
+            return $renewOrRefuse('token_not_found');
         }
 
         $user = $accessToken->tokenable;
@@ -149,6 +164,43 @@ class CrossAppHandoffService
         }
     }
 
+    /**
+     * Without a live token we cannot tell who the user is, but their CMS can:
+     * its `/sso/go` renews the hub token for a signed-in user (or signs them in
+     * first) and sends them back here marked `renewed`, so this runs once.
+     * The CMS is the target customer's, or the one the link was clicked in.
+     */
+    private function cmsRenewUrl(Request $request, string $targetUrl, string $targetHost): ?string
+    {
+        $targetSubscriptions = $this->isLmsHost($targetHost) ? collect() : $this->subscriptionsForHost($targetHost);
+
+        if ($targetSubscriptions->contains(fn (CustomerSubscription $subscription): bool => (int) $subscription->subscription_type_id === self::CMS_TYPE)) {
+            return null;
+        }
+
+        $customerIds = $targetSubscriptions->pluck('customer_id')->unique();
+
+        $cms = $customerIds->count() === 1
+            ? CustomerSubscription::query()
+                ->where('customer_id', $customerIds->first())
+                ->where('subscription_type_id', self::CMS_TYPE)
+                ->first()
+            : null;
+
+        $refererHost = self::hostOf((string) $request->headers->get('referer'));
+
+        if ($cms === null && $refererHost !== null) {
+            $cms = $this->subscriptionsForHost($refererHost)
+                ->first(fn (CustomerSubscription $subscription): bool => (int) $subscription->subscription_type_id === self::CMS_TYPE);
+        }
+
+        if ($cms === null || self::hostOf((string) $cms->url) === null) {
+            return null;
+        }
+
+        return self::baseUrl((string) $cms->url).'/sso/go?'.http_build_query(['to' => self::withScheme($targetUrl)]);
+    }
+
     private function isKnownHost(string $host): bool
     {
         return $this->isLmsHost($host) || $this->subscriptionsForHost($host)->isNotEmpty();
@@ -195,14 +247,19 @@ class CrossAppHandoffService
      */
     private static function parse(string $url): array
     {
+        $parts = parse_url(self::withScheme($url));
+
+        return is_array($parts) ? $parts : [];
+    }
+
+    private static function withScheme(string $url): string
+    {
         $url = trim($url);
 
         if ($url !== '' && ! preg_match('#^[a-z][a-z0-9+.-]*://#i', $url)) {
-            $url = 'https://'.$url;
+            return 'https://'.$url;
         }
 
-        $parts = parse_url($url);
-
-        return is_array($parts) ? $parts : [];
+        return $url;
     }
 }

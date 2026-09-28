@@ -36,6 +36,7 @@ Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
     Route::post('users/restore', [UserSyncController::class, 'restore']);
     Route::post('users/password', [UserSyncController::class, 'password']);
     Route::post('users/password-reset-email', [UserSyncController::class, 'passwordResetEmail']);
+    Route::post('users/sso-token', [UserSyncController::class, 'ssoToken']);
     Route::get('branding', [BrandingSyncController::class, 'index']);
     Route::post('branding', [BrandingSyncController::class, 'upsert']);
     Route::get('user-fields', [UserFieldSyncController::class, 'index']);
