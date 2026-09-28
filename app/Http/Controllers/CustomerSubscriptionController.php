@@ -7,7 +7,9 @@ use App\Http\Requests\CustomerSubscriptionRequest;
 use App\Http\Resources\CustomerSubscriptionResource;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Models\SubscriptionType;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use App\Support\CustomerSync\LmsHub;
 use App\Support\CustomerSync\LmsTenantResolver;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -42,22 +44,49 @@ class CustomerSubscriptionController extends Controller
             ], 401);
         }
 
-        $subscription = $this->subscriptionForUser($user, $this->normalizeAppUrl($validated['app_url']));
+        $appUrl = $this->normalizeAppUrl($validated['app_url']);
+
+        if (LmsHub::matches($appUrl)) {
+            return $this->canUseLms($user) ? $this->tokenUserResponse($request, $user) : $this->accessDenied();
+        }
+
+        $subscription = $this->subscriptionForUser($user, $appUrl);
 
         if (! $subscription) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Access Denied',
-            ], 401);
+            return $this->accessDenied();
         }
 
-        if (! $user->checkAccess((int) $subscription->subscription_type_id)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Access Denied',
-            ], 401);
+        $subscriptionTypeId = (int) $subscription->subscription_type_id;
+        $allowed = $subscriptionTypeId === SubscriptionType::LMS_TYPE_ID
+            ? $this->canUseLms($user)
+            : $user->checkAccess($subscriptionTypeId);
+
+        if (! $allowed) {
+            return $this->accessDenied();
         }
 
+        return $this->tokenUserResponse($request, $user);
+    }
+
+    /**
+     * A customer's system admin may always enter the LMS, even without the
+     * LMS product flag.
+     */
+    private function canUseLms(CustomerUser $user): bool
+    {
+        return (bool) $user->lms_access || (bool) $user->is_system_admin;
+    }
+
+    private function accessDenied(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Access Denied',
+        ], 401);
+    }
+
+    private function tokenUserResponse(Request $request, CustomerUser $user): JsonResponse
+    {
         return response()->json([
             'status' => 'success',
             'message' => 'User is logged in',

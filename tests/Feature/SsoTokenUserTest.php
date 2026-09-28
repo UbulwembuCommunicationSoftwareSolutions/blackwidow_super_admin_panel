@@ -119,6 +119,7 @@ it('resolves the user own subscription on the shared lms hub url', function () {
     ]);
 
     foreach ([$other, $user] as $customerUser) {
+        $this->app['auth']->forgetGuards();
         $token = $customerUser->createToken('customer-user-token')->plainTextToken;
 
         $this->withToken($token)->postJson('/api/token-user', [
@@ -132,10 +133,90 @@ it('resolves the user own subscription on the shared lms hub url', function () {
 it('rejects the shared lms hub for a user without lms access', function () {
     ['user' => $user, 'subscription' => $subscription] = ssoCustomerUser(12, 'https://lms.example.test', [
         'lms_access' => false,
+        'is_system_admin' => false,
     ]);
     $token = $user->createToken('customer-user-token')->plainTextToken;
 
     $this->withToken($token)->postJson('/api/token-user', [
         'app_url' => $subscription->url,
+    ])->assertUnauthorized();
+});
+
+it('lets a customer system admin into an lms subscription without the lms flag', function () {
+    ['user' => $user, 'subscription' => $subscription] = ssoCustomerUser(12, 'https://lms.example.test', [
+        'lms_access' => false,
+        'is_system_admin' => true,
+    ]);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => $subscription->url,
+    ])->assertSuccessful()
+        ->assertJsonPath('user.email_address', $user->email_address);
+});
+
+function ssoHubUser(array $attributes): CustomerUser
+{
+    config(['services.lms.hub_url' => 'https://demo.lms.example.test']);
+
+    return CustomerUser::factory()->create(array_merge([
+        'customer_id' => Customer::factory()->create()->id,
+        'password' => 'secret-password',
+        'skip_sync' => true,
+    ], $attributes));
+}
+
+it('accepts the configured lms hub without an lms subscription', function (array $flags) {
+    $user = ssoHubUser($flags);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    expect(CustomerSubscription::query()->where('customer_id', $user->customer_id)->exists())->toBeFalse();
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => 'http://demo.lms.example.test/',
+    ])->assertSuccessful()
+        ->assertJsonPath('user.email_address', $user->email_address)
+        ->assertJsonPath('token', $token);
+})->with([
+    'lms access' => [['lms_access' => true, 'is_system_admin' => false]],
+    'system admin' => [['lms_access' => false, 'is_system_admin' => true]],
+]);
+
+it('rejects the configured lms hub for a user with neither flag', function () {
+    $user = ssoHubUser(['lms_access' => false, 'is_system_admin' => false]);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => 'https://demo.lms.example.test',
+    ])->assertUnauthorized();
+});
+
+it('rejects an archived user on the configured lms hub', function () {
+    $user = ssoHubUser(['lms_access' => true, 'delete_scheduled' => now()]);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => 'https://demo.lms.example.test',
+    ])->assertUnauthorized();
+});
+
+it('still needs a subscription for apps other than the lms hub', function () {
+    $user = ssoHubUser(['console_access' => true, 'is_system_admin' => true, 'lms_access' => true]);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => 'https://cms.example.test',
+    ])->assertUnauthorized();
+});
+
+it('does not let a system admin into a non-lms app without its product flag', function () {
+    ['user' => $user] = ssoCustomerUser(1, 'https://cms.example.test', [
+        'console_access' => false,
+        'is_system_admin' => true,
+    ]);
+    $token = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/token-user', [
+        'app_url' => 'https://cms.example.test',
     ])->assertUnauthorized();
 });
