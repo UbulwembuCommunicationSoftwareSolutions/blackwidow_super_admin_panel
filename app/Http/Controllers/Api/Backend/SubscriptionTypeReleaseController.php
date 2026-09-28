@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api\Backend;
 use App\Jobs\SyncGithubReleasesJob;
 use App\Models\SubscriptionType;
 use App\Models\SubscriptionTypeRelease;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class SubscriptionTypeReleaseController extends Controller
 {
@@ -23,6 +26,7 @@ class SubscriptionTypeReleaseController extends Controller
 
         $query = SubscriptionTypeRelease::query()
             ->where('subscription_type_id', $type->id)
+            ->withCount(['deployedSubscriptions as sites_on_release'])
             ->orderByDesc('published_at')
             ->orderByDesc('id');
 
@@ -34,7 +38,13 @@ class SubscriptionTypeReleaseController extends Controller
             $query->stable();
         }
 
-        return response()->json($query->paginate($validated['per_page'] ?? 50));
+        $page = $query->paginate($validated['per_page'] ?? 50)->toArray();
+        $page['current_release_id'] = $type->current_release_id;
+        $page['last_synced_at'] = SubscriptionTypeRelease::query()
+            ->where('subscription_type_id', $type->id)
+            ->max('synced_at');
+
+        return response()->json($page);
     }
 
     public function sync(int $id): JsonResponse
@@ -42,13 +52,33 @@ class SubscriptionTypeReleaseController extends Controller
         $type = SubscriptionType::query()->findOrFail($id);
         $this->authorize('update', $type);
 
-        SyncGithubReleasesJob::dispatchSync((int) $type->id);
+        if (blank($type->github_repo)) {
+            return response()->json([
+                'message' => 'This subscription type has no GitHub repository configured.',
+            ], 422);
+        }
+
+        try {
+            SyncGithubReleasesJob::dispatchSync((int) $type->id);
+        } catch (RequestException $e) {
+            return response()->json([
+                'message' => $this->githubErrorMessage($type, $e),
+            ], 422);
+        } catch (ConnectionException $e) {
+            return response()->json([
+                'message' => 'Could not reach GitHub: '.$e->getMessage(),
+            ], 422);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'ok' => true,
+            'type' => $type->fresh(['currentRelease', 'latestRelease']),
             'data' => SubscriptionTypeRelease::query()
                 ->where('subscription_type_id', $type->id)
                 ->orderByDesc('published_at')
+                ->orderByDesc('id')
                 ->limit(20)
                 ->get(),
         ]);
@@ -78,5 +108,18 @@ class SubscriptionTypeReleaseController extends Controller
         return response()->json([
             'data' => $type->fresh(['currentRelease']),
         ]);
+    }
+
+    private function githubErrorMessage(SubscriptionType $type, RequestException $e): string
+    {
+        $status = $e->response->status();
+        $githubMessage = (string) ($e->response->json('message') ?? '');
+
+        return match (true) {
+            $status === 401 => 'GitHub rejected the token (401). Check GITHUB_TOKEN on the API server.',
+            $status === 403 => "GitHub refused access to {$type->github_repo} (403). ".($githubMessage ?: 'The token may lack repo scope or be rate limited.'),
+            $status === 404 => "GitHub repository {$type->github_repo} was not found, or the token cannot see it (404).",
+            default => "GitHub returned {$status}".($githubMessage !== '' ? ": {$githubMessage}" : '.'),
+        };
     }
 }

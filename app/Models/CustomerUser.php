@@ -286,6 +286,31 @@ class CustomerUser extends Authenticatable
         return $this->belongsToMany(ProductPermission::class, 'customer_user_product_permissions');
     }
 
+    /**
+     * Granular tenant-app permissions granted per customer subscription.
+     */
+    public function subscriptionPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductPermission::class, 'customer_user_subscription_permissions')
+            ->withPivot('customer_subscription_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function subscriptionPermissionNames(CustomerSubscription|int $subscription): array
+    {
+        $subscriptionId = $subscription instanceof CustomerSubscription ? $subscription->id : $subscription;
+
+        return $this->subscriptionPermissions()
+            ->wherePivot('customer_subscription_id', $subscriptionId)
+            ->orderBy('product_permissions.name')
+            ->pluck('product_permissions.name')
+            ->values()
+            ->all();
+    }
+
     public function syncLogs()
     {
         return $this->hasMany(UserSyncLog::class);

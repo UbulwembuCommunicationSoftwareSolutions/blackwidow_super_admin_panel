@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncGithubReleasesJob;
 use App\Models\SubscriptionType;
+use App\Services\GithubReleaseClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -47,14 +48,15 @@ class GithubReleaseWebhookController extends Controller
             return response()->json(['message' => 'Missing repository.full_name'], 422);
         }
 
+        $repositoryKey = GithubReleaseClient::repositoryKey($fullName);
+
         $types = SubscriptionType::query()
-            ->where(function ($query) use ($fullName): void {
-                $query->where('github_repo', $fullName)
-                    ->orWhere('github_repo', 'https://github.com/'.$fullName)
-                    ->orWhere('github_repo', 'https://github.com/'.$fullName.'.git')
-                    ->orWhere('github_repo', $fullName.'.git');
-            })
-            ->get(['id', 'github_repo']);
+            ->whereNotNull('github_repo')
+            ->where('github_repo', '!=', '')
+            ->get(['id', 'github_repo'])
+            ->filter(fn (SubscriptionType $type): bool => $repositoryKey !== null
+                && GithubReleaseClient::repositoryKey((string) $type->github_repo) === $repositoryKey)
+            ->values();
 
         foreach ($types as $type) {
             SyncGithubReleasesJob::dispatch((int) $type->id);

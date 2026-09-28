@@ -7,6 +7,7 @@ use App\Models\CustomerUser;
 use App\Models\SubscriptionType;
 use App\Models\UserSyncLog;
 use App\Support\CustomerSync\LmsHub;
+use App\Support\UserSync\PushOperation;
 use App\Support\UserSync\TenantResolver;
 use App\Support\UserSync\UserSyncPayload;
 use Illuminate\Http\Client\PendingRequest;
@@ -65,6 +66,91 @@ class TenantUserPusher
             UserSyncPayload::fromCustomerUser($user)->toArray(),
             ['password' => $password],
         );
+    }
+
+    /**
+     * Replace the user's direct permissions on one subscription's tenant app with
+     * the names granted in this panel. A tenant that does not know the user yet
+     * answers 404; that is recorded as skipped and retried on the next upsert.
+     */
+    public function permissions(CustomerUser $user, CustomerSubscription $subscription): void
+    {
+        if (! config('user_sync.enabled', true) || ! $subscription->supportsPermissionSync()) {
+            return;
+        }
+
+        $subscription->loadMissing('customer');
+        $baseUrl = $subscription->tenantBaseUrl();
+        $token = $subscription->tenantToken();
+        $names = $user->subscriptionPermissionNames($subscription);
+        $context = [
+            'operation' => PushOperation::Permissions->value,
+            'customer_subscription_id' => $subscription->id,
+            'permissions' => $names,
+        ];
+
+        if ($baseUrl === null || $token === '') {
+            $this->log($user, 'skipped', 'Subscription has no reachable tenant URL or token.', $context);
+
+            return;
+        }
+
+        $isLms = (int) $subscription->subscription_type_id === SubscriptionType::LMS_TYPE_ID;
+        $url = $baseUrl.'/admin-api/v1/sync/users/permissions';
+        $context['url'] = $url;
+
+        try {
+            $response = $this->client($token)->post($url, [
+                'app_url' => $baseUrl,
+                'origin' => 'super_admin',
+                'user' => [
+                    'super_admin_user_id' => $user->id,
+                    'cms_user_id' => $isLms ? $user->lms_user_id : $user->cms_user_id,
+                    'email' => (string) $user->email_address,
+                    'super_admin_customer_id' => $user->customer_id,
+                ],
+                'permissions' => $names,
+            ]);
+        } catch (\Throwable $e) {
+            $this->log($user, 'failed', $e->getMessage(), $context);
+
+            throw $e;
+        }
+
+        if ($response->status() === 404) {
+            $this->log($user, 'skipped', 'Tenant does not know this user yet.', $context);
+
+            return;
+        }
+
+        if (! $response->successful()) {
+            $this->log($user, 'failed', 'HTTP '.$response->status().' '.$response->body(), $context);
+
+            throw new \RuntimeException('Tenant permission sync failed with HTTP '.$response->status().' for '.$url);
+        }
+
+        $this->log($user, 'success', null, array_merge($context, [
+            'applied' => (array) $response->json('applied', []),
+            'ignored' => (array) $response->json('ignored', []),
+        ]));
+    }
+
+    /**
+     * Push the user's grants to every subscription they hold permissions on.
+     */
+    public function permissionsForAllSubscriptions(CustomerUser $user): void
+    {
+        $subscriptionIds = $user->subscriptionPermissions()
+            ->pluck('customer_user_subscription_permissions.customer_subscription_id')
+            ->unique()
+            ->values();
+
+        CustomerSubscription::query()
+            ->whereIn('id', $subscriptionIds)
+            ->where('customer_id', $user->customer_id)
+            ->with('customer')
+            ->get()
+            ->each(fn (CustomerSubscription $subscription) => $this->permissions($user, $subscription));
     }
 
     /**
@@ -252,13 +338,7 @@ class TenantUserPusher
 
     private function tokenFor(CustomerSubscription $subscription): string
     {
-        $token = (string) ($subscription->customer?->token ?? '');
-
-        if ((int) $subscription->subscription_type_id === SubscriptionType::LMS_TYPE_ID) {
-            $token = (string) (config('services.lms.sync_token') ?: $token);
-        }
-
-        return $token;
+        return $subscription->tenantToken();
     }
 
     private function client(string $token): PendingRequest

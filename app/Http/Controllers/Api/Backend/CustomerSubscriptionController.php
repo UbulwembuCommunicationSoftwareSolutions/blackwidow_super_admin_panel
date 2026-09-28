@@ -642,7 +642,7 @@ class CustomerSubscriptionController extends Controller
             if (in_array($key, ['trigger_site_deployment', 'force_site_deployment'], true)) {
                 continue;
             }
-            $out[$key] = array_merge(['sometimes'], array_slice($rule, 1));
+            $out[$key] = array_merge(['sometimes'], array_values(array_diff($rule, ['required'])));
         }
 
         return $out;

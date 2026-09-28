@@ -39,6 +39,15 @@ class ShieldSeeder extends Seeder
         'ForceDeleteAny',
     ];
 
+    /**
+     * Abilities outside the standard CRUD matrix.
+     *
+     * @var list<string>
+     */
+    private const EXTRA_PERMISSIONS = [
+        'ManagePermissions:CustomerUser',
+    ];
+
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -48,6 +57,10 @@ class ShieldSeeder extends Seeder
             foreach (self::ACTIONS as $action) {
                 $permissions[] = Permission::findOrCreate($action.':'.$resource, 'web');
             }
+        }
+
+        foreach (self::EXTRA_PERMISSIONS as $permission) {
+            $permissions[] = Permission::findOrCreate($permission, 'web');
         }
 
         $superAdminName = config('filament-shield.super_admin.name', 'super_admin');

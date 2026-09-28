@@ -48,7 +48,12 @@ class PushCustomerUserToTenantsJob implements ShouldQueue
             PushOperation::Upsert => $pusher->upsert($user),
             PushOperation::Archive => $pusher->archive($user),
             PushOperation::Restore => $pusher->restore($user),
+            PushOperation::Permissions => $pusher->permissionsForAllSubscriptions($user),
         };
+
+        if ($this->operation === PushOperation::Upsert && $user->subscriptionPermissions()->exists()) {
+            self::dispatch($user->id, PushOperation::Permissions);
+        }
     }
 
     public function failed(\Throwable $exception): void

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\CustomerUserResource;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
+use App\Services\Permissions\CustomerUserPermissionService;
 use App\Services\UserSync\CustomerUserSyncService;
 use App\Support\UserSync\SyncOutcome;
 use App\Support\UserSync\TenantResolver;
@@ -107,9 +108,21 @@ class CustomerUserController extends Controller
             ->where('customer_id', $customerSubscription->customer_id)
             ->get();
 
+        $grants = $customerSubscription->supportsPermissionSync()
+            ? app(CustomerUserPermissionService::class)->grantsFor($customerSubscription, $users)
+            : [];
+
         return response()->json([
             'success' => true,
-            'data' => $users->map(fn (CustomerUser $user) => $this->legacyUserPayload($user))->all(),
+            'data' => $users->map(function (CustomerUser $user) use ($grants): array {
+                $payload = $this->legacyUserPayload($user);
+
+                if (($grants[$user->id] ?? []) !== []) {
+                    $payload['permissions'] = $grants[$user->id];
+                }
+
+                return $payload;
+            })->all(),
         ]);
     }
 

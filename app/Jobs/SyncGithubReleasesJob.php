@@ -54,8 +54,14 @@ class SyncGithubReleasesJob implements ShouldQueue
             return;
         }
 
+        $knownCommitShas = SubscriptionTypeRelease::query()
+            ->where('subscription_type_id', $type->id)
+            ->whereNotNull('commit_sha')
+            ->pluck('commit_sha', 'tag')
+            ->all();
+
         try {
-            $releases = $client->listReleases((string) $type->github_repo, $this->includeDrafts);
+            $releases = $client->listReleases((string) $type->github_repo, $this->includeDrafts, $knownCommitShas);
         } catch (Throwable $e) {
             Log::error('github_releases.sync.failed', [
                 'subscription_type_id' => $type->id,

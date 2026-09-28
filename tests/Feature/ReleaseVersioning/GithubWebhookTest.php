@@ -122,3 +122,38 @@ it('dispatches sync jobs for matching subscription types on release published', 
     Queue::assertPushed(SyncGithubReleasesJob::class, fn (SyncGithubReleasesJob $job) => $job->subscriptionTypeId === $typeA->id);
     Queue::assertPushed(SyncGithubReleasesJob::class, fn (SyncGithubReleasesJob $job) => $job->subscriptionTypeId === $typeB->id);
 });
+
+it('matches subscription type repos regardless of case, trailing slash or ssh form', function () {
+    config(['services.github.webhook_secret' => 'super-secret']);
+    Queue::fake();
+
+    $lower = SubscriptionType::factory()->create(['github_repo' => 'acme/console']);
+    $slash = SubscriptionType::factory()->create(['github_repo' => 'https://github.com/Acme/Console/']);
+    $ssh = SubscriptionType::factory()->create(['github_repo' => 'git@github.com:acme/console.git']);
+    SubscriptionType::factory()->create(['github_repo' => 'acme/console-legacy']);
+
+    $payload = json_encode([
+        'action' => 'published',
+        'repository' => ['full_name' => 'Acme/Console'],
+    ], JSON_THROW_ON_ERROR);
+    $sig = 'sha256='.hash_hmac('sha256', $payload, 'super-secret');
+
+    $this->call(
+        'POST',
+        '/api/webhooks/github/releases',
+        [],
+        [],
+        [],
+        [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_HUB_SIGNATURE_256' => $sig,
+            'HTTP_X_GITHUB_EVENT' => 'release',
+        ],
+        $payload
+    )->assertOk()->assertJson(['synced_types' => 3]);
+
+    Queue::assertPushed(SyncGithubReleasesJob::class, 3);
+    foreach ([$lower, $slash, $ssh] as $type) {
+        Queue::assertPushed(SyncGithubReleasesJob::class, fn (SyncGithubReleasesJob $job) => $job->subscriptionTypeId === $type->id);
+    }
+});

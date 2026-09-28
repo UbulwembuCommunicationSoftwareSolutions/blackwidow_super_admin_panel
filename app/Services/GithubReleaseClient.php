@@ -19,7 +19,9 @@ class GithubReleaseClient
     /**
      * List published releases for a repository (owner/repo), paginating through GitHub.
      * Skips drafts unless $includeDrafts is true. Uses ETag conditional requests when available.
+     * Tags listed in $knownCommitShas reuse that SHA instead of calling the git refs API again.
      *
+     * @param  array<string, string>  $knownCommitShas  tag => commit SHA
      * @return list<array{
      *     id: int,
      *     tag_name: string,
@@ -31,7 +33,7 @@ class GithubReleaseClient
      *     commit_sha: string
      * }>
      */
-    public function listReleases(string $repository, bool $includeDrafts = false): array
+    public function listReleases(string $repository, bool $includeDrafts = false, array $knownCommitShas = []): array
     {
         $repository = $this->normalizeRepository($repository);
         $releases = [];
@@ -39,9 +41,11 @@ class GithubReleaseClient
 
         do {
             $cacheKey = "github.releases.etag.{$repository}.{$page}";
+            $bodyKey = "github.releases.body.{$repository}.{$page}";
             $etag = Cache::get($cacheKey);
+            $cached = Cache::get($bodyKey);
             $request = $this->http();
-            if (is_string($etag) && $etag !== '') {
+            if (is_string($etag) && $etag !== '' && is_array($cached)) {
                 $request = $request->withHeaders(['If-None-Match' => $etag]);
             }
 
@@ -50,9 +54,8 @@ class GithubReleaseClient
                 'page' => $page,
             ]);
 
-            if ($response->status() === 304) {
-                $cached = Cache::get("github.releases.body.{$repository}.{$page}");
-                $batch = is_array($cached) ? $cached : [];
+            if ($response->status() === 304 && is_array($cached)) {
+                $batch = $cached;
             } else {
                 $response->throw();
                 $batch = $response->json() ?? [];
@@ -63,7 +66,7 @@ class GithubReleaseClient
                 $newEtag = $response->header('ETag');
                 if (is_string($newEtag) && $newEtag !== '') {
                     Cache::put($cacheKey, $newEtag, now()->addDay());
-                    Cache::put("github.releases.body.{$repository}.{$page}", $batch, now()->addDay());
+                    Cache::put($bodyKey, $batch, now()->addDay());
                 }
             }
 
@@ -88,7 +91,9 @@ class GithubReleaseClient
                     'draft' => (bool) ($release['draft'] ?? false),
                     'prerelease' => (bool) ($release['prerelease'] ?? false),
                     'published_at' => isset($release['published_at']) ? (string) $release['published_at'] : null,
-                    'commit_sha' => $this->resolveTagCommitSha($repository, $tag),
+                    'commit_sha' => ($knownCommitShas[$tag] ?? '') !== ''
+                        ? $knownCommitShas[$tag]
+                        : $this->resolveTagCommitSha($repository, $tag),
                 ];
             }
 
@@ -171,17 +176,38 @@ class GithubReleaseClient
             ->timeout(30);
     }
 
+    /**
+     * Case-insensitive owner/repo key for matching stored repos against webhook payloads.
+     * Returns null when the value is not a recognisable GitHub repository.
+     */
+    public static function repositoryKey(string $repository): ?string
+    {
+        $repository = self::stripRepository($repository);
+
+        if (! preg_match('#^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$#', $repository)) {
+            return null;
+        }
+
+        return strtolower($repository);
+    }
+
     private function normalizeRepository(string $repository): string
     {
-        $repository = trim($repository);
-        $repository = preg_replace('#^https?://github\.com/#i', '', $repository) ?? $repository;
-        $repository = rtrim($repository, '/');
-        $repository = preg_replace('#\.git$#i', '', $repository) ?? $repository;
+        $repository = self::stripRepository($repository);
 
         if (! preg_match('#^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$#', $repository)) {
             throw new RuntimeException("Invalid GitHub repository: {$repository}");
         }
 
         return $repository;
+    }
+
+    private static function stripRepository(string $repository): string
+    {
+        $repository = trim($repository);
+        $repository = preg_replace('#^(https?://|git@)(www\.)?github\.com[/:]#i', '', $repository) ?? $repository;
+        $repository = rtrim($repository, '/');
+
+        return preg_replace('#\.git$#i', '', $repository) ?? $repository;
     }
 }

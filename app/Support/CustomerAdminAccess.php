@@ -23,6 +23,7 @@ class CustomerAdminAccess
         'Update:CustomerUser',
         'Delete:CustomerUser',
         'Restore:CustomerUser',
+        'ManagePermissions:CustomerUser',
         'ViewAny:CustomerSubscription',
         'View:CustomerSubscription',
     ];

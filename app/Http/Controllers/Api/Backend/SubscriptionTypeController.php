@@ -23,7 +23,13 @@ class SubscriptionTypeController extends Controller
             'trashed' => ['sometimes', 'in:with,only'],
         ], self::SORTABLE);
 
-        $query = SubscriptionType::query()->with('currentRelease:id,tag,commit_sha,is_prerelease,published_at');
+        $query = SubscriptionType::query()->with([
+            'currentRelease:id,tag,commit_sha,is_prerelease,published_at',
+            'latestRelease' => fn ($release) => $release->select(array_map(
+                fn (string $column): string => 'subscription_type_releases.'.$column,
+                ['id', 'subscription_type_id', 'tag', 'commit_sha', 'is_prerelease', 'published_at'],
+            )),
+        ]);
         $this->applyTrashed($query, $validated['trashed'] ?? null);
         $this->applySearch($query, $validated['search'] ?? null, self::SEARCHABLE);
         $this->applySort($query, $validated, fn ($q) => $q->orderBy('id'));
@@ -33,7 +39,7 @@ class SubscriptionTypeController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $row = SubscriptionType::query()->with('currentRelease')->findOrFail($id);
+        $row = SubscriptionType::query()->with(['currentRelease', 'latestRelease'])->findOrFail($id);
         $this->authorize('view', $row);
 
         return response()->json(['data' => $row]);

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Jobs\PushBrandingToTenantsJob;
 use App\Services\LogoSyncService;
 use App\Support\BrandingSync\BrandingSyncPayload;
+use App\Support\CustomerSync\LmsHub;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -425,6 +426,70 @@ class CustomerSubscription extends Model
     public function brandSlots(): HasMany
     {
         return $this->hasMany(CustomerSubscriptionBrandSlot::class);
+    }
+
+    /**
+     * Product slug the tenant permission catalog is stored under (console, firearm, lms).
+     */
+    public function permissionProduct(): string
+    {
+        return SubscriptionType::urlSlugFor($this->subscription_type_id !== null ? (int) $this->subscription_type_id : null);
+    }
+
+    /**
+     * Whether this subscription's tenant app exposes the permission sync contract.
+     */
+    public function supportsPermissionSync(): bool
+    {
+        return in_array(
+            (int) $this->subscription_type_id,
+            array_map('intval', (array) config('user_sync.permission_subscription_types', [])),
+            true,
+        );
+    }
+
+    /**
+     * Last known permission catalog for this subscription's product.
+     *
+     * @return Builder<ProductPermission>
+     */
+    public function permissionCatalog(): Builder
+    {
+        return ProductPermission::query()
+            ->forProduct($this->permissionProduct())
+            ->active();
+    }
+
+    /**
+     * Base URL of the tenant app that holds this subscription's users. LMS users
+     * live on the shared hub rather than a per-customer deployment.
+     */
+    public function tenantBaseUrl(): ?string
+    {
+        if ((int) $this->subscription_type_id === SubscriptionType::LMS_TYPE_ID) {
+            $hub = LmsHub::configuredUrl();
+            if ($hub !== null) {
+                return $hub;
+            }
+        }
+
+        $url = trim((string) $this->url);
+
+        return $url === '' ? null : rtrim($url, '/');
+    }
+
+    /**
+     * Bearer token the tenant app accepts for hub-to-tenant calls.
+     */
+    public function tenantToken(): string
+    {
+        $token = (string) ($this->customer?->token ?? '');
+
+        if ((int) $this->subscription_type_id === SubscriptionType::LMS_TYPE_ID) {
+            $token = (string) (config('services.lms.sync_token') ?: $token);
+        }
+
+        return $token;
     }
 
     public function effectiveBrandingMedia(string $cmsSlot): ?CustomerBrandingMedia

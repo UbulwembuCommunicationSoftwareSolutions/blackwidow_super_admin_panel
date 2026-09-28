@@ -26,4 +26,17 @@ return [
      */
     'tenant_subscription_types' => [1, 12],
 
+    /*
+     * subscription_type_id of the tenant apps that expose the granular
+     * permission contract (GET /admin-api/v1/sync/permissions and
+     * POST /admin-api/v1/sync/users/permissions): console, firearm and LMS.
+     */
+    'permission_subscription_types' => [1, 2, 12],
+
+    /*
+     * Seconds a fetched tenant permission catalog is reused before it is
+     * pulled again.
+     */
+    'permission_catalog_ttl' => env('PERMISSION_CATALOG_TTL', 600),
+
 ];

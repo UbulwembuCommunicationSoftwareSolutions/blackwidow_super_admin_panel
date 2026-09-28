@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Backend\LmsAccessController;
 use App\Http\Controllers\Api\Backend\NginxTemplateController;
 use App\Http\Controllers\Api\Backend\RoleController;
 use App\Http\Controllers\Api\Backend\SearchController;
+use App\Http\Controllers\Api\Backend\SubscriptionPermissionController;
 use App\Http\Controllers\Api\Backend\SubscriptionTypeController;
 use App\Http\Controllers\Api\Backend\SubscriptionTypeReleaseController;
 use App\Http\Controllers\Api\Backend\TemplateEnvVariablesController;
@@ -60,6 +61,9 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::get('/customer-subscriptions/{id}/deployment-jobs', [CustomerSubscriptionController::class, 'deploymentJobs'])->whereNumber('id');
     Route::post('/customer-subscriptions/{id}/deployment-jobs/{jobId}/retry', [CustomerSubscriptionController::class, 'retryDeploymentJob'])->whereNumber(['id', 'jobId']);
     Route::post('/customer-subscriptions/{id}/deployment-jobs/{jobId}/run-alone', [CustomerSubscriptionController::class, 'runDeploymentJobAlone'])->whereNumber(['id', 'jobId']);
+    Route::get('/customer-subscriptions/{id}/permissions', [SubscriptionPermissionController::class, 'catalog'])->whereNumber('id');
+    Route::get('/customer-subscriptions/{id}/permission-matrix', [SubscriptionPermissionController::class, 'matrix'])->whereNumber('id');
+    Route::put('/customer-subscriptions/{id}/users/{userId}/permissions', [SubscriptionPermissionController::class, 'update'])->whereNumber(['id', 'userId']);
     Route::get('/customer-subscriptions', [CustomerSubscriptionController::class, 'index']);
     Route::post('/customer-subscriptions', [CustomerSubscriptionController::class, 'store']);
     Route::get('/customer-subscriptions/{id}', [CustomerSubscriptionController::class, 'show'])->whereNumber('id');

@@ -66,6 +66,20 @@ class CustomerUserPolicy
         return $authUser->can('Update:CustomerUser');
     }
 
+    /**
+     * Assign granular tenant-app permissions. System admins are unrestricted in
+     * every tenant app, so a customer admin has nothing to grant them.
+     */
+    public function managePermissions(AuthUser $authUser, CustomerUser $customerUser): bool
+    {
+        if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
+            return CustomerAdminAccess::allows($authUser, $customerUser->customer_id)
+                && ! $customerUser->is_system_admin;
+        }
+
+        return $authUser->can('ManagePermissions:CustomerUser') || $authUser->can('Update:CustomerUser');
+    }
+
     public function delete(AuthUser $authUser, CustomerUser $customerUser): bool
     {
         if (CustomerAdminAccess::isCustomerAdmin($authUser)) {
