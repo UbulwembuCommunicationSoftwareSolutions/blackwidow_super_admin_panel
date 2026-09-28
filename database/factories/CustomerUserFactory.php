@@ -20,6 +20,7 @@ class CustomerUserFactory extends Factory
         return [
             'customer_id' => 1,
             'cms_user_id' => null,
+            'lms_user_id' => null,
             'first_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),
             'email_address' => $this->faker->unique()->safeEmail(),

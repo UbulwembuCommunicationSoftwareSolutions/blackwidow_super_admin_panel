@@ -53,7 +53,8 @@ it('posts lms users to the hub with super_admin_customer_id and lms sync token',
             && $request['user']['lms_access'] === true;
     });
 
-    expect($user->fresh()->cms_user_id)->toBe(55);
+    expect($user->fresh()->lms_user_id)->toBe(55)
+        ->and($user->fresh()->cms_user_id)->toBeNull();
 });
 
 it('posts lms users to the configured hub without an lms subscription', function (): void {
@@ -90,6 +91,9 @@ it('posts lms users to the configured hub without an lms subscription', function
             && $request['user']['super_admin_customer_id'] === $customer->id
             && $request['user']['is_system_admin'] === true;
     });
+
+    expect($user->fresh()->lms_user_id)->toBe(77)
+        ->and($user->fresh()->cms_user_id)->toBeNull();
 });
 
 it('skips lms push when user has no lms access', function (): void {

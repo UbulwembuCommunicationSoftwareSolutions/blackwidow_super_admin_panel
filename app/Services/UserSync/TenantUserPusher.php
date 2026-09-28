@@ -73,7 +73,17 @@ class TenantUserPusher
                 continue;
             }
 
-            $this->push($user, rtrim((string) $subscription->url, '/'), $this->tokenFor($subscription), $path, $payload, $extra);
+            $isLms = (int) $subscription->subscription_type_id === SubscriptionType::LMS_TYPE_ID
+                || LmsHub::matches($subscription->url);
+            $this->push(
+                $user,
+                rtrim((string) $subscription->url, '/'),
+                $this->tokenFor($subscription),
+                $path,
+                $payload,
+                $extra,
+                $isLms,
+            );
             $pushed[] = TenantResolver::normalise($subscription->url);
         }
 
@@ -120,7 +130,7 @@ class TenantUserPusher
             return;
         }
 
-        $this->push($user, $hubUrl, $token, $path, $payload, $extra);
+        $this->push($user, $hubUrl, $token, $path, $payload, $extra, true);
     }
 
     private function shouldPushToConfiguredHub(CustomerUser $user): bool
@@ -152,6 +162,7 @@ class TenantUserPusher
         string $path,
         array $payload,
         array $extra,
+        bool $isLmsHub = false,
     ): void {
         $url = rtrim($baseUrl, '/').'/admin-api/v1/sync/'.$path;
 
@@ -187,7 +198,7 @@ class TenantUserPusher
             throw new \RuntimeException('Tenant user sync failed with HTTP '.$response->status().' for '.$url);
         }
 
-        $this->rememberTenantUserId($user, $response->json('user.cms_user_id'));
+        $this->rememberTenantUserId($user, $response->json('user.cms_user_id'), $isLmsHub);
 
         $user->forceFill([
             'last_synced_at' => now(),
@@ -243,13 +254,19 @@ class TenantUserPusher
             ->connectTimeout(10);
     }
 
-    private function rememberTenantUserId(CustomerUser $user, mixed $tenantUserId): void
+    private function rememberTenantUserId(CustomerUser $user, mixed $tenantUserId, bool $isLmsHub = false): void
     {
-        if (blank($tenantUserId) || (int) $tenantUserId === (int) $user->cms_user_id) {
+        if (blank($tenantUserId)) {
             return;
         }
 
-        $user->forceFill(['cms_user_id' => (int) $tenantUserId])->saveQuietly();
+        $column = $isLmsHub ? 'lms_user_id' : 'cms_user_id';
+
+        if ((int) $tenantUserId === (int) $user->{$column}) {
+            return;
+        }
+
+        $user->forceFill([$column => (int) $tenantUserId])->saveQuietly();
     }
 
     /**

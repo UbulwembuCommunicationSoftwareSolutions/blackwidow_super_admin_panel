@@ -24,6 +24,7 @@ class CustomerUser extends Authenticatable
     public $fillable = [
         'customer_id',
         'cms_user_id',
+        'lms_user_id',
         'first_name',
         'last_name',
         'email_address',
@@ -49,6 +50,7 @@ class CustomerUser extends Authenticatable
 
     public $casts = [
         'cms_user_id' => 'integer',
+        'lms_user_id' => 'integer',
         'is_system_admin' => 'boolean',
         'skip_sync' => 'boolean',
         'last_synced_at' => 'datetime',

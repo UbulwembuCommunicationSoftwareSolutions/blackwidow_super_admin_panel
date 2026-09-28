@@ -121,6 +121,9 @@ class CustomerUserRelationManager extends RelationManager
                 TextColumn::make('email_address')
                     ->label('Email')
                     ->searchable(),
+                TextColumn::make('lms_user_id')
+                    ->label('LMS User ID')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('first_name')
                     ->label('First Name')
                     ->searchable(),

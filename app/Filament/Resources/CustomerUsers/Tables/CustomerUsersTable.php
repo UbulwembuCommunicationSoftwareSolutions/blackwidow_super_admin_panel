@@ -22,6 +22,12 @@ class CustomerUsersTable
                     ->searchable(),
                 TextColumn::make('email_address')
                     ->searchable(),
+                TextColumn::make('cms_user_id')
+                    ->label('CMS User ID')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('lms_user_id')
+                    ->label('LMS User ID')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('first_name')
                     ->searchable(),
                 TextColumn::make('last_name')
@@ -52,6 +58,8 @@ class CustomerUsersTable
                     ->label('Timesheet Management Access')
                     ->boolean(),
                 IconColumn::make('stock_access')
+                    ->boolean(),
+                IconColumn::make('lms_access')
                     ->boolean(),
                 TextColumn::make('cellphone')
                     ->searchable(),
