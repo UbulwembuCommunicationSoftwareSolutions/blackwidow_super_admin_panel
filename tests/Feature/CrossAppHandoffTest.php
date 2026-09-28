@@ -349,3 +349,40 @@ it('refuses a consume url on a different host', function () {
 
     assertHandoffRefused('consume_url_off_host');
 });
+
+it('signs a pre case user in with a one-time link', function () {
+    SubscriptionType::factory()->create(['id' => 13, 'name' => 'Pre Case']);
+    ['customer' => $customer, 'user' => $user, 'token' => $token] = handoffUser(['precase_access' => true]);
+    handoffSubscription($customer, 13, 'https://precase.example.test');
+
+    Http::fake([
+        'https://precase.example.test/admin-api/impersonate' => Http::response([
+            'impersonate_url' => 'https://precase.example.test/impersonate/consume/pc',
+            'expires_in_minutes' => 5,
+        ], 200),
+    ]);
+
+    $this->withUnencryptedCookie('external_token', $token)
+        ->get('/go?to='.urlencode('https://precase.example.test'))
+        ->assertRedirect('https://precase.example.test/impersonate/consume/pc');
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://precase.example.test/admin-api/impersonate'
+        && $request->hasHeader('Authorization', 'Bearer tenant-token')
+        && (int) $request['super_admin_user_id'] === $user->id
+        && ! isset($request['user_id']));
+});
+
+it('sends a user without pre case access to the pre case login', function () {
+    SubscriptionType::factory()->create(['id' => 13, 'name' => 'Pre Case']);
+    ['customer' => $customer, 'token' => $token] = handoffUser(['precase_access' => false, 'is_system_admin' => true]);
+    handoffSubscription($customer, 13, 'https://precase.example.test');
+
+    Http::fake();
+
+    $this->withUnencryptedCookie('external_token', $token)
+        ->get('/go?to='.urlencode('https://precase.example.test'))
+        ->assertRedirect('https://precase.example.test');
+
+    Http::assertNothingSent();
+    assertHandoffRefused('no_access');
+});

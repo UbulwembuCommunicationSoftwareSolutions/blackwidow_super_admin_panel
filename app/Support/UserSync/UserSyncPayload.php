@@ -36,6 +36,7 @@ final class UserSyncPayload
         'time_and_attendance_access' => 9,
         'stock_access' => 10,
         'lms_access' => 12,
+        'precase_access' => 13,
     ];
 
     /**

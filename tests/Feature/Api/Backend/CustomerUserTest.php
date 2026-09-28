@@ -106,12 +106,15 @@ it('updates a customer user password and access rights', function () {
         'console_access' => true,
         'is_system_admin' => true,
         'lms_access' => true,
+        'precase_access' => true,
     ])->assertOk()
         ->assertJsonPath('data.console_access', true)
         ->assertJsonPath('data.is_system_admin', true)
-        ->assertJsonPath('data.lms_access', true);
+        ->assertJsonPath('data.lms_access', true)
+        ->assertJsonPath('data.precase_access', true);
 
-    expect($user->fresh()->lms_access)->toBeTrue();
+    expect($user->fresh()->lms_access)->toBeTrue()
+        ->and($user->fresh()->checkAccess(13))->toBeTrue();
 
     $this->putJson("/api/backend/customer-users/{$user->id}", [
         'lms_access' => false,
