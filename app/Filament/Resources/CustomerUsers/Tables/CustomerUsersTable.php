@@ -61,6 +61,9 @@ class CustomerUsersTable
                     ->boolean(),
                 IconColumn::make('lms_access')
                     ->boolean(),
+                IconColumn::make('precase_access')
+                    ->label('Pre Case access')
+                    ->boolean(),
                 TextColumn::make('cellphone')
                     ->searchable(),
                 IconColumn::make('is_system_admin')

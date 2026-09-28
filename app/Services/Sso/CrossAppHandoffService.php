@@ -23,8 +23,8 @@ use Laravel\Sanctum\PersonalAccessToken;
  */
 class CrossAppHandoffService
 {
-    /** Subscription types that expose `/admin-api/impersonate` via CMSService. */
-    private const TENANT_LINK_TYPES = [1, 2];
+    /** Subscription types that expose `/admin-api/impersonate` via CMSService (CMS, Firearm, Pre Case). */
+    private const TENANT_LINK_TYPES = [1, 2, 13];
 
     private const LMS_TYPE = 12;
 

@@ -48,6 +48,9 @@ class CustomerUserForm
                 Toggle::make('lms_access')
                     ->label('LMS Access')
                     ->required(),
+                Toggle::make('precase_access')
+                    ->label('Pre Case Access')
+                    ->required(),
                 TextInput::make('cellphone')
                     ->tel(),
                 Toggle::make('is_system_admin')

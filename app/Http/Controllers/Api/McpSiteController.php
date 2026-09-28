@@ -489,6 +489,7 @@ class McpSiteController extends Controller
             'time_and_attendance_access' => ['sometimes', 'boolean'],
             'stock_access' => ['sometimes', 'boolean'],
             'lms_access' => ['sometimes', 'boolean'],
+            'precase_access' => ['sometimes', 'boolean'],
         ]);
 
         $query = CustomerUser::query()
@@ -520,6 +521,7 @@ class McpSiteController extends Controller
             'time_and_attendance_access',
             'stock_access',
             'lms_access',
+            'precase_access',
         ] as $flag) {
             if (array_key_exists($flag, $validated)) {
                 $query->where($flag, $request->boolean($flag));

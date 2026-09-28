@@ -233,6 +233,7 @@ class CustomerUserController extends Controller
             'time_and_attendance_access' => ['sometimes', 'boolean'],
             'stock_access' => ['sometimes', 'boolean'],
             'lms_access' => ['sometimes', 'boolean'],
+            'precase_access' => ['sometimes', 'boolean'],
         ]);
 
         if ($validated !== []) {
@@ -320,6 +321,7 @@ class CustomerUserController extends Controller
             'time_and_attendance_access' => [$presence, 'boolean'],
             'stock_access' => [$presence, 'boolean'],
             'lms_access' => [$presence, 'boolean'],
+            'precase_access' => [$presence, 'boolean'],
         ];
     }
 }

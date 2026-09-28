@@ -39,6 +39,7 @@ class CustomerUser extends Authenticatable
         'time_and_attendance_access',
         'stock_access',
         'lms_access',
+        'precase_access',
         'created_at',
         'cellphone',
         'is_system_admin',
@@ -65,6 +66,7 @@ class CustomerUser extends Authenticatable
         'time_and_attendance_access' => 'boolean',
         'stock_access' => 'boolean',
         'lms_access' => 'boolean',
+        'precase_access' => 'boolean',
     ];
 
     public function isDeleteScheduled(): bool
@@ -125,6 +127,7 @@ class CustomerUser extends Authenticatable
             'time_and_attendance_access' => 9,
             'stock_access' => 10,
             'lms_access' => 12,
+            'precase_access' => 13,
         ];
 
         foreach ($accessTypes as $access => $typeId) {

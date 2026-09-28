@@ -32,6 +32,7 @@ class CustomerUserResource extends JsonResource
             'time_and_attendance_access' => $this->time_and_attendance_access,
             'stock_access' => $this->stock_access,
             'lms_access' => $this->lms_access,
+            'precase_access' => $this->precase_access,
             'product_permissions' => $this->whenLoaded('productPermissions', function () {
                 return $this->productPermissions->map(fn ($permission) => [
                     'id' => $permission->id,
