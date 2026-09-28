@@ -45,6 +45,9 @@ class CustomerUserForm
                     ->required(),
                 Toggle::make('stock_access')
                     ->required(),
+                Toggle::make('lms_access')
+                    ->label('LMS Access')
+                    ->required(),
                 TextInput::make('cellphone')
                     ->tel(),
                 Toggle::make('is_system_admin')

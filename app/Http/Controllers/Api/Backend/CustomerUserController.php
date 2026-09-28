@@ -232,6 +232,7 @@ class CustomerUserController extends Controller
             'survey_access' => ['sometimes', 'boolean'],
             'time_and_attendance_access' => ['sometimes', 'boolean'],
             'stock_access' => ['sometimes', 'boolean'],
+            'lms_access' => ['sometimes', 'boolean'],
         ]);
 
         if ($validated !== []) {
@@ -318,6 +319,7 @@ class CustomerUserController extends Controller
             'survey_access' => [$presence, 'boolean'],
             'time_and_attendance_access' => [$presence, 'boolean'],
             'stock_access' => [$presence, 'boolean'],
+            'lms_access' => [$presence, 'boolean'],
         ];
     }
 }

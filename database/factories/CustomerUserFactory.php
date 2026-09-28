@@ -35,6 +35,7 @@ class CustomerUserFactory extends Factory
             'survey_access' => $this->faker->boolean(),
             'time_and_attendance_access' => $this->faker->boolean(),
             'stock_access' => $this->faker->boolean(),
+            'lms_access' => false,
             'is_system_admin' => $this->faker->boolean(20), // 20% chance
             'skip_sync' => false,
             'last_synced_at' => null,

@@ -110,6 +110,9 @@ class CustomerUserRelationManager extends RelationManager
                             ->required(),
                         Toggle::make('stock_access')
                             ->required(),
+                        Toggle::make('lms_access')
+                            ->label('LMS Access')
+                            ->required(),
                     ])->columns(2),
             ]);
     }
@@ -245,6 +248,9 @@ class CustomerUserRelationManager extends RelationManager
                                 Toggle::make('stock_access')
                                     ->label('Stock Access')
                                     ->required(),
+                                Toggle::make('lms_access')
+                                    ->label('LMS Access')
+                                    ->required(),
                             ])->columns(2),
                     ])
                     ->fillForm(fn (CustomerUser $record): array => [
@@ -256,6 +262,7 @@ class CustomerUserRelationManager extends RelationManager
                         'survey_access' => $record->survey_access,
                         'time_and_attendance_access' => $record->time_and_attendance_access,
                         'stock_access' => $record->stock_access,
+                        'lms_access' => $record->lms_access,
                         'is_system_admin' => $record->is_system_admin,
                     ])
                     ->action(function (CustomerUser $record, array $data) {
