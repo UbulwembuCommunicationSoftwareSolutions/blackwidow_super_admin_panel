@@ -116,6 +116,52 @@ it('signs an lms user into the lms hub', function () {
         ->assertRedirect('https://lms-hub.example.test/impersonate/consume/lms');
 });
 
+it('pushes the user to the lms before asking for a link', function () {
+    config(['user_sync.enabled' => true]);
+    ['user' => $user, 'token' => $token] = handoffUser(['lms_access' => true]);
+
+    Http::fake([
+        'https://lms-hub.example.test/admin-api/v1/sync/users' => Http::response([
+            'success' => true,
+            'user' => ['cms_user_id' => 31],
+        ], 201),
+        'https://lms-hub.example.test/admin-api/impersonate' => Http::response([
+            'user_id' => 31,
+            'impersonate_url' => 'https://lms-hub.example.test/impersonate/consume/new-member',
+            'expires_in_minutes' => 5,
+        ], 200),
+    ]);
+
+    $this->withUnencryptedCookie('external_token', $token)
+        ->get('/go?to='.urlencode('https://lms-hub.example.test'))
+        ->assertRedirect('https://lms-hub.example.test/impersonate/consume/new-member');
+
+    Http::assertSentInOrder([
+        fn ($request) => $request->url() === 'https://lms-hub.example.test/admin-api/v1/sync/users'
+            && (int) $request['user']['super_admin_user_id'] === $user->id,
+        fn ($request) => $request->url() === 'https://lms-hub.example.test/admin-api/impersonate'
+            && (int) $request['super_admin_user_id'] === $user->id,
+    ]);
+});
+
+it('still asks the lms for a link when the push fails', function () {
+    config(['user_sync.enabled' => true]);
+    ['token' => $token] = handoffUser(['lms_access' => true]);
+
+    Http::fake([
+        'https://lms-hub.example.test/admin-api/v1/sync/users' => Http::response(['message' => 'down'], 500),
+        'https://lms-hub.example.test/admin-api/impersonate' => Http::response([
+            'user_id' => 12,
+            'impersonate_url' => 'https://lms-hub.example.test/impersonate/consume/existing',
+            'expires_in_minutes' => 5,
+        ], 200),
+    ]);
+
+    $this->withUnencryptedCookie('external_token', $token)
+        ->get('/go?to='.urlencode('https://lms-hub.example.test'))
+        ->assertRedirect('https://lms-hub.example.test/impersonate/consume/existing');
+});
+
 it('returns 404 for a host that is not a suite app', function () {
     ['token' => $token] = handoffUser(['console_access' => true]);
 

@@ -6,10 +6,12 @@ use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Services\CMSService;
 use App\Services\LmsImpersonationService;
+use App\Services\UserSync\TenantUserPusher;
 use App\Support\CustomerSync\LmsHub;
 use App\Support\Sso\SsoHandoffLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
@@ -28,6 +30,7 @@ class CrossAppHandoffService
     public function __construct(
         private readonly LmsImpersonationService $lms,
         private readonly CMSService $tenants,
+        private readonly TenantUserPusher $pusher,
     ) {}
 
     /**
@@ -77,6 +80,8 @@ class CrossAppHandoffService
                 return $refuse('no_access', $user, ['subscription_type_id' => self::LMS_TYPE]);
             }
 
+            $this->pushToLmsHub($user);
+
             return $this->follow(
                 fn (): array => $this->lms->issueLink($user),
                 $request, $handoff, $user, $targetHost, $refuse,
@@ -125,6 +130,23 @@ class CrossAppHandoffService
         SsoHandoffLog::redirected($handoff, $request, $user, $consumeUrl);
 
         return $consumeUrl;
+    }
+
+    /**
+     * The LMS only issues links for members it already has, so the user is
+     * pushed to the hub first. A failed push is logged and the link is still
+     * requested, since the member may already exist.
+     */
+    private function pushToLmsHub(CustomerUser $user): void
+    {
+        try {
+            $this->pusher->upsertToLmsHub($user);
+        } catch (\Throwable $e) {
+            Log::warning('LMS member push before handoff failed', [
+                'customer_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function isKnownHost(string $host): bool

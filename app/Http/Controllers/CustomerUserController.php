@@ -25,6 +25,9 @@ use Log;
  */
 class CustomerUserController extends Controller
 {
+    /** Request fields that must never reach the log. */
+    private const SECRET_FIELDS = ['password', 'password_confirmation', 'new_password', 'current_password', 'token'];
+
     use AuthorizesRequests;
 
     public function __construct(private readonly CustomerUserSyncService $sync) {}
@@ -112,8 +115,7 @@ class CustomerUserController extends Controller
 
     public function login(Request $request)
     {
-        $input = $request->all();
-        Log::info('Login request: '.json_encode($input));
+        Log::info('Login request: '.json_encode($request->except(self::SECRET_FIELDS)));
         if ($request->has('email')) {
             $email = $request->get('email');
         } else {
@@ -168,13 +170,10 @@ class CustomerUserController extends Controller
                 );
             }
         }
-        Log::info('Stored hash: '.$customerUser->password);
-        Log::info('Entered password: '.$request->password);
         Log::info('Hash Check: '.(Hash::check($request->password, $customerUser->password) ? 'Match' : 'No Match'));
         if (! \Hash::check($request->password, $customerUser->password)) {
             return response()->json(
                 [
-                    'debug' => $request->password.' is not equal to '.$customerUser->password,
                     'message' => 'Invalid credentials',
                     'customer_user' => $customerUser,
                 ],
@@ -319,7 +318,7 @@ class CustomerUserController extends Controller
 
     public function store(Request $request)
     {
-        Log::info(json_encode($request->all()));
+        Log::info(json_encode($request->except(self::SECRET_FIELDS)));
 
         // Validate the request
         $validated = $request->validate([
@@ -590,7 +589,7 @@ class CustomerUserController extends Controller
      */
     public function updateFromCMS(Request $request)
     {
-        Log::info('Update user from CMS: '.json_encode($request->all()));
+        Log::info('Update user from CMS: '.json_encode($request->except(self::SECRET_FIELDS)));
 
         // Validate the request
         $validated = $request->validate([
@@ -652,7 +651,7 @@ class CustomerUserController extends Controller
      */
     public function getSingleUser(Request $request)
     {
-        Log::info('Get single user: '.json_encode($request->all()));
+        Log::info('Get single user: '.json_encode($request->except(self::SECRET_FIELDS)));
 
         // Validate the request
         $validated = $request->validate([
@@ -689,7 +688,7 @@ class CustomerUserController extends Controller
      */
     public function updatePasswordFromCMS(Request $request)
     {
-        Log::info('Update password from CMS: '.json_encode($request->all()));
+        Log::info('Update password from CMS: '.json_encode($request->except(self::SECRET_FIELDS)));
 
         // Validate the request
         $validated = $request->validate([
