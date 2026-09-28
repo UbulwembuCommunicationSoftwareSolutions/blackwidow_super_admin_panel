@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomerUser;
+use App\Support\Sso\SsoHandoffLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -21,11 +22,20 @@ class CustomerPortalHandoffController extends Controller
         $user = $accessToken?->tokenable;
 
         if (! $user instanceof CustomerUser || ! $user->is_system_admin) {
+            SsoHandoffLog::refused('customer_portal', match (true) {
+                ! is_string($token) || $token === '' => 'no_cookie',
+                $accessToken === null => 'token_not_found',
+                ! $user instanceof CustomerUser => 'not_customer_user',
+                default => 'not_system_admin',
+            }, $request, $user instanceof CustomerUser ? $user : null, ['target_host' => parse_url($portal, PHP_URL_HOST)]);
+
             return redirect()->away($portal.'/customer?error=unavailable');
         }
 
         $code = Str::random(64);
         Cache::put('customer-portal-sso:'.$code, $token, now()->addMinute());
+
+        SsoHandoffLog::redirected('customer_portal', $request, $user, $portal);
 
         return redirect()->away($portal.'/customer?sso='.$code);
     }

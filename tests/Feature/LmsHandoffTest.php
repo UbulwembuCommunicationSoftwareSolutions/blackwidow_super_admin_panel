@@ -2,7 +2,9 @@
 
 use App\Models\Customer;
 use App\Models\CustomerUser;
+use App\Support\Sso\SsoHandoffLog;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
@@ -109,7 +111,8 @@ it('allows a system admin without lms_access to open the LMS handoff', function 
         ->assertRedirect('https://lms-hub.example.test/impersonate/consume/admin');
 });
 
-it('rejects a cookie when the user has no LMS access', function () {
+it('sends a user without LMS access to the LMS itself and logs why', function () {
+    Log::spy();
     Http::fake([
         'https://lms-hub.example.test/*' => Http::response(['success' => true], 200),
     ]);
@@ -126,15 +129,26 @@ it('rejects a cookie when the user has no LMS access', function () {
 
     $this->withUnencryptedCookie('external_token', $plain)
         ->get('/lms')
-        ->assertRedirect('https://lms-hub.example.test/admin/login?error=unavailable');
+        ->assertRedirect('https://lms-hub.example.test');
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === SsoHandoffLog::REFUSED
+        && $context['handoff'] === 'lms'
+        && $context['reason'] === 'no_access'
+        && $context['customer_user_id'] === $user->id);
 });
 
-it('rejects a missing cookie', function () {
-    $this->get('/lms')
-        ->assertRedirect('https://lms-hub.example.test/admin/login?error=unavailable');
+it('sends a missing cookie to the LMS itself and logs why', function () {
+    Log::spy();
+
+    $this->get('/lms')->assertRedirect('https://lms-hub.example.test');
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === SsoHandoffLog::REFUSED
+        && $context['reason'] === 'no_cookie'
+        && $context['has_cookie'] === false);
 });
 
-it('rejects a consume url that is not on the configured hub host', function () {
+it('refuses a consume url that is not on the configured hub host', function () {
+    Log::spy();
     Http::fake([
         'https://lms-hub.example.test/admin-api/impersonate' => Http::response([
             'user_id' => 1,
@@ -155,5 +169,48 @@ it('rejects a consume url that is not on the configured hub host', function () {
 
     $this->withUnencryptedCookie('external_token', $plain)
         ->get('/lms')
-        ->assertRedirect('https://lms-hub.example.test/admin/login?error=unavailable');
+        ->assertRedirect('https://lms-hub.example.test');
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === SsoHandoffLog::REFUSED
+        && $context['reason'] === 'consume_url_off_host'
+        && $context['consume_host'] === 'evil.example.test');
+});
+
+it('logs a successful lms handoff without the consume token', function () {
+    Log::spy();
+    Http::fake([
+        'https://lms-hub.example.test/admin-api/impersonate' => Http::response([
+            'user_id' => 5,
+            'impersonate_url' => 'https://lms-hub.example.test/impersonate/consume/secret-token',
+            'expires_in_minutes' => 5,
+        ], 200),
+        'https://lms-hub.example.test/*' => Http::response(['success' => true], 200),
+    ]);
+
+    $customer = Customer::factory()->create();
+    $user = CustomerUser::factory()->create([
+        'customer_id' => $customer->id,
+        'lms_access' => true,
+        'skip_sync' => true,
+        'password' => 'secret-pass',
+    ]);
+    $plain = $user->createToken('customer-user-token')->plainTextToken;
+
+    $this->withUnencryptedCookie('external_token', $plain)->get('/lms');
+
+    Log::shouldHaveReceived('info')->withArgs(fn (string $message, array $context): bool => $message === SsoHandoffLog::REDIRECTED
+        && $context['handoff'] === 'lms'
+        && $context['redirect_host'] === 'lms-hub.example.test'
+        && ! str_contains(json_encode($context), 'secret-token')
+        && ! str_contains(json_encode($context), $plain));
+});
+
+it('logs when the lms hub is not configured', function () {
+    Log::spy();
+    config(['services.lms.hub_url' => null]);
+
+    $this->get('/lms')->assertRedirect('/login?error=unavailable');
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === SsoHandoffLog::REFUSED
+        && $context['reason'] === 'hub_not_configured');
 });

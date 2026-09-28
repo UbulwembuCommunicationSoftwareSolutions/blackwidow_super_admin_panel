@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CrossAppHandoffController;
 use App\Http\Controllers\CustomerPortalHandoffController;
 use App\Http\Controllers\CustomerSubscriptionController;
 use App\Http\Controllers\LmsHandoffController;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 // Laravel and packages often expect a route named "login".
 Route::get('/customer-portal', CustomerPortalHandoffController::class)->name('customer-portal');
 Route::get('/lms', LmsHandoffController::class)->name('lms.handoff');
+Route::get('/go', CrossAppHandoffController::class)->name('sso.go');
 
 Route::get('/login', function () {
     return redirect()->away('https://super_admin_frontend-eumaqzrf.on-forge.com/');

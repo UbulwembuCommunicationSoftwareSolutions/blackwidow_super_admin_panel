@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Backend;
 use App\Models\CustomerUser;
 use App\Models\User;
 use App\Support\CustomerAdminAccess;
+use App\Support\Sso\SsoHandoffLog;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,10 +62,19 @@ class AuthController extends Controller
         $user = $accessToken?->tokenable;
 
         if (! $user instanceof CustomerUser || ! $user->is_system_admin) {
+            SsoHandoffLog::refused('customer_portal_exchange', match (true) {
+                ! is_string($token) || $token === '' => 'code_expired',
+                $accessToken === null => 'token_not_found',
+                ! $user instanceof CustomerUser => 'not_customer_user',
+                default => 'not_system_admin',
+            }, $request, $user instanceof CustomerUser ? $user : null);
+
             throw ValidationException::withMessages([
                 'code' => ['This customer portal link has expired.'],
             ]);
         }
+
+        SsoHandoffLog::redirected('customer_portal_exchange', $request, $user, (string) $request->headers->get('Origin', ''));
 
         return response()->json([
             'data' => [
