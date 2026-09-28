@@ -28,6 +28,22 @@ class TenantUserPusher
         $this->dispatchToTenants($user, 'users', UserSyncPayload::fromCustomerUser($user)->toArray());
     }
 
+    /**
+     * Pushes the user to the shared LMS hub only, so an LMS login link can find
+     * the member without re-syncing every other tenant app.
+     */
+    public function upsertToLmsHub(CustomerUser $user): void
+    {
+        $hubUrl = LmsHub::configuredUrl();
+        $token = (string) config('services.lms.sync_token', '');
+
+        if (! config('user_sync.enabled', true) || $hubUrl === null || $token === '') {
+            return;
+        }
+
+        $this->push($user, $hubUrl, $token, 'users', UserSyncPayload::fromCustomerUser($user)->toArray(), [], true);
+    }
+
     public function archive(CustomerUser $user): void
     {
         $this->dispatchToTenants($user, 'users/archive', UserSyncPayload::fromCustomerUser($user)->toArray());

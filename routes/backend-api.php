@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Backend\DeploymentScriptController;
 use App\Http\Controllers\Api\Backend\DeploymentTemplateController;
 use App\Http\Controllers\Api\Backend\EnvVariablesController;
 use App\Http\Controllers\Api\Backend\ForgeServerController;
+use App\Http\Controllers\Api\Backend\LmsAccessController;
 use App\Http\Controllers\Api\Backend\NginxTemplateController;
 use App\Http\Controllers\Api\Backend\RoleController;
 use App\Http\Controllers\Api\Backend\SearchController;
@@ -26,6 +27,7 @@ Route::post('/login/sso', [AuthController::class, 'exchangeSso'])->name('login.s
 Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/user', [AuthController::class, 'me'])->name('user');
+    Route::post('/lms/access', LmsAccessController::class)->name('lms.access');
 
     Route::post('/customers/{id}/restore', [CustomerController::class, 'restore'])->whereNumber('id');
     Route::delete('/customers/{id}/force', [CustomerController::class, 'forceDestroy'])->whereNumber('id');
