@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Backend\EnvVariablesController;
 use App\Http\Controllers\Api\Backend\ForgeServerController;
 use App\Http\Controllers\Api\Backend\LmsAccessController;
 use App\Http\Controllers\Api\Backend\NginxTemplateController;
+use App\Http\Controllers\Api\Backend\PasswordResetController;
 use App\Http\Controllers\Api\Backend\RoleController;
 use App\Http\Controllers\Api\Backend\SearchController;
 use App\Http\Controllers\Api\Backend\SubscriptionPermissionController;
@@ -24,6 +25,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login/sso', [AuthController::class, 'exchangeSso'])->name('login.sso');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
+    ->middleware('throttle:5,1')
+    ->name('password.email');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+    ->middleware('throttle:10,1')
+    ->name('password.update');
 
 Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
