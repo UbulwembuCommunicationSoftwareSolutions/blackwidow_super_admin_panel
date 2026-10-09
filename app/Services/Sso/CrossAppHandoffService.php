@@ -98,7 +98,7 @@ class CrossAppHandoffService
             $this->pushToLmsHub($user);
 
             return $this->follow(
-                fn (): array => $this->lms->issueLink($user),
+                fn (): array => self::withNextPath($this->lms->issueLink($user), $targetUrl),
                 $request, $handoff, $user, $targetHost, $refuse,
             );
         }
@@ -223,6 +223,31 @@ class CrossAppHandoffService
             ->get()
             ->filter(fn (CustomerSubscription $subscription): bool => strcasecmp((string) self::hostOf((string) $subscription->url), $host) === 0)
             ->values();
+    }
+
+    /**
+     * The LMS consume link always signs in to its dashboard, so a deeper target
+     * (a course) is passed along as `next` for the LMS to vet and follow.
+     *
+     * @param  array{impersonate_url: string, expires_in_minutes: int}  $link
+     * @return array{impersonate_url: string, expires_in_minutes: int}
+     */
+    private static function withNextPath(array $link, string $targetUrl): array
+    {
+        $parts = parse_url(self::withScheme($targetUrl));
+        $path = is_array($parts) ? (string) ($parts['path'] ?? '') : '';
+        $query = is_array($parts) ? (string) ($parts['query'] ?? '') : '';
+
+        if (($path === '' || $path === '/') && $query === '') {
+            return $link;
+        }
+
+        $next = ($path === '' ? '/' : $path).($query !== '' ? '?'.$query : '');
+        $separator = str_contains($link['impersonate_url'], '?') ? '&' : '?';
+
+        $link['impersonate_url'] .= $separator.http_build_query(['next' => $next]);
+
+        return $link;
     }
 
     private static function hostOf(string $url): ?string

@@ -116,6 +116,43 @@ it('signs an lms user into the lms hub', function () {
         ->assertRedirect('https://lms-hub.example.test/impersonate/consume/lms');
 });
 
+it('passes an lms course path on to the consume link as next', function (string $target, string $next) {
+    ['token' => $token] = handoffUser(['lms_access' => true]);
+
+    Http::fake([
+        'https://lms-hub.example.test/admin-api/impersonate' => Http::response([
+            'user_id' => 9,
+            'impersonate_url' => 'https://lms-hub.example.test/impersonate/consume/lms',
+            'expires_in_minutes' => 5,
+        ], 200),
+        'https://lms-hub.example.test/*' => Http::response(['success' => true], 200),
+    ]);
+
+    $this->withUnencryptedCookie('external_token', $token)
+        ->get('/go?to='.urlencode($target))
+        ->assertRedirect('https://lms-hub.example.test/impersonate/consume/lms?'.http_build_query(['next' => $next]));
+})->with([
+    'course' => ['https://lms-hub.example.test/courses/5', '/courses/5'],
+    'enrolled catalog' => ['https://lms-hub.example.test/catalog?tab=enrolled', '/catalog?tab=enrolled'],
+]);
+
+it('adds no next path for the bare lms host', function () {
+    ['token' => $token] = handoffUser(['lms_access' => true]);
+
+    Http::fake([
+        'https://lms-hub.example.test/admin-api/impersonate' => Http::response([
+            'user_id' => 9,
+            'impersonate_url' => 'https://lms-hub.example.test/impersonate/consume/lms',
+            'expires_in_minutes' => 5,
+        ], 200),
+        'https://lms-hub.example.test/*' => Http::response(['success' => true], 200),
+    ]);
+
+    $this->withUnencryptedCookie('external_token', $token)
+        ->get('/go?to='.urlencode('https://lms-hub.example.test/'))
+        ->assertRedirect('https://lms-hub.example.test/impersonate/consume/lms');
+});
+
 it('pushes the user to the lms before asking for a link', function () {
     config(['user_sync.enabled' => true]);
     ['user' => $user, 'token' => $token] = handoffUser(['lms_access' => true]);
