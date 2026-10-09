@@ -47,6 +47,7 @@ return [
     ],
 
     'google' => [
+        // Shared until each customer key is in use. The proxy stamps the caller Origin as Referer.
         'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
