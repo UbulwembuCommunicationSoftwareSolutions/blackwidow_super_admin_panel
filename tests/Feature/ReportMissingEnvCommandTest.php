@@ -31,7 +31,7 @@ function envReportSubscription(SubscriptionType $type, array $rows, ?string $sit
 }
 
 /**
- * @return array{checked: int, issues: list<array{subscription_id: int, key: string, problems: list<string>}>}
+ * @return array{checked: int, unknown_keys: list<string>, issues: list<array{subscription_id: int, key: string, problems: list<string>}>}
  */
 function envReport(array $arguments = []): array
 {
@@ -64,7 +64,7 @@ it('passes when every template key is configured and on the site', function () {
 
     $this->artisan('app:report-missing-env')->assertSuccessful();
 
-    expect(envReport())->toMatchArray(['checked' => 1, 'issues' => []]);
+    expect(envReport())->toMatchArray(['checked' => 1, 'unknown_keys' => [], 'issues' => []]);
 });
 
 it('reports a key with no row, an empty value, or missing from the pulled site env', function () {
@@ -122,4 +122,39 @@ it('changes nothing', function () {
     envReport();
 
     expect(EnvVariables::query()->where('customer_subscription_id', $subscription->id)->count())->toBe(0);
+});
+
+it('fails and names a requested key that no template holds', function () {
+    envReportSubscription($this->type, ['COOKIE_DOMAIN' => '.blackwidow.org.za', 'SURVEY_APP_NAME' => '']);
+
+    $this->artisan('app:report-missing-env', ['keys' => ['SSO_HANDOFF_URL']])
+        ->expectsOutputToContain('SSO_HANDOFF_URL')
+        ->assertFailed();
+
+    expect(envReport(['keys' => ['SSO_HANDOFF_URL', 'COOKIE_DOMAIN']]))->toMatchArray([
+        'checked' => 1,
+        'unknown_keys' => ['SSO_HANDOFF_URL'],
+        'issues' => [],
+    ]);
+});
+
+it('checks a key outside the template on every subscription when told to ignore the template', function () {
+    $untemplated = SubscriptionType::factory()->create();
+    $has = envReportSubscription($untemplated, ['SSO_HANDOFF_URL' => 'https://sa.example.test/go']);
+    $blank = envReportSubscription($untemplated, ['SSO_HANDOFF_URL' => '']);
+    $lacks = envReportSubscription($this->type, []);
+
+    $report = envReport(['keys' => ['SSO_HANDOFF_URL'], '--ignore-template' => true]);
+
+    $problems = collect($report['issues'])->mapWithKeys(
+        fn (array $issue) => [$issue['subscription_id'] => $issue['problems']]
+    );
+
+    expect($report['checked'])->toBe(3)
+        ->and($report['unknown_keys'])->toBe([])
+        ->and($problems->has($has->id))->toBeFalse()
+        ->and($problems[$blank->id])->toBe(['empty'])
+        ->and($problems[$lacks->id])->toBe(['no_row']);
+
+    $this->artisan('app:report-missing-env', ['--ignore-template' => true])->assertExitCode(2);
 });
