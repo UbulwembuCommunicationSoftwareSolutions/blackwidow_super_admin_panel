@@ -30,6 +30,20 @@ class PreCaseRequiredEnvSeeder extends Seeder
                 true
             ),
             [
+                // Overrides of the shared PHP module defaults (later rows win in sync()).
+                ['key' => 'APP_ENV', 'value' => 'production'],
+                ['key' => 'APP_DEBUG', 'value' => 'false'],
+                ['key' => 'SESSION_DRIVER', 'value' => 'database'],
+                ['key' => 'QUEUE_CONNECTION', 'value' => 'database'],
+                ['key' => 'MAIL_SCHEME', 'value' => 'null'],
+                ['key' => 'LOCAL_DEVELOPMENT', 'value' => 'false'],
+                ['key' => 'GOOGLE_PLACES_API_KEY', 'value' => $p],
+                ['key' => 'GOOGLE_MAPS_BROWSER_API_KEY', 'value' => $p],
+                ['key' => 'SUPERADMIN_SYNC_ENABLED', 'value' => 'false'],
+                ['key' => 'SUPERADMIN_API_URL', 'value' => 'https://superadmin.blackwidow.org.za'],
+                ['key' => 'SUPERADMIN_APP_URL', 'value' => $p],
+                ['key' => 'SUPERADMIN_ACCESS_FLAG', 'value' => $p],
+                ['key' => 'SUPERADMIN_SYNC_INTERVAL', 'value' => '15'],
                 ['key' => 'REGISTRATION_ENABLED', 'value' => 'false'],
                 ['key' => 'ICMS_INTEGRATION_ENABLED', 'value' => 'false'],
                 ['key' => 'ICMS_BASE_URL', 'value' => $p],
