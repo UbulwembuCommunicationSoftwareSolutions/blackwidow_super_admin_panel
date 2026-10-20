@@ -18,6 +18,15 @@ return [
     'schema_path' => resource_path('reporting/aims'),
 
     /*
+    | MySQL account that creates the reporting database. Defaults to this
+    | API's own DB_USERNAME / DB_PASSWORD, which on Forge is the forge user.
+    | Reports still connect as the site user after that user is granted
+    | access to the reporting database.
+    */
+    'install_username' => env('REPORTING_INSTALL_DB_USERNAME', env('DB_USERNAME', 'forge')),
+    'install_password' => env('REPORTING_INSTALL_DB_PASSWORD', env('DB_PASSWORD', '')),
+
+    /*
     | Origin of the Vue console. The CMS iframe loads /embed/dashboards/{id}
     | on this host, which draws the report without the Super Admin shell.
     */

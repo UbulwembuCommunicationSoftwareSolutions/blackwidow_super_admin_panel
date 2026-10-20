@@ -76,7 +76,9 @@ class InstallAimsReportingCommand extends Command
         }
 
         try {
-            $connection = $connections->connect($dashboard, verifySchema: (bool) $this->option('check'));
+            $connection = $this->option('check')
+                ? $connections->connect($dashboard, verifySchema: true)
+                : $connections->connectForInstall($dashboard);
         } catch (TenantDatabaseException $e) {
             $this->error($e->getMessage());
             $this->warn('The SQL file is ready for the server admin to run.');
@@ -90,6 +92,15 @@ class InstallAimsReportingCommand extends Command
 
                 return self::SUCCESS;
             }
+
+            $connection->pdo()->exec(
+                'CREATE DATABASE IF NOT EXISTS `'.$reportingDatabase.'` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+            );
+            $connections->grantReportingAccess(
+                $connection->pdo(),
+                (string) $subscription->database_user,
+                $reportingDatabase,
+            );
 
             foreach ($schema->statements($sql) as $index => $statement) {
                 $connection->pdo()->exec($statement);

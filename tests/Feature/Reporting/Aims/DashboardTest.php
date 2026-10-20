@@ -236,6 +236,40 @@ it('rewrites the reporting schema for one customer database', function () {
         ->and($sql)->not->toContain('`aims_rpt`');
 });
 
+it('installs with the super admin database user', function () {
+    config([
+        'reporting.install_username' => 'forge',
+        'reporting.install_password' => 'forge-secret',
+    ]);
+
+    $customer = Customer::factory()->create();
+    $subscription = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'database_name' => 'tenant_aims',
+        'database_user' => 'tenant_aims',
+    ]);
+    $grant = CustomerDashboard::factory()->create([
+        'customer_id' => $customer->id,
+        'customer_subscription_id' => $subscription->id,
+        'reporting_database' => 'tenant_aims_rpt',
+    ]);
+
+    $connection = app(TenantConnectionFactory::class)->installationConnection($grant);
+
+    expect($connection['username'])->toBe('forge')
+        ->and($connection['password'])->toBe('forge-secret')
+        ->and($connection['database'])->toBe('tenant_aims');
+
+    $this->mock(TenantConnectionFactory::class, function ($mock) {
+        $mock->shouldReceive('connectForInstall')->once()->andThrow(new TenantDatabaseException('The install database user could not connect.'));
+        $mock->shouldNotReceive('connect');
+    });
+
+    $this->artisan('reporting:install-aims', [
+        'customer_dashboard' => $grant->id,
+    ])->assertFailed();
+});
+
 it('writes substituted sql without connecting when asked', function () {
     $customer = Customer::factory()->create();
     $subscription = CustomerSubscription::factory()->create([
