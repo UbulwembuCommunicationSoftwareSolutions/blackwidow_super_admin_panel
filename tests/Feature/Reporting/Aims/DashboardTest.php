@@ -8,6 +8,7 @@ use App\Models\ForgeServer;
 use App\Models\Reporting\Aims\CustomerDashboard;
 use App\Models\Reporting\Aims\Dashboard;
 use App\Services\Reporting\Aims\AimsFilters;
+use App\Services\Reporting\Aims\AimsReportService;
 use App\Services\Reporting\Aims\AimsSchemaSql;
 use App\Services\Reporting\Aims\AimsScope;
 use App\Services\Reporting\Aims\TenantConnectionFactory;
@@ -199,6 +200,68 @@ it('resolves the mysql host from the forge server when the api is elsewhere', fu
     expect($factory->resolveHost($subscription, null))->toBe('127.0.0.1');
     expect($factory->resolveHost($subscription, '10.0.0.4'))->toBe('10.0.0.4');
     expect($factory->resolvePort($subscription))->toBe(3307);
+});
+
+it('keeps a report grant when the role display name no longer matches the seed name', function () {
+    $grants = [
+        [
+            'role_ids' => json_encode([17, 23]),
+            'scope' => 'participant',
+            'can_dashboard' => 0,
+            'can_cases' => 1,
+            'can_audit' => 0,
+            'can_export' => 0,
+            'can_see_names' => 1,
+            'note' => 'seeded as Investigator, since renamed',
+        ],
+        [
+            'role_ids' => '[4]',
+            'scope' => 'all',
+            'can_dashboard' => 1,
+            'can_cases' => 1,
+            'can_audit' => 1,
+            'can_export' => 1,
+            'can_see_names' => 1,
+        ],
+        [
+            'role_ids' => [9],
+            'scope' => 'none',
+            'can_dashboard' => 0,
+            'can_cases' => 0,
+            'can_audit' => 1,
+            'can_export' => 0,
+            'can_see_names' => 0,
+        ],
+    ];
+
+    $renamed = AimsReportService::capabilitiesFor([17], $grants);
+
+    expect($renamed['scopes'])->toBe(['participant'])
+        ->and($renamed['can']['cases'])->toBeTrue()
+        ->and($renamed['can']['dashboard'])->toBeFalse()
+        ->and($renamed['can']['export'])->toBeFalse()
+        ->and($renamed['can']['names'])->toBeTrue()
+        ->and($renamed['can']['audit'])->toBeFalse();
+
+    expect(AimsReportService::capabilitiesFor([23], $grants)['scopes'])->toBe(['participant']);
+
+    $widest = AimsReportService::capabilitiesFor([17, 4], $grants);
+
+    expect($widest['scopes'])->toBe(['all'])
+        ->and($widest['can']['dashboard'])->toBeTrue()
+        ->and($widest['can']['audit'])->toBeTrue();
+
+    $auditOnly = AimsReportService::capabilitiesFor([9], $grants);
+
+    expect($auditOnly['scopes'])->toBe([])
+        ->and($auditOnly['can']['audit'])->toBeTrue()
+        ->and($auditOnly['can']['cases'])->toBeFalse();
+
+    $unknown = AimsReportService::capabilitiesFor([99], $grants);
+
+    expect($unknown['scopes'])->toBe([])
+        ->and($unknown['can']['cases'])->toBeFalse()
+        ->and($unknown['can']['audit'])->toBeFalse();
 });
 
 it('keeps aims role scope and drops filters that are not on the whitelist', function () {

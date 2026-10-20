@@ -80,46 +80,19 @@ final class AimsReportService
         }
 
         $id = (int) $row['id'];
-        $roles = array_column($this->db->rows(
-            'SELECT r.name FROM '.$this->db->aims('model_has_roles').' m JOIN '.$this->db->aims('roles').' r ON r.id = m.role_id'
+        $roleRows = $this->db->rows(
+            'SELECT r.id, r.name FROM '.$this->db->aims('model_has_roles').' m JOIN '.$this->db->aims('roles').' r ON r.id = m.role_id'
             ." WHERE m.model_id = ? AND m.model_type LIKE '%User' ORDER BY r.name",
             [$id]
-        ), 'name');
-
-        $grants = $roles !== []
-            ? $this->db->rows(
-                'SELECT * FROM '.$this->db->reporting('rpt_role_access').' WHERE role_name IN ('.implode(',', array_fill(0, count($roles), '?')).')',
-                $roles
-            )
-            : [];
-
-        $can = [
-            'dashboard' => false,
-            'cases' => false,
-            'audit' => false,
-            'export' => false,
-            'names' => false,
-        ];
-        $scopes = [];
-
-        foreach ($grants as $grant) {
-            if ($grant['scope'] !== 'none') {
-                $scopes[$grant['scope']] = true;
-            }
-            $can['dashboard'] = $can['dashboard'] || (int) $grant['can_dashboard'] === 1;
-            $can['cases'] = $can['cases'] || (int) $grant['can_cases'] === 1;
-            $can['audit'] = $can['audit'] || (int) $grant['can_audit'] === 1;
-            $can['export'] = $can['export'] || (int) $grant['can_export'] === 1;
-            $can['names'] = $can['names'] || (int) $grant['can_see_names'] === 1;
-        }
-
-        $scopeList = array_keys($scopes);
-        if (in_array('all', $scopeList, true)) {
-            $scopeList = ['all'];
-        }
-        if ($scopeList === []) {
-            $can['dashboard'] = $can['cases'] = $can['export'] = $can['names'] = false;
-        }
+        );
+        $roles = array_column($roleRows, 'name');
+        $roleIds = array_map(static fn (array $role): int => (int) $role['id'], $roleRows);
+        $grants = $roleIds === []
+            ? []
+            : $this->db->rows('SELECT * FROM '.$this->db->reporting('rpt_role_grant'));
+        $access = self::capabilitiesFor($roleIds, $grants);
+        $can = $access['can'];
+        $scopeList = $access['scopes'];
 
         $name = trim((string) ($row['full_name'] ?: ($row['first_name'].' '.$row['last_name'])));
 
@@ -579,6 +552,74 @@ final class AimsReportService
             'outcome_tags' => "(SELECT GROUP_CONCAT(tg.name ORDER BY x.id SEPARATOR '; ') FROM ".$this->db->aims('docket_docket_tag').' x JOIN '
                 .$this->db->aims('docket_tags').' tg ON tg.id = x.docket_tag_id WHERE x.docket_id = c.case_id AND x.deleted_at IS NULL)',
         ];
+    }
+
+    /**
+     * A grant applies when one of the user's CMS role ids is in its role_ids array.
+     * The display name is not consulted. Several grants: the widest scope wins.
+     * An audit-only grant stays available when the user has no case scope.
+     *
+     * @param  list<int>  $roleIds
+     * @param  list<array<string, mixed>>  $grants
+     * @return array{scopes: list<string>, can: array<string, bool>}
+     */
+    public static function capabilitiesFor(array $roleIds, array $grants): array
+    {
+        $roleIds = array_map(static fn (mixed $id): int => (int) $id, $roleIds);
+        $can = [
+            'dashboard' => false,
+            'cases' => false,
+            'audit' => false,
+            'export' => false,
+            'names' => false,
+        ];
+        $scopes = [];
+
+        foreach ($grants as $grant) {
+            if (array_intersect($roleIds, self::grantRoleIds($grant['role_ids'] ?? [])) === []) {
+                continue;
+            }
+            if ($grant['scope'] !== 'none') {
+                $scopes[$grant['scope']] = true;
+            }
+            $can['dashboard'] = $can['dashboard'] || (int) $grant['can_dashboard'] === 1;
+            $can['cases'] = $can['cases'] || (int) $grant['can_cases'] === 1;
+            $can['audit'] = $can['audit'] || (int) $grant['can_audit'] === 1;
+            $can['export'] = $can['export'] || (int) $grant['can_export'] === 1;
+            $can['names'] = $can['names'] || (int) $grant['can_see_names'] === 1;
+        }
+
+        $scopeList = array_keys($scopes);
+        if (in_array('all', $scopeList, true)) {
+            $scopeList = ['all'];
+        }
+        if ($scopeList === []) {
+            $can['dashboard'] = $can['cases'] = $can['export'] = $can['names'] = false;
+        }
+
+        return ['scopes' => $scopeList, 'can' => $can];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function grantRoleIds(mixed $stored): array
+    {
+        if (is_string($stored)) {
+            $stored = json_decode($stored, true);
+        }
+        if (! is_array($stored)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($stored as $id) {
+            if (is_int($id) || (is_string($id) && ctype_digit($id))) {
+                $ids[] = (int) $id;
+            }
+        }
+
+        return $ids;
     }
 
     /**

@@ -75,28 +75,45 @@ SELECT n AS `#`, area, check_name, result, expected FROM (
          (SELECT GROUP_CONCAT(CONCAT(x.name, ': ', x.users, ' -> ', COALESCE(ra.scope, 'none'),
                  CASE WHEN ra.can_audit = 1 AND COALESCE(ra.scope, 'none') = 'none' THEN ' (audit log only)' ELSE '' END)
                  ORDER BY x.users DESC SEPARATOR '; ')
-            FROM (SELECT r.name, COUNT(DISTINCT u.id) AS users
+            FROM (SELECT r.id, r.name, COUNT(DISTINCT u.id) AS users
                     FROM `ciid_console_aims_net_za`.roles r
                     LEFT JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.role_id = r.id AND m.model_type LIKE '%User'
                     LEFT JOIN `ciid_console_aims_net_za`.users u ON u.id = m.model_id AND u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'
                    GROUP BY r.id, r.name) x
-            LEFT JOIN `aims_rpt`.rpt_role_access ra ON ra.role_name = x.name),
+            LEFT JOIN (
+              SELECT jt.role_id, GROUP_CONCAT(DISTINCT g.scope ORDER BY g.scope SEPARATOR '+') AS scope, MAX(g.can_audit) AS can_audit
+                FROM `aims_rpt`.rpt_role_grant g
+                JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt
+               GROUP BY jt.role_id
+            ) ra ON ra.role_id = x.id),
          'Matches the access rules CIID approved'
-  UNION ALL SELECT 21, 'Access', 'Access rules naming a role AIMS does not have',
-         (SELECT COALESCE(GROUP_CONCAT(ra.role_name SEPARATOR '; '), 'none') FROM `aims_rpt`.rpt_role_access ra
-           WHERE (ra.scope <> 'none' OR ra.can_audit = 1) AND NOT EXISTS (SELECT 1 FROM `ciid_console_aims_net_za`.roles r WHERE r.name = ra.role_name)),
+  UNION ALL SELECT 21, 'Access', 'Grants whose role ids are missing or empty',
+         (SELECT COALESCE(GROUP_CONCAT(x.label ORDER BY x.label SEPARATOR '; '), 'none') FROM (
+            SELECT CONCAT(g.grant_key, ' (no role id)') AS label
+              FROM `aims_rpt`.rpt_role_grant g
+             WHERE (g.scope <> 'none' OR g.can_audit = 1)
+               AND JSON_LENGTH(g.role_ids) = 0
+            UNION
+            SELECT CONCAT(g.grant_key, ':', jt.role_id) AS label
+              FROM `aims_rpt`.rpt_role_grant g
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt
+             WHERE (g.scope <> 'none' OR g.can_audit = 1)
+               AND NOT EXISTS (SELECT 1 FROM `ciid_console_aims_net_za`.roles r WHERE r.id = jt.role_id)
+         ) x),
          'none'
   UNION ALL SELECT 22, 'Access', 'Active users who can open case reports / the audit log',
          CONCAT(
            (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
               JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
-              JOIN `aims_rpt`.rpt_role_access ra ON ra.role_name = r.name AND ra.scope <> 'none'
+              JOIN `aims_rpt`.rpt_role_grant g ON g.scope <> 'none'
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'), ' / ',
            (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
               JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
-              JOIN `aims_rpt`.rpt_role_access ra ON ra.role_name = r.name AND ra.can_audit = 1
+              JOIN `aims_rpt`.rpt_role_grant g ON g.can_audit = 1
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active')),
          '-'
   UNION ALL SELECT 23, 'Access', 'Active users who see ALL cases / of whom also see complainant names',
@@ -104,12 +121,14 @@ SELECT n AS `#`, area, check_name, result, expected FROM (
            (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
               JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
-              JOIN `aims_rpt`.rpt_role_access ra ON ra.role_name = r.name AND ra.scope = 'all'
+              JOIN `aims_rpt`.rpt_role_grant g ON g.scope = 'all'
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'), ' / ',
            (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
               JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
-              JOIN `aims_rpt`.rpt_role_access ra ON ra.role_name = r.name AND ra.scope = 'all' AND ra.can_see_names = 1
+              JOIN `aims_rpt`.rpt_role_grant g ON g.scope = 'all' AND g.can_see_names = 1
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active')),
          'Only the people CIID named (Director, Deputy Head)'
   UNION ALL SELECT 24, 'Access', 'Active users whose roles give different scopes (the widest wins)',
@@ -117,14 +136,17 @@ SELECT n AS `#`, area, check_name, result, expected FROM (
             SELECT u.id FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
               JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
-              JOIN `aims_rpt`.rpt_role_access ra ON ra.role_name = r.name AND ra.scope <> 'none'
+              JOIN `aims_rpt`.rpt_role_grant g ON g.scope <> 'none'
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'
-             GROUP BY u.id HAVING COUNT(DISTINCT ra.scope) > 1) x),
+             GROUP BY u.id HAVING COUNT(DISTINCT g.scope) > 1) x),
          'Low; each one confirmed with CIID'
   UNION ALL SELECT 25, 'Access', 'Operational managers with no org units linked (they would see nothing)',
          (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
             JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
-            JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id AND r.name = 'Operational Management'
+            JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
+            JOIN `aims_rpt`.rpt_role_grant g ON g.grant_key = 'operational_management'
+            JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
            WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'
              AND NOT EXISTS (SELECT 1 FROM `ciid_console_aims_net_za`.user_company_level_five l WHERE l.user_id = u.id)),
          '0'
@@ -136,7 +158,9 @@ SELECT n AS `#`, area, check_name, result, expected FROM (
                             (SELECT l2.company_level_five_id FROM `ciid_console_aims_net_za`.user_company_level_five l2 WHERE l2.user_id = u.id)) AS cases
                     FROM `ciid_console_aims_net_za`.users u
                     JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
-                    JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id AND r.name = 'Operational Management'
+                    JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
+                    JOIN `aims_rpt`.rpt_role_grant g ON g.grant_key = 'operational_management'
+                    JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
                     JOIN `ciid_console_aims_net_za`.user_company_level_five l ON l.user_id = u.id
                     JOIN `aims_rpt`.v_org_leaf o ON o.leaf_id = l.company_level_five_id
                    WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'
@@ -146,12 +170,16 @@ SELECT n AS `#`, area, check_name, result, expected FROM (
          CONCAT(
            (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
-              JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id AND r.name = 'Investigator'
+              JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
+              JOIN `aims_rpt`.rpt_role_grant g ON g.grant_key = 'investigator'
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'),
            ' / ',
            (SELECT COUNT(DISTINCT u.id) FROM `ciid_console_aims_net_za`.users u
               JOIN `ciid_console_aims_net_za`.model_has_roles m ON m.model_id = u.id AND m.model_type LIKE '%User'
-              JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id AND r.name = 'Investigator'
+              JOIN `ciid_console_aims_net_za`.roles r ON r.id = m.role_id
+              JOIN `aims_rpt`.rpt_role_grant g ON g.grant_key = 'investigator'
+              JOIN JSON_TABLE(g.role_ids, '$[*]' COLUMNS (role_id BIGINT UNSIGNED PATH '$')) jt ON jt.role_id = r.id
              WHERE u.active = 1 AND u.deleted_at IS NULL AND u.status = 'Active'
                AND NOT EXISTS (SELECT 1 FROM `ciid_console_aims_net_za`.docket_participants p
                                 WHERE p.user_id = CAST(u.id AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci
