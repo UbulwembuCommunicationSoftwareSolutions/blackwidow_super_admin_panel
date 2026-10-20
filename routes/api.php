@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\UserFieldSyncController;
 use App\Http\Controllers\Api\V1\UserSyncController;
 use App\Http\Controllers\CustomerSubscriptionController;
 use App\Http\Controllers\GooglePlacesProxyController;
+use App\Http\Controllers\Reporting\Aims\EmbedCustomerDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,11 @@ Route::middleware('auth:sanctum')->post('/sso-logout', [CustomerSubscriptionCont
  * The legacy single-purpose aliases below are kept for tenants that have not
  * deployed yet; both routes run the same CustomerUserSyncService.
  */
+Route::middleware('customer.bearer')->post(
+    'v1/embed/customer-dashboards/{id}',
+    [EmbedCustomerDashboardController::class, 'store'],
+)->whereNumber('id');
+
 Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
     Route::get('users', [UserSyncController::class, 'index']);
     Route::post('users', [UserSyncController::class, 'upsert']);

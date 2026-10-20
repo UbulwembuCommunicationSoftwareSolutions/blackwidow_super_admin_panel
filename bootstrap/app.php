@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AimsEmbedGuard;
 use App\Http\Middleware\AuthenticateExternalTokenCookie;
 use App\Http\Middleware\EnsureActiveCustomerAdmin;
 use App\Http\Middleware\VerifyCsrfToken;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer.bearer' => VerifyCustomerBearerToken::class,
             'lms.bearer' => VerifyLmsBearerToken::class,
             'customer.admin' => EnsureActiveCustomerAdmin::class,
+            'aims.embed' => AimsEmbedGuard::class,
             'github.webhook' => VerifyGithubWebhookSignature::class,
         ]);
     })

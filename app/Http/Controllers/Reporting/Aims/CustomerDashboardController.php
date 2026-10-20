@@ -141,6 +141,7 @@ class CustomerDashboardController extends Controller
         }
 
         $row->customerUsers()->sync($ids);
+        $row->queueTenantPush();
 
         return response()->json(['data' => $this->present($row->fresh()->load($this->relations()))]);
     }

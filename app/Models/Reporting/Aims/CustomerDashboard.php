@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Reporting\Aims;
 
+use App\Jobs\PushCustomerDashboardToTenantJob;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
@@ -52,6 +53,47 @@ class CustomerDashboard extends Model
                 $model->reporting_database = self::reportingDatabaseName((string) $database);
             }
         });
+
+        static::created(function (CustomerDashboard $model): void {
+            $model->queueTenantPush();
+        });
+
+        static::updated(function (CustomerDashboard $model): void {
+            $model->queueTenantPush();
+        });
+
+        static::deleting(function (CustomerDashboard $model): void {
+            $model->queueTenantPush(true);
+        });
+    }
+
+    /**
+     * Tell the subscription's CMS to show or hide this grant under External Dashboards.
+     */
+    public function queueTenantPush(bool $remove = false): void
+    {
+        if (! config('user_sync.enabled', true)) {
+            return;
+        }
+
+        $this->loadMissing('dashboard', 'customerSubscription.customer');
+        $subscription = $this->customerSubscription;
+
+        if ($subscription === null || (int) $subscription->subscription_type_id !== 1) {
+            return;
+        }
+
+        $name = trim((string) ($this->dashboard?->name ?: 'AIMS'));
+        $description = trim((string) ($this->dashboard?->description ?: $name));
+
+        PushCustomerDashboardToTenantJob::dispatch(
+            'aims-customer-dashboard:'.$this->id,
+            mb_substr($name, 0, 255),
+            mb_substr($description, 0, 255),
+            $remove ? false : (bool) $this->enabled,
+            rtrim((string) $subscription->url, '/'),
+            (string) ($subscription->customer?->token ?? ''),
+        );
     }
 
     public static function reportingDatabaseName(string $aimsDatabase): string

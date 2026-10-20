@@ -35,7 +35,7 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])
     ->middleware('throttle:10,1')
     ->name('password.update');
 
-Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
+Route::middleware(['auth:sanctum', 'aims.embed:reject', 'customer.admin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/user', [AuthController::class, 'me'])->name('user');
     Route::post('/lms/access', LmsAccessController::class)->name('lms.access');
@@ -102,13 +102,6 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::delete('/dashboards/{id}', [DashboardController::class, 'destroy'])->whereNumber('id');
 
     Route::put('/customer-dashboards/{id}/users', [CustomerDashboardController::class, 'syncUsers'])->whereNumber('id');
-    Route::get('/customer-dashboards/{id}/report/me', [DashboardReportController::class, 'me'])->whereNumber('id');
-    Route::get('/customer-dashboards/{id}/report/options', [DashboardReportController::class, 'options'])->whereNumber('id');
-    Route::get('/customer-dashboards/{id}/report/dashboard', [DashboardReportController::class, 'dashboard'])->whereNumber('id');
-    Route::get('/customer-dashboards/{id}/report/cases', [DashboardReportController::class, 'cases'])->whereNumber('id');
-    Route::get('/customer-dashboards/{id}/report/case', [DashboardReportController::class, 'caseDetail'])->whereNumber('id');
-    Route::post('/customer-dashboards/{id}/report/export', [DashboardReportController::class, 'export'])->whereNumber('id');
-    Route::get('/customer-dashboards/{id}/report/audit', [DashboardReportController::class, 'audit'])->whereNumber('id');
     Route::get('/customer-dashboards', [CustomerDashboardController::class, 'index']);
     Route::post('/customer-dashboards', [CustomerDashboardController::class, 'store']);
     Route::get('/customer-dashboards/{id}', [CustomerDashboardController::class, 'show'])->whereNumber('id');
@@ -183,4 +176,14 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::get('/subscription-types/{id}', [SubscriptionTypeController::class, 'show'])->whereNumber('id');
     Route::match(['put', 'patch'], '/subscription-types/{id}', [SubscriptionTypeController::class, 'update'])->whereNumber('id');
     Route::delete('/subscription-types/{id}', [SubscriptionTypeController::class, 'destroy'])->whereNumber('id');
+});
+
+Route::middleware(['auth:sanctum', 'aims.embed:report'])->group(function () {
+    Route::get('/customer-dashboards/{id}/report/me', [DashboardReportController::class, 'me'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/options', [DashboardReportController::class, 'options'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/dashboard', [DashboardReportController::class, 'dashboard'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/cases', [DashboardReportController::class, 'cases'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/case', [DashboardReportController::class, 'caseDetail'])->whereNumber('id');
+    Route::post('/customer-dashboards/{id}/report/export', [DashboardReportController::class, 'export'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/audit', [DashboardReportController::class, 'audit'])->whereNumber('id');
 });
