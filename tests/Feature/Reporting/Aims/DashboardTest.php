@@ -270,6 +270,19 @@ it('installs with the super admin database user', function () {
     ])->assertFailed();
 });
 
+it('reads a select result before running the next install statement', function () {
+    $pdo = new PDO('sqlite::memory:');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $schema = app(AimsSchemaSql::class);
+    $schema->execute($pdo, 'CREATE TABLE sample (id INTEGER)');
+    $schema->execute($pdo, 'INSERT INTO sample (id) VALUES (1)');
+    $schema->execute($pdo, 'SELECT COUNT(*) AS aims_database_is_readable FROM sample WHERE 1 = 0');
+    $schema->execute($pdo, 'SELECT id FROM sample');
+
+    expect($pdo->query('SELECT id FROM sample')->fetchColumn())->toBe(1);
+});
+
 it('writes substituted sql without connecting when asked', function () {
     $customer = Customer::factory()->create();
     $subscription = CustomerSubscription::factory()->create([

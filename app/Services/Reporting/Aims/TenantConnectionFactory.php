@@ -107,6 +107,7 @@ class TenantConnectionFactory
                 static fn (mixed $host): string => (string) $host,
                 $statement->fetchAll(PDO::FETCH_COLUMN),
             )));
+            $statement->closeCursor();
         } catch (Throwable $e) {
             report($e);
 
@@ -238,6 +239,10 @@ class TenantConnectionFactory
 
         if (defined('PDO::MYSQL_ATTR_CONNECT_TIMEOUT')) {
             $options[PDO::MYSQL_ATTR_CONNECT_TIMEOUT] = 5;
+        }
+
+        if (defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
+            $options[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
         }
 
         return $options;

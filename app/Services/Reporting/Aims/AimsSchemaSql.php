@@ -38,6 +38,23 @@ final class AimsSchemaSql
         return $statements;
     }
 
+    public function execute(\PDO $pdo, string $statement): void
+    {
+        if (preg_match('/^(SELECT|SHOW|WITH|EXPLAIN|DESCRIBE|DESC)\b/i', ltrim($statement)) !== 1) {
+            $pdo->exec($statement);
+
+            return;
+        }
+
+        $query = $pdo->query($statement);
+        if ($query === false) {
+            return;
+        }
+
+        $query->fetchAll();
+        $query->closeCursor();
+    }
+
     public function template(string $filename): string
     {
         $path = rtrim((string) config('reporting.schema_path'), '/').'/'.$filename;

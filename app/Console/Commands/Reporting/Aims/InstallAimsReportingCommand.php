@@ -103,7 +103,7 @@ class InstallAimsReportingCommand extends Command
             );
 
             foreach ($schema->statements($sql) as $index => $statement) {
-                $connection->pdo()->exec($statement);
+                $schema->execute($connection->pdo(), $statement);
                 if (($index + 1) % 50 === 0) {
                     $this->line('Ran '.($index + 1).' statements...');
                 }
