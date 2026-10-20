@@ -34,7 +34,7 @@ class TenantConnectionFactory
             'database' => $verifySchema ? $reportingDatabase : $aimsDatabase,
             'username' => $subscription->database_user,
             'password' => (string) $subscription->database_password,
-        ]), 'The customer database could not be reached.');
+        ]), 'The customer database could not be reached.', $dashboard->database_time_zone);
 
         if ($verifySchema) {
             try {
@@ -195,8 +195,9 @@ class TenantConnectionFactory
 
     /**
      * @param  array<string, mixed>  $connection
+     * @param  string|null  $timeZone  MySQL time_zone for the session, e.g. "+02:00"; null leaves the server default.
      */
-    private function open(array $connection, string $failureMessage): PDO
+    private function open(array $connection, string $failureMessage, ?string $timeZone = null): PDO
     {
         config([
             'database.connections.'.self::CONNECTION => $connection,
@@ -217,6 +218,10 @@ class TenantConnectionFactory
             $pdo->exec("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
             $timeout = max(1000, (int) config('reporting.query_timeout_ms', 30000));
             $pdo->exec('SET SESSION max_execution_time = '.$timeout);
+            // Only when the site's Laravel sets its own database time zone: read AIMS times back as AIMS wrote them.
+            if (filled($timeZone)) {
+                $pdo->prepare('SET time_zone = ?')->execute([$timeZone]);
+            }
         } catch (Throwable $e) {
             $this->disconnect();
             report($e);

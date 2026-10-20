@@ -15,6 +15,12 @@ return [
 
     'export_row_limit' => (int) env('REPORTING_EXPORT_ROW_LIMIT', 5000),
 
+    /*
+    | Time zone for the access log, the audit log's default 30-day window and
+    | export file names. AIMS reports are in South African time.
+    */
+    'timezone' => env('REPORTING_TIMEZONE', 'Africa/Johannesburg'),
+
     'schema_path' => resource_path('reporting/aims'),
 
     /*

@@ -25,6 +25,7 @@ class CustomerDashboard extends Model
         'customer_subscription_id',
         'reporting_database',
         'database_host',
+        'database_time_zone',
         'enabled',
     ];
 

@@ -46,20 +46,20 @@ final class AimsReportService
     public function __construct(private readonly AimsReportConnection $db) {}
 
     /**
+     * The current time in the report's time zone (South African time), whatever this API's own time zone is.
+     */
+    public static function now(): DateTimeImmutable
+    {
+        return new DateTimeImmutable('now', new DateTimeZone((string) config('reporting.timezone', 'Africa/Johannesburg')));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function actorFor(AuthUser $user): array
     {
         if ($user instanceof User) {
-            return [
-                'id' => null,
-                'staff_id' => $user->id,
-                'name' => (string) $user->name,
-                'email' => (string) $user->email,
-                'roles' => ['staff'],
-                'scopes' => ['all'],
-                'can' => $this->allCapabilities(),
-            ];
+            return self::staffActor($user, $this->aimsActor((string) $user->email));
         }
 
         if (! $user instanceof CustomerUser) {
@@ -67,16 +67,66 @@ final class AimsReportService
         }
 
         $email = mb_strtolower(trim((string) $user->email_address));
+        $actor = $this->aimsActor($email);
+
+        if ($actor === null) {
+            $actor = $this->emptyActor(trim($user->first_name.' '.$user->last_name), $email);
+            $actor['missing_aims_user'] = true;
+        }
+
+        return $actor;
+    }
+
+    /**
+     * Staff get the access of the active AIMS user with their email on this site, like anyone else.
+     * Without one, or when that user's roles grant nothing, they get the audit log only and no case data,
+     * the same as the AIMS super-admin grant.
+     *
+     * @param  array<string, mixed>|null  $aimsActor
+     * @return array<string, mixed>
+     */
+    public static function staffActor(User $user, ?array $aimsActor): array
+    {
+        if ($aimsActor !== null && in_array(true, $aimsActor['can'], true)) {
+            return ['staff_id' => $user->id] + $aimsActor;
+        }
+
+        return [
+            'id' => null,
+            'staff_id' => $user->id,
+            'name' => (string) $user->name,
+            'email' => (string) $user->email,
+            'roles' => ['staff'],
+            'scopes' => [],
+            'can' => [
+                'dashboard' => false,
+                'cases' => false,
+                'audit' => true,
+                'export' => false,
+                'names' => false,
+            ],
+        ];
+    }
+
+    /**
+     * The active AIMS user with this email and the access their CMS roles grant, or null when there is none.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function aimsActor(string $email): ?array
+    {
+        $email = mb_strtolower(trim($email));
+        if ($email === '') {
+            return null;
+        }
+
         $row = $this->db->one(
             'SELECT id, email, first_name, last_name, full_name, active, status, deleted_at FROM '.$this->db->aims('users').' WHERE LOWER(email) = ? LIMIT 1',
             [$email]
         );
 
         if (! $row || ! $this->userIsActive($row)) {
-            $actor = $this->emptyActor(trim($user->first_name.' '.$user->last_name), $email);
-            $actor['missing_aims_user'] = true;
-
-            return $actor;
+            return null;
         }
 
         $id = (int) $row['id'];
@@ -347,13 +397,13 @@ final class AimsReportService
     public function auditList(array $input, int $page): array
     {
         $isDate = fn ($key) => ! empty($input[$key]) && is_string($input[$key]) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $input[$key]);
-        $from = $isDate('from') ? $input['from'] : date('Y-m-d', strtotime('-30 days'));
+        $from = $isDate('from') ? $input['from'] : self::now()->modify('-30 days')->format('Y-m-d');
         $to = $isDate('to') ? $input['to'] : null;
         $parts = ['l.at >= ?'];
         $params = [$from.' 00:00:00'];
         if ($to) {
             $parts[] = 'l.at < ?';
-            $params[] = date('Y-m-d', strtotime($to.' +1 day')).' 00:00:00';
+            $params[] = (new DateTimeImmutable($to))->modify('+1 day')->format('Y-m-d').' 00:00:00';
         }
         if (! empty($input['actor']) && is_string($input['actor'])) {
             $parts[] = 'l.actor LIKE ?';
@@ -464,7 +514,7 @@ final class AimsReportService
     public function logAccess(array $actor, string $action, string $detail, ?string $ip): void
     {
         try {
-            $at = (new DateTimeImmutable('now', new DateTimeZone('Africa/Johannesburg')))->format('Y-m-d H:i:s');
+            $at = self::now()->format('Y-m-d H:i:s');
             $staffId = $actor['staff_id'] ?? null;
             if ($staffId !== null) {
                 $detail = 'staff_user_id='.$staffId.($detail !== '' ? ' '.$detail : '');
@@ -628,20 +678,6 @@ final class AimsReportService
     private function userIsActive(array $user): bool
     {
         return (int) $user['active'] === 1 && $user['deleted_at'] === null && strcasecmp((string) $user['status'], 'Active') === 0;
-    }
-
-    /**
-     * @return array<string, bool>
-     */
-    private function allCapabilities(): array
-    {
-        return [
-            'dashboard' => true,
-            'cases' => true,
-            'audit' => true,
-            'export' => true,
-            'names' => true,
-        ];
     }
 
     /**

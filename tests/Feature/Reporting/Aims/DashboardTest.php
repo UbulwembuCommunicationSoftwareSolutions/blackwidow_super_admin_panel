@@ -7,7 +7,9 @@ use App\Models\EnvVariables;
 use App\Models\ForgeServer;
 use App\Models\Reporting\Aims\CustomerDashboard;
 use App\Models\Reporting\Aims\Dashboard;
+use App\Models\User;
 use App\Services\Reporting\Aims\AimsFilters;
+use App\Services\Reporting\Aims\AimsReportConnection;
 use App\Services\Reporting\Aims\AimsReportingSettingsStore;
 use App\Services\Reporting\Aims\AimsReportService;
 use App\Services\Reporting\Aims\AimsSchemaSql;
@@ -315,6 +317,59 @@ it('keeps a report grant when the role display name no longer matches the seed n
     expect($unknown['scopes'])->toBe([])
         ->and($unknown['can']['cases'])->toBeFalse()
         ->and($unknown['can']['audit'])->toBeFalse();
+});
+
+it('gives staff the access of their aims user, or the audit log only', function () {
+    $pdo = new PDO('sqlite::memory:');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo->exec("ATTACH DATABASE ':memory:' AS aims_db");
+    $pdo->exec("ATTACH DATABASE ':memory:' AS rpt_db");
+    $pdo->exec('CREATE TABLE aims_db.users (id INTEGER, email TEXT, first_name TEXT, last_name TEXT, full_name TEXT, active INTEGER, status TEXT, deleted_at TEXT)');
+    $pdo->exec('CREATE TABLE aims_db.roles (id INTEGER, name TEXT)');
+    $pdo->exec('CREATE TABLE aims_db.model_has_roles (role_id INTEGER, model_id INTEGER, model_type TEXT)');
+    $pdo->exec('CREATE TABLE rpt_db.rpt_role_grant (grant_key TEXT, role_ids TEXT, scope TEXT, can_dashboard INTEGER, can_cases INTEGER, can_audit INTEGER, can_export INTEGER, can_see_names INTEGER)');
+    $pdo->exec("INSERT INTO aims_db.users VALUES (5, 'Manager@Example.test', 'Ops', 'Manager', NULL, 1, 'Active', NULL), (6, 'plain@example.test', 'Plain', 'User', NULL, 1, 'Active', NULL)");
+    $pdo->exec("INSERT INTO aims_db.roles VALUES (17, 'Operational Management'), (30, 'general-user')");
+    $pdo->exec("INSERT INTO aims_db.model_has_roles VALUES (17, 5, 'App\\Models\\User'), (30, 6, 'App\\Models\\User')");
+    $pdo->exec("INSERT INTO rpt_db.rpt_role_grant VALUES ('operational_management', '[17]', 'org', 1, 1, 0, 1, 1), ('general_user', '[30]', 'none', 0, 0, 0, 0, 0)");
+    $reports = new AimsReportService(new AimsReportConnection($pdo, 'aims_db', 'rpt_db'));
+
+    $matched = $reports->actorFor(User::factory()->make(['id' => 3, 'email' => 'manager@example.test']));
+
+    expect($matched['id'])->toBe(5)
+        ->and($matched['staff_id'])->toBe(3)
+        ->and($matched['scopes'])->toBe(['org'])
+        ->and($matched['can']['dashboard'])->toBeTrue()
+        ->and($matched['can']['audit'])->toBeFalse();
+
+    foreach (['plain@example.test', 'nobody@example.test'] as $email) {
+        $staff = $reports->actorFor(User::factory()->make(['id' => 4, 'email' => $email]));
+
+        expect($staff['id'])->toBeNull()
+            ->and($staff['staff_id'])->toBe(4)
+            ->and($staff['scopes'])->toBe([])
+            ->and($staff['can'])->toBe(['dashboard' => false, 'cases' => false, 'audit' => true, 'export' => false, 'names' => false])
+            ->and(AimsScope::clause($staff, 'aims_db')[0])->toBe('1=0');
+    }
+});
+
+it('keeps report dates in south african time whatever the api time zone is', function () {
+    config(['app.timezone' => 'UTC', 'reporting.timezone' => 'Africa/Johannesburg']);
+
+    expect(AimsReportService::now()->getTimezone()->getName())->toBe('Africa/Johannesburg');
+});
+
+it('stores the database time zone for a dashboard and refuses an unsafe one', function () {
+    actingAsBackendUser();
+    $grant = CustomerDashboard::factory()->create();
+
+    $this->putJson('/api/backend/customer-dashboards/'.$grant->id, ['database_time_zone' => '+02:00'])
+        ->assertOk()
+        ->assertJsonPath('data.database_time_zone', '+02:00');
+
+    $this->putJson('/api/backend/customer-dashboards/'.$grant->id, ['database_time_zone' => "+02:00'; DROP TABLE x"])
+        ->assertUnprocessable();
 });
 
 it('keeps aims role scope and drops filters that are not on the whitelist', function () {

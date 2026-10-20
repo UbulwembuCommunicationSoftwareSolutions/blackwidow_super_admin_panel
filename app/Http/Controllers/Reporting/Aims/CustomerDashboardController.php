@@ -70,6 +70,7 @@ class CustomerDashboardController extends Controller
             'customer_subscription_id' => ['required', 'integer', 'exists:customer_subscriptions,id'],
             'reporting_database' => ['nullable', 'string', 'max:64'],
             'database_host' => ['nullable', 'string', 'max:255'],
+            'database_time_zone' => ['nullable', 'string', 'max:64', 'regex:/^([+-](0\d|1[0-4]):[0-5]\d|[A-Za-z]+(\/[A-Za-z0-9_+-]+)*)$/'],
             'enabled' => ['sometimes', 'boolean'],
         ]);
 
@@ -88,6 +89,7 @@ class CustomerDashboardController extends Controller
             'reporting_database' => $validated['reporting_database']
                 ?? CustomerDashboard::reportingDatabaseName((string) $subscription->database_name),
             'database_host' => $validated['database_host'] ?? null,
+            'database_time_zone' => $validated['database_time_zone'] ?? null,
             'enabled' => $validated['enabled'] ?? true,
         ]);
 
@@ -106,6 +108,7 @@ class CustomerDashboardController extends Controller
         $validated = $request->validate([
             'reporting_database' => ['sometimes', 'string', 'max:64'],
             'database_host' => ['nullable', 'string', 'max:255'],
+            'database_time_zone' => ['nullable', 'string', 'max:64', 'regex:/^([+-](0\d|1[0-4]):[0-5]\d|[A-Za-z]+(\/[A-Za-z0-9_+-]+)*)$/'],
             'enabled' => ['sometimes', 'boolean'],
         ]);
 
@@ -233,6 +236,7 @@ class CustomerDashboardController extends Controller
             'customer_subscription_id' => $row->customer_subscription_id,
             'reporting_database' => $row->reporting_database,
             'database_host' => $row->database_host,
+            'database_time_zone' => $row->database_time_zone,
             'enabled' => $row->enabled,
             'created_at' => $row->created_at,
             'updated_at' => $row->updated_at,

@@ -112,7 +112,7 @@ class DashboardReportController extends Controller
             $rows = $reports->caseExport($actor, $filters);
             $reports->logAccess($actor, 'export', count($rows).' rows '.$this->filterDetail($filters), $request->ip());
 
-            $filename = 'aims_cases_'.date('Y-m-d_His').'.csv';
+            $filename = 'aims_cases_'.AimsReportService::now()->format('Y-m-d_His').'.csv';
             $columns = [
                 'Reference', 'Received', 'Financial year', 'Classification (provisional)', 'Division', 'Directorate', 'Department',
                 'Type of allegation', 'Source of allegation', 'Categories', 'Sub-categories', 'Status', 'Status group', 'Priority',
