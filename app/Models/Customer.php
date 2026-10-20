@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Jobs\PushCustomerToTenantsJob;
 use App\Jobs\SiteDeployment\SendSystemConfigJob;
 use App\Jobs\SyncCustomerEnvToSubscriptionsJob;
+use App\Models\Reporting\Aims\CustomerDashboard;
 use App\Support\BrandingSync\CustomerBrandSlots;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -177,6 +178,11 @@ class Customer extends Model
     public function customerUsers(): HasMany
     {
         return $this->hasMany(CustomerUser::class);
+    }
+
+    public function customerDashboards(): HasMany
+    {
+        return $this->hasMany(CustomerDashboard::class);
     }
 
     public function brandingMedia(): HasMany

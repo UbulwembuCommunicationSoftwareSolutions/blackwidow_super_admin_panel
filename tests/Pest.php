@@ -97,6 +97,7 @@ function backendShieldPermissions(): array
         'NginxTemplate',
         'SubscriptionType',
         'Role',
+        'Dashboard',
     ];
     $actions = [
         'ViewAny',

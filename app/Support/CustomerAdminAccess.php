@@ -26,6 +26,9 @@ class CustomerAdminAccess
         'ManagePermissions:CustomerUser',
         'ViewAny:CustomerSubscription',
         'View:CustomerSubscription',
+        'ViewAny:Dashboard',
+        'View:Dashboard',
+        'Update:Dashboard',
     ];
 
     public static function isCustomerAdmin(?Authenticatable $user): bool

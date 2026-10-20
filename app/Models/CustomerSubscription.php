@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Jobs\PushBrandingToTenantsJob;
+use App\Models\Reporting\Aims\CustomerDashboard;
 use App\Services\LogoSyncService;
 use App\Support\BrandingSync\BrandingSyncPayload;
 use App\Support\CustomerSync\LmsHub;
@@ -421,6 +422,16 @@ class CustomerSubscription extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function forgeServer(): BelongsTo
+    {
+        return $this->belongsTo(ForgeServer::class, 'server_id', 'forge_server_id');
+    }
+
+    public function customerDashboards(): HasMany
+    {
+        return $this->hasMany(CustomerDashboard::class);
     }
 
     public function brandSlots(): HasMany

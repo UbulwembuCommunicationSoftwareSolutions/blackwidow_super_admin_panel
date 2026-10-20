@@ -21,6 +21,9 @@ use App\Http\Controllers\Api\Backend\SubscriptionTypeReleaseController;
 use App\Http\Controllers\Api\Backend\TemplateEnvVariablesController;
 use App\Http\Controllers\Api\Backend\UserController;
 use App\Http\Controllers\Api\Backend\UserCustomerController;
+use App\Http\Controllers\Reporting\Aims\CustomerDashboardController;
+use App\Http\Controllers\Reporting\Aims\DashboardController;
+use App\Http\Controllers\Reporting\Aims\DashboardReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -91,6 +94,26 @@ Route::middleware(['auth:sanctum', 'customer.admin'])->group(function () {
     Route::delete('/customer-users/{id}', [CustomerUserController::class, 'destroy'])->whereNumber('id');
 
     Route::get('/search', [SearchController::class, 'index']);
+
+    Route::get('/dashboards', [DashboardController::class, 'index']);
+    Route::post('/dashboards', [DashboardController::class, 'store']);
+    Route::get('/dashboards/{id}', [DashboardController::class, 'show'])->whereNumber('id');
+    Route::match(['put', 'patch'], '/dashboards/{id}', [DashboardController::class, 'update'])->whereNumber('id');
+    Route::delete('/dashboards/{id}', [DashboardController::class, 'destroy'])->whereNumber('id');
+
+    Route::put('/customer-dashboards/{id}/users', [CustomerDashboardController::class, 'syncUsers'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/me', [DashboardReportController::class, 'me'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/options', [DashboardReportController::class, 'options'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/dashboard', [DashboardReportController::class, 'dashboard'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/cases', [DashboardReportController::class, 'cases'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/case', [DashboardReportController::class, 'caseDetail'])->whereNumber('id');
+    Route::post('/customer-dashboards/{id}/report/export', [DashboardReportController::class, 'export'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/report/audit', [DashboardReportController::class, 'audit'])->whereNumber('id');
+    Route::get('/customer-dashboards', [CustomerDashboardController::class, 'index']);
+    Route::post('/customer-dashboards', [CustomerDashboardController::class, 'store']);
+    Route::get('/customer-dashboards/{id}', [CustomerDashboardController::class, 'show'])->whereNumber('id');
+    Route::match(['put', 'patch'], '/customer-dashboards/{id}', [CustomerDashboardController::class, 'update'])->whereNumber('id');
+    Route::delete('/customer-dashboards/{id}', [CustomerDashboardController::class, 'destroy'])->whereNumber('id');
 
     Route::get('/permissions', [RoleController::class, 'permissions']);
     Route::get('/roles', [RoleController::class, 'index']);

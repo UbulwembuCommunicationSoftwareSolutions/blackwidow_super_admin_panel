@@ -24,6 +24,7 @@ class ShieldSeeder extends Seeder
         'NginxTemplate',
         'SubscriptionType',
         'Role',
+        'Dashboard',
     ];
 
     /** @var list<string> */

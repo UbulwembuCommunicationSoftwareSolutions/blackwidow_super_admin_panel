@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Jobs\PushCustomerUserToTenantsJob;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
+use App\Models\Reporting\Aims\CustomerDashboard;
 use App\Support\UserSync\PushOperation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -282,6 +283,12 @@ class CustomerUser extends Authenticatable
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function customerDashboards(): BelongsToMany
+    {
+        return $this->belongsToMany(CustomerDashboard::class, 'customer_user_customer_dashboards')
+            ->withTimestamps();
     }
 
     public function productPermissions(): BelongsToMany
