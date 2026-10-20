@@ -23,6 +23,7 @@ class CustomerDashboardFactory extends Factory
             'customer_subscription_id' => CustomerSubscription::factory(),
             'reporting_database' => 'aims_rpt_test',
             'database_host' => null,
+            'database_time_zone' => null,
             'enabled' => true,
         ];
     }
