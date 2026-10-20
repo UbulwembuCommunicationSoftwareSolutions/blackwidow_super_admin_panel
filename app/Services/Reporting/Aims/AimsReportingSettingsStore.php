@@ -16,6 +16,7 @@ class AimsReportingSettingsStore
     public function __construct(
         private readonly TenantConnectionFactory $connections,
         private readonly AimsReportingSettings $settings,
+        private readonly AimsRoleGrantInstaller $grants,
     ) {}
 
     /**
@@ -23,13 +24,7 @@ class AimsReportingSettingsStore
      */
     public function read(CustomerDashboard $dashboard): array
     {
-        try {
-            return $this->snapshot($this->connections->connect($dashboard));
-        } catch (PDOException $e) {
-            throw $this->schemaFailure($e);
-        } finally {
-            $this->connections->disconnect();
-        }
+        return $this->withConnection($dashboard, fn (AimsReportConnection $connection): array => $this->snapshot($connection));
     }
 
     /**
@@ -40,8 +35,7 @@ class AimsReportingSettingsStore
     {
         $document = $this->settings->document($pairs);
 
-        try {
-            $connection = $this->connections->connect($dashboard);
+        return $this->withConnection($dashboard, function (AimsReportConnection $connection) use ($document): array {
             $pdo = $connection->pdo();
             $pdo->beginTransaction();
             try {
@@ -67,11 +61,37 @@ class AimsReportingSettingsStore
             }
 
             return $this->snapshot($connection);
+        });
+    }
+
+    /**
+     * @template T
+     * @param  callable(AimsReportConnection): T  $callback
+     * @return T
+     */
+    private function withConnection(CustomerDashboard $dashboard, callable $callback, bool $installed = false): mixed
+    {
+        try {
+            return $callback($this->connections->connect($dashboard));
         } catch (PDOException $e) {
-            throw $this->schemaFailure($e);
+            if ($installed || ! $this->missingGrantTable($e)) {
+                throw $this->schemaFailure($e);
+            }
+            $this->connections->disconnect();
+            $this->grants->install($dashboard);
+
+            return $this->withConnection($dashboard, $callback, true);
         } finally {
             $this->connections->disconnect();
         }
+    }
+
+    private function missingGrantTable(PDOException $exception): bool
+    {
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+
+        return in_array($driverCode, [1146, 1054], true)
+            || in_array((string) $exception->getCode(), ['42S02', '42S22'], true);
     }
 
     /**
@@ -145,8 +165,8 @@ class AimsReportingSettingsStore
     private function schemaFailure(PDOException $exception): TenantDatabaseException
     {
         $code = (int) ($exception->errorInfo[1] ?? 0);
-        if (in_array($code, [1146, 1054], true)) {
-            return new TenantDatabaseException('The reporting schema on this site does not have role grants yet. Re-run the reporting install.');
+        if (in_array($code, [1146, 1054], true) || in_array((string) $exception->getCode(), ['42S02', '42S22'], true)) {
+            return new TenantDatabaseException('Role grants could not be added to this reporting database.');
         }
 
         report($exception);

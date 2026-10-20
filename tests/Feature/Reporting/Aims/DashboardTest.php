@@ -342,6 +342,18 @@ it('keeps aims role scope and drops filters that are not on the whitelist', func
     ]);
 });
 
+it('rewrites the role grant upgrade for one customer database', function () {
+    $schema = app(AimsSchemaSql::class);
+    $sql = $schema->render($schema->template('05_role_grants.sql'), 'tenant_aims', 'tenant_aims_rpt');
+    $statements = $schema->statements($sql);
+
+    expect($sql)->not->toContain('ciid_console_aims_net_za')
+        ->and($sql)->toContain('USE `tenant_aims_rpt`')
+        ->and($sql)->toContain('CREATE TABLE IF NOT EXISTS rpt_role_grant')
+        ->and($sql)->toContain('`tenant_aims`.roles')
+        ->and($statements[0])->toBe('USE `tenant_aims_rpt`');
+});
+
 it('rewrites the reporting schema for one customer database', function () {
     $schema = app(AimsSchemaSql::class);
     $sql = $schema->render($schema->template('02_reporting_schema_ethekwini.sql'), 'tenant_aims', 'tenant_aims_rpt');
