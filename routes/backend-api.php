@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Backend\TemplateEnvVariablesController;
 use App\Http\Controllers\Api\Backend\UserController;
 use App\Http\Controllers\Api\Backend\UserCustomerController;
 use App\Http\Controllers\Reporting\Aims\CustomerDashboardController;
+use App\Http\Controllers\Reporting\Aims\CustomerDashboardSettingsController;
 use App\Http\Controllers\Reporting\Aims\DashboardController;
 use App\Http\Controllers\Reporting\Aims\DashboardReportController;
 use Illuminate\Support\Facades\Route;
@@ -102,6 +103,8 @@ Route::middleware(['auth:sanctum', 'aims.embed:reject', 'customer.admin'])->grou
     Route::delete('/dashboards/{id}', [DashboardController::class, 'destroy'])->whereNumber('id');
 
     Route::put('/customer-dashboards/{id}/users', [CustomerDashboardController::class, 'syncUsers'])->whereNumber('id');
+    Route::get('/customer-dashboards/{id}/settings', [CustomerDashboardSettingsController::class, 'show'])->whereNumber('id');
+    Route::put('/customer-dashboards/{id}/settings', [CustomerDashboardSettingsController::class, 'update'])->whereNumber('id');
     Route::get('/customer-dashboards', [CustomerDashboardController::class, 'index']);
     Route::post('/customer-dashboards', [CustomerDashboardController::class, 'store']);
     Route::get('/customer-dashboards/{id}', [CustomerDashboardController::class, 'show'])->whereNumber('id');

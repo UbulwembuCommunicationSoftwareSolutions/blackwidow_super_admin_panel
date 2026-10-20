@@ -8,6 +8,7 @@ use App\Models\ForgeServer;
 use App\Models\Reporting\Aims\CustomerDashboard;
 use App\Models\Reporting\Aims\Dashboard;
 use App\Services\Reporting\Aims\AimsFilters;
+use App\Services\Reporting\Aims\AimsReportingSettingsStore;
 use App\Services\Reporting\Aims\AimsReportService;
 use App\Services\Reporting\Aims\AimsSchemaSql;
 use App\Services\Reporting\Aims\AimsScope;
@@ -200,6 +201,58 @@ it('resolves the mysql host from the forge server when the api is elsewhere', fu
     expect($factory->resolveHost($subscription, null))->toBe('127.0.0.1');
     expect($factory->resolveHost($subscription, '10.0.0.4'))->toBe('10.0.0.4');
     expect($factory->resolvePort($subscription))->toBe(3307);
+});
+
+it('shows aims report settings as key value pairs', function () {
+    actingAsBackendUser();
+    $grant = CustomerDashboard::factory()->create();
+
+    $this->mock(AimsReportingSettingsStore::class, function ($mock) {
+        $mock->shouldReceive('read')->once()->andReturn([
+            'settings' => [
+                ['key' => 'investigator_role_ids', 'value' => '17, 23'],
+            ],
+            'roles' => [
+                ['id' => 17, 'name' => 'Investigations Officer'],
+            ],
+        ]);
+    });
+
+    $this->getJson('/api/backend/customer-dashboards/'.$grant->id.'/settings')
+        ->assertOk()
+        ->assertJsonPath('data.settings.0.value', '17, 23')
+        ->assertJsonPath('data.roles.0.name', 'Investigations Officer');
+});
+
+it('rejects an unknown aims setting before opening the customer database', function () {
+    actingAsBackendUser();
+    $grant = CustomerDashboard::factory()->create();
+
+    $this->putJson('/api/backend/customer-dashboards/'.$grant->id.'/settings', [
+        'settings' => [
+            ['key' => 'not_a_setting', 'value' => '1'],
+        ],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['settings.0.key']);
+});
+
+it('does not open settings for a dashboard that is not aims', function () {
+    actingAsBackendUser();
+    $dashboard = Dashboard::factory()->create(['handler' => 'other']);
+    $grant = CustomerDashboard::factory()->create(['dashboard_id' => $dashboard->id]);
+
+    $this->getJson('/api/backend/customer-dashboards/'.$grant->id.'/settings')
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'This dashboard has no settings yet.');
+});
+
+it('keeps report settings away from a customer admin', function () {
+    $admin = actingAsCustomerAdmin();
+    $grant = CustomerDashboard::factory()->create(['customer_id' => $admin->customer_id]);
+
+    $this->getJson('/api/backend/customer-dashboards/'.$grant->id.'/settings')
+        ->assertForbidden()
+        ->assertJsonPath('message', 'Customer admins cannot change report settings.');
 });
 
 it('keeps a report grant when the role display name no longer matches the seed name', function () {
