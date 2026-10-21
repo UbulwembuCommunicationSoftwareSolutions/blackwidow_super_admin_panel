@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\PushCustomerUserPasswordJob;
 use App\Jobs\PushCustomerUserToTenantsJob;
 use App\Jobs\SendSubscriptionEmailJob;
 use App\Jobs\SendWelcomeEmailJob;
@@ -21,6 +22,13 @@ class CustomerUser extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
     use SoftDeletes;
+
+    /**
+     * The cleartext behind the latest password assignment, held only until the
+     * save that persists it has run. The column stores a hash, and the tenant
+     * apps need the cleartext to hash with their own driver.
+     */
+    protected ?string $pendingCleartextPassword = null;
 
     public $fillable = [
         'customer_id',
@@ -152,6 +160,11 @@ class CustomerUser extends Authenticatable
         static::updated(function ($model) {
             $model->queueTenantPush(PushOperation::Upsert);
 
+            if ($model->wasChanged('password')) {
+                $model->queueTenantPasswordPush();
+            }
+            $model->pendingCleartextPassword = null;
+
             if ($model->wasChanged('console_access') && $model->console_access) {
                 SendWelcomeEmailJob::dispatch($model);
             }
@@ -280,6 +293,20 @@ class CustomerUser extends Authenticatable
         PushCustomerUserToTenantsJob::dispatch($this->id, $operation);
     }
 
+    /**
+     * Hand a password changed here to the tenant apps, unless it arrived from one.
+     * Created users are not covered: the upsert creates them on the tenant first,
+     * and a push for a user the tenant does not know yet would only 404.
+     */
+    public function queueTenantPasswordPush(): void
+    {
+        if ($this->skip_sync || $this->pendingCleartextPassword === null) {
+            return;
+        }
+
+        PushCustomerUserPasswordJob::dispatch($this->id, $this->pendingCleartextPassword);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -333,6 +360,7 @@ class CustomerUser extends Authenticatable
 
     public function setPasswordAttribute($value)
     {
+        $this->pendingCleartextPassword = $value;
         $this->attributes['password'] = Hash::make($value);
     }
 }
