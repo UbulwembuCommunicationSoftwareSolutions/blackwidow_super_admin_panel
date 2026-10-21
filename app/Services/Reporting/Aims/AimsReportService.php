@@ -34,7 +34,7 @@ final class AimsReportService
 
     private const CASE_COLS = 'c.case_id, c.reference, c.received_date, c.classification, c.division, c.directorate, c.department,
     c.allegation_type, c.source, c.primary_category, c.status, c.status_bucket, c.priority, c.days_open,
-    c.is_closed, c.is_overdue, c.due_date, DATE(c.closed_at) AS closed_date';
+    c.is_closed, c.is_overdue, c.due_date, DATE(c.closed_at) AS closed_date, c.classification_source, c.has_intake';
 
     /** @var array<string, string> */
     private const AUDIT_SOURCES = [
@@ -190,7 +190,8 @@ final class AimsReportService
                      COALESCE(SUM(c.is_overdue), 0) AS overdue, COALESCE(SUM(c.is_closed = 0 AND c.priority = 'High'), 0) AS open_high,
                      ROUND(AVG(CASE WHEN c.is_closed = 0 THEN c.days_open END)) AS avg_open_days,
                      COALESCE(SUM(c.is_closed = 1 AND c.due_by IS NOT NULL AND c.closed_at <= c.due_by), 0) AS closed_on_time,
-                     COALESCE(SUM(c.is_closed = 1 AND c.due_by IS NOT NULL), 0) AS closed_with_target
+                     COALESCE(SUM(c.is_closed = 1 AND c.due_by IS NOT NULL), 0) AS closed_with_target,
+                     COALESCE(SUM(c.has_intake = 1), 0) AS with_intake
               $from",
             $params
         ) ?? [];
@@ -286,6 +287,34 @@ final class AimsReportService
             'workload' => $workload,
             'outcomes' => $outcomes,
             'root_cause' => $this->grouped($source, 'c.root_cause', 'AND c.is_closed = 1 AND c.root_cause IS NOT NULL'),
+        ] + $this->preCaseBreakdown($source);
+    }
+
+    /**
+     * Dashboard datasets from the Pre-Case intake data. Most cases have none until the Pre-Case
+     * hand-over is live, so each dataset counts only the cases that do, and the share shows how many.
+     *
+     * @param  array{0: string, 1: string, 2: list<mixed>}  $source
+     * @return array{intake_channel: list<array<string, mixed>>, value_involved: list<array<string, mixed>>, intake_share: list<array<string, mixed>>, classification_source: list<array<string, mixed>>}
+     */
+    public function preCaseBreakdown(array $source): array
+    {
+        [$table, $condition, $params] = $source;
+
+        return [
+            'intake_channel' => $this->grouped($source, "COALESCE(c.intake_channel, 'Not recorded')", 'AND c.has_intake = 1'),
+            'value_involved' => $this->db->rows(
+                "SELECT c.classification AS label, COUNT(*) AS n, SUM(c.estimated_financial_impact) AS total
+                   FROM $table c WHERE $condition AND c.estimated_financial_impact IS NOT NULL
+                   GROUP BY c.classification ORDER BY total DESC, label",
+                $params
+            ),
+            'intake_share' => $this->db->rows(
+                "SELECT CASE WHEN c.has_intake = 1 THEN 'From Pre-Case' ELSE 'Captured in AIMS' END AS label, c.has_intake, COUNT(*) AS n
+                   FROM $table c WHERE $condition GROUP BY c.has_intake ORDER BY c.has_intake DESC",
+                $params
+            ),
+            'classification_source' => $this->grouped($source, 'c.classification_source'),
         ];
     }
 
@@ -334,7 +363,9 @@ final class AimsReportService
         [$where, $whereParams] = AimsFilters::clause($filters, $this->db->aimsDatabase(), $this->db->reportingDatabase());
 
         return $this->db->rows(
-            'SELECT c.reference, c.received_date, c.fin_year, c.classification, c.division, c.directorate, c.department,
+            'SELECT c.reference, c.ack_number, c.received_date, c.fin_year, c.classification,
+        CASE WHEN c.classification_source = \'pre_case\' THEN \'Pre-Case\' ELSE \'Division mapping (provisional)\' END AS classification_from,
+        c.intake_channel, c.estimated_financial_impact, c.division, c.directorate, c.department,
         c.allegation_type, c.source, l.categories, l.sub_categories, c.status, c.status_bucket, c.priority, l.owners, l.complainants,
         c.due_date, DATE(c.closed_at) AS closed_date, c.days_open, c.working_hours, c.is_overdue, c.root_cause, l.outcome_tags
         FROM '.$this->db->reporting('v_case').' c LEFT JOIN '.$this->db->reporting('v_case_lists')." l ON l.case_id = c.case_id
@@ -492,13 +523,18 @@ final class AimsReportService
             'allegation_type' => $list($sets['allegation_type']),
             'source' => $list($sets['source']),
             'division' => $list($sets['division']),
+            'intake_channel' => $column(
+                'SELECT DISTINCT di.intake_channel AS v FROM '.$this->db->aims('docket_intake_details').' di
+              WHERE di.intake_channel IS NOT NULL AND di.intake_channel <> \'\' ORDER BY v'
+            ),
             'category' => $column('SELECT name AS v FROM '.$this->db->aims('docket_categories').' WHERE deleted_at IS NULL ORDER BY name'),
             'priority' => $column('SELECT name AS v FROM '.$this->db->aims('docket_priorities')." WHERE deleted_at IS NULL ORDER BY FIELD(v, 'High', 'Medium', 'Low'), v"),
             'status_bucket' => $column('SELECT bucket AS v FROM '.$this->db->reporting('rpt_status_map').' GROUP BY bucket ORDER BY MIN(bucket_order)'),
             'status' => $column('SELECT name AS v FROM '.$this->db->aims('docket_statuses').' WHERE deleted_at IS NULL ORDER BY name'),
             'fin_year' => $column(
-                'SELECT DISTINCT k.fin_year AS v FROM '.$this->db->aims('dockets').' d JOIN '.$this->db->reporting('rpt_clock').' ck ON ck.id = 1 JOIN '
-                .$this->db->reporting('rpt_calendar').' k ON k.d = DATE(d.created_at + INTERVAL ck.aims_offset_minutes MINUTE)
+                'SELECT DISTINCT k.fin_year AS v FROM '.$this->db->aims('dockets').' d JOIN '.$this->db->reporting('rpt_clock').' ck ON ck.id = 1
+              LEFT JOIN '.$this->db->aims('docket_intake_details').' di ON di.docket_id = d.id JOIN '
+                .$this->db->reporting('rpt_calendar').' k ON k.d = DATE(COALESCE(di.date_received, d.created_at) + INTERVAL ck.aims_offset_minutes MINUTE)
               WHERE d.is_test = 0 AND d.deleted_at IS NULL ORDER BY v DESC'
             ),
             'provisional' => [

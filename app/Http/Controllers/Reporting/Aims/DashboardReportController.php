@@ -114,7 +114,8 @@ class DashboardReportController extends Controller
 
             $filename = 'aims_cases_'.AimsReportService::now()->format('Y-m-d_His').'.csv';
             $columns = [
-                'Reference', 'Received', 'Financial year', 'Classification (provisional)', 'Division', 'Directorate', 'Department',
+                'Reference', 'Pre-Case ACK', 'Received', 'Financial year', 'Classification', 'Classification from', 'Intake channel',
+                'Value involved (R)', 'Division', 'Directorate', 'Department',
                 'Type of allegation', 'Source of allegation', 'Categories', 'Sub-categories', 'Status', 'Status group', 'Priority',
                 'Investigators', 'Complainants', 'Due date', 'Closed', 'Days open', 'Working hours', 'Overdue', 'Root cause', 'Outcome tags',
             ];

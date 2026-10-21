@@ -20,6 +20,7 @@ final class AimsFilters
         'fin_year' => 'c.fin_year',
         'received_month' => 'c.received_month',
         'root_cause' => 'c.root_cause',
+        'intake_channel' => 'c.intake_channel',
     ];
 
     /** @var array<string, array{0: int, 1: int}> */
@@ -64,6 +65,11 @@ final class AimsFilters
             }
         }
 
+        // Whether the case came through Pre-Case: 1 with intake data, 0 without.
+        if (isset($input['has_intake']) && in_array((string) $input['has_intake'], ['0', '1'], true)) {
+            $filters['has_intake'] = (int) $input['has_intake'];
+        }
+
         if (! empty($input['owner']) && ctype_digit((string) $input['owner'])) {
             $filters['owner'] = (int) $input['owner'];
         }
@@ -94,6 +100,10 @@ final class AimsFilters
         if (isset($filters['fin_quarter'])) {
             $parts[] = 'c.fin_quarter = ?';
             $params[] = $filters['fin_quarter'];
+        }
+        if (isset($filters['has_intake'])) {
+            $parts[] = 'c.has_intake = ?';
+            $params[] = $filters['has_intake'];
         }
         if (isset($filters['from'])) {
             $parts[] = 'c.received_date >= ?';

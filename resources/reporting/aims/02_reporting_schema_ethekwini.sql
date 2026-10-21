@@ -15,6 +15,10 @@ SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,N
 /* Stops the import here, before anything is created, if this account cannot read the AIMS database. */
 SELECT COUNT(*) AS aims_database_is_readable FROM `ciid_console_aims_net_za`.dockets WHERE 1 = 0;
 
+/* Stops the import here too if AIMS predates the Pre-Case intake date (CMS migration
+   2026_10_21_000001_add_date_received_to_docket_intake_details): run `php artisan migrate` on AIMS first. */
+SELECT COUNT(date_received) AS aims_has_pre_case_intake_dates FROM `ciid_console_aims_net_za`.docket_intake_details WHERE 1 = 0;
+
 /* The database `aims_rpt` must exist already (README, step 3.1): create it in phpMyAdmin or the hosting
    control panel with collation utf8mb4_unicode_ci. */
 USE `aims_rpt`;
@@ -15807,12 +15811,16 @@ WHERE d.is_test = 0 AND d.deleted_at IS NULL;
 
 /* One row per live case (not test, not deleted), times in South African time.
    Closure time: the AIMS closed date; else, for a closing status AIMS does not flag (such as
-   "Duplicate - Closed"), the last audited change into a closing status; only then the last update. */
+   "Duplicate - Closed"), the last audited change into a closing status; only then the last update.
+   Cases handed over from Pre-Case carry an intake record: for those, receipt is when Pre-Case received
+   the matter, and the classification is the one Pre-Case gave (INV, OMB or INF). Any other case, or a
+   Pre-Case classification outside those three (Referral, No jurisdiction), falls back to the case's
+   creation time and the provisional division mapping. classification_source says which was used. */
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW v_case_base AS
 SELECT d.id AS case_id,
        d.reference,
        d.company_level_five_id AS leaf_id,
-       d.created_at + INTERVAL ck.aims_offset_minutes MINUTE AS received_at,
+       COALESCE(di.date_received, d.created_at) + INTERVAL ck.aims_offset_minutes MINUTE AS received_at,
        s.name AS status,
        COALESCE(sm.bucket, 'Unmapped') AS status_bucket,
        COALESCE(sm.bucket_order, 9) AS bucket_order,
@@ -15821,12 +15829,33 @@ SELECT d.id AS case_id,
             THEN COALESCE(d.closed_at, ca.closed_audit_at, d.updated_at) + INTERVAL ck.aims_offset_minutes MINUTE END AS closed_at,
        p.name AS priority,
        CASE WHEN COALESCE(sm.is_closed, s.is_closed, 0) = 1 THEN st.name END AS root_cause,
-       o.directorate, o.department, o.allegation_type, o.source, o.division, o.classification,
+       o.directorate, o.department, o.allegation_type, o.source, o.division,
+       COALESCE(CASE UPPER(TRIM(di.case_classification))
+                  WHEN 'INV' THEN 'INV' WHEN 'INVESTIGATION' THEN 'INV'
+                  WHEN 'OMB' THEN 'OMB' WHEN 'OMBUDSMAN' THEN 'OMB'
+                  WHEN 'INF' THEN 'INF' WHEN 'INFORMATION' THEN 'INF' END,
+                o.classification) AS classification,
+       CASE WHEN UPPER(TRIM(di.case_classification)) IN ('INV', 'INVESTIGATION', 'OMB', 'OMBUDSMAN', 'INF', 'INFORMATION')
+            THEN 'pre_case' ELSE 'division' END AS classification_source,
+       CASE WHEN di.id IS NULL THEN 0 ELSE 1 END AS has_intake,
+       di.case_classification AS intake_classification,
+       di.intake_channel,
+       di.estimated_financial_impact,
+       ack.ack_number,
        pc.name AS primary_category,
        d.due_date + INTERVAL ck.aims_offset_minutes MINUTE AS due_date,
        UTC_TIMESTAMP() + INTERVAL 120 MINUTE AS sa_now
 FROM `ciid_console_aims_net_za`.dockets d
 JOIN rpt_clock ck ON ck.id = 1
+LEFT JOIN `ciid_console_aims_net_za`.docket_intake_details di ON di.docket_id = d.id
+LEFT JOIN (
+  /* The Pre-Case ACK number, kept on the case as an external reference. */
+  SELECT dx.docket_id, MIN(er.reference_nr) AS ack_number
+  FROM `ciid_console_aims_net_za`.docket_docket_external_refs dx
+  JOIN `ciid_console_aims_net_za`.docket_external_refs er ON er.id = dx.docket_external_ref_id
+  WHERE er.company = 'CIID Pre-Case' AND dx.deleted_at IS NULL AND er.deleted_at IS NULL
+  GROUP BY dx.docket_id
+) ack ON ack.docket_id = d.id
 JOIN `ciid_console_aims_net_za`.docket_statuses s ON s.id = d.docket_status_id
 LEFT JOIN rpt_status_map sm ON sm.status_name = s.name
 LEFT JOIN `ciid_console_aims_net_za`.docket_priorities p ON p.id = d.docket_priority_id
@@ -15861,6 +15890,8 @@ SELECT b.case_id, b.reference, b.leaf_id, b.received_at,
        DATE_FORMAT(b.received_at, '%Y-%m') AS received_month,
        b.status, b.status_bucket, b.bucket_order, b.is_closed, b.closed_at, b.priority, b.root_cause,
        b.directorate, b.department, b.allegation_type, b.source, b.division, b.classification,
+       b.classification_source, b.has_intake, b.intake_classification, b.intake_channel,
+       b.estimated_financial_impact, b.ack_number,
        b.primary_category, b.due_date,
        CASE WHEN TIME(b.due_date) = '00:00:00' THEN b.due_date + INTERVAL 1 DAY ELSE b.due_date END AS due_by,
        CASE WHEN b.is_closed = 0
@@ -15913,11 +15944,19 @@ JOIN rpt_clock ck ON ck.id = 1
 LEFT JOIN `ciid_console_aims_net_za`.users u ON u.id = CAST(pt.user_id AS UNSIGNED)
 WHERE pt.type = 'owner';
 
-/* Per-case lists, aggregated once per case (used by the export and case detail). */
+/* Per-case lists, aggregated once per case (used by the export and case detail), with the Pre-Case
+   intake fields (empty for a case that did not come from Pre-Case). */
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW v_case_lists AS
 SELECT d.id AS case_id,
-       cat.categories, sub.sub_categories, own.owners, COALESCE(rep.complainants, 0) AS complainants, tg.outcome_tags
+       cat.categories, sub.sub_categories, own.owners, COALESCE(rep.complainants, 0) AS complainants, tg.outcome_tags,
+       ack.ack_number, di.intake_channel, di.estimated_financial_impact
 FROM `ciid_console_aims_net_za`.dockets d
+LEFT JOIN `ciid_console_aims_net_za`.docket_intake_details di ON di.docket_id = d.id
+LEFT JOIN (SELECT dx.docket_id, MIN(er.reference_nr) AS ack_number
+             FROM `ciid_console_aims_net_za`.docket_docket_external_refs dx
+             JOIN `ciid_console_aims_net_za`.docket_external_refs er ON er.id = dx.docket_external_ref_id
+            WHERE er.company = 'CIID Pre-Case' AND dx.deleted_at IS NULL AND er.deleted_at IS NULL
+            GROUP BY dx.docket_id) ack ON ack.docket_id = d.id
 LEFT JOIN (SELECT x.docket_id, GROUP_CONCAT(c.name ORDER BY x.id SEPARATOR '; ') AS categories
              FROM `ciid_console_aims_net_za`.docket_docket_category x JOIN `ciid_console_aims_net_za`.docket_categories c ON c.id = x.docket_category_id
             WHERE x.deleted_at IS NULL GROUP BY x.docket_id) cat ON cat.docket_id = d.id
