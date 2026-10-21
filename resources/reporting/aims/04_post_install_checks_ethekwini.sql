@@ -71,6 +71,25 @@ SELECT n AS `#`, area, check_name, result, expected FROM (
                 (SELECT COUNT(*) FROM `aims_rpt`.v_case WHERE is_closed = 1 AND closed_at < received_at)),
          'Low / 0'
 
+  UNION ALL SELECT 30, 'Pre-Case', 'Cases with Pre-Case intake data / without',
+         CONCAT((SELECT COUNT(*) FROM `aims_rpt`.v_case WHERE has_intake = 1), ' / ',
+                (SELECT COUNT(*) FROM `aims_rpt`.v_case WHERE has_intake = 0)),
+         'Information only: the first number grows once the Pre-Case hand-over is live'
+  UNION ALL SELECT 31, 'Pre-Case', 'Classification source (source: cases)',
+         (SELECT COALESCE(GROUP_CONCAT(CONCAT(x.classification_source, ': ', x.k) ORDER BY x.classification_source SEPARATOR '; '), 'no cases')
+            FROM (SELECT classification_source, COUNT(*) AS k FROM `aims_rpt`.v_case GROUP BY classification_source) x),
+         'pre_case: the classification Pre-Case gave; division: the provisional division mapping'
+  UNION ALL SELECT 32, 'Pre-Case', 'Pre-Case cases classified from the division mapping (Pre-Case classification: cases)',
+         (SELECT COALESCE(GROUP_CONCAT(CONCAT(x.label, ': ', x.k) ORDER BY x.label SEPARATOR '; '), 'none')
+            FROM (SELECT COALESCE(intake_classification, '(none)') AS label, COUNT(*) AS k FROM `aims_rpt`.v_case
+                   WHERE has_intake = 1 AND classification_source = 'division' GROUP BY COALESCE(intake_classification, '(none)')) x),
+         'Only Referral and No jurisdiction'
+  UNION ALL SELECT 33, 'Pre-Case', 'Pre-Case cases with no date received (counted from case creation instead)',
+         (SELECT COUNT(*) FROM `ciid_console_aims_net_za`.docket_intake_details di
+            JOIN `aims_rpt`.v_case_key k ON k.case_id = di.docket_id
+           WHERE di.date_received IS NULL),
+         '0 once the CMS backfill (php artisan ciid:backfill-intake-dates) has run'
+
   UNION ALL SELECT 20, 'Access', 'AIMS roles: active users -> report scope',
          (SELECT GROUP_CONCAT(CONCAT(x.name, ': ', x.users, ' -> ', COALESCE(ra.scope, 'none'),
                  CASE WHEN ra.can_audit = 1 AND COALESCE(ra.scope, 'none') = 'none' THEN ' (audit log only)' ELSE '' END)

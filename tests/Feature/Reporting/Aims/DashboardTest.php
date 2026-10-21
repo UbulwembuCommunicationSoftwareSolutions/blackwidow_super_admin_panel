@@ -415,6 +415,9 @@ it('rewrites the reporting schema for one customer database', function () {
 
     expect($sql)->not->toContain('ciid_console_aims_net_za')
         ->and($sql)->toContain('`tenant_aims`.dockets')
+        ->and($sql)->toContain('LEFT JOIN `tenant_aims`.docket_intake_details di ON di.docket_id = d.id')
+        ->and($sql)->toContain("WHERE er.company = 'CIID Pre-Case'")
+        ->and($sql)->toContain('COALESCE(di.date_received, d.created_at) + INTERVAL ck.aims_offset_minutes MINUTE AS received_at')
         ->and($sql)->toContain('USE `tenant_aims_rpt`')
         ->and($sql)->not->toContain('`aims_rpt`');
 });
@@ -491,4 +494,111 @@ it('writes substituted sql without connecting when asked', function () {
         ->and($sql)->not->toContain('ciid_console_aims_net_za');
 
     Storage::disk('local')->delete($path);
+});
+
+/**
+ * A stand-in for the reporting database: v_case and v_case_lists as plain tables holding one case from
+ * Pre-Case (classified there), one Pre-Case referral (classified from the division) and one captured
+ * in AIMS only.
+ */
+function preCaseReportPdo(): PDO
+{
+    $pdo = new PDO('sqlite::memory:');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo->exec("ATTACH DATABASE ':memory:' AS aims_db");
+    $pdo->exec("ATTACH DATABASE ':memory:' AS rpt_db");
+    $pdo->exec('CREATE TABLE rpt_db.v_case (case_id INTEGER, reference TEXT, ack_number TEXT, received_at TEXT, received_date TEXT, fin_year TEXT,
+        classification TEXT, classification_source TEXT, has_intake INTEGER, intake_channel TEXT, estimated_financial_impact REAL,
+        division TEXT, directorate TEXT, department TEXT, allegation_type TEXT, source TEXT, status TEXT, status_bucket TEXT, priority TEXT,
+        due_date TEXT, closed_at TEXT, days_open INTEGER, working_hours REAL, is_closed INTEGER, is_overdue INTEGER, root_cause TEXT)');
+    $pdo->exec('CREATE TABLE rpt_db.v_case_lists (case_id INTEGER, categories TEXT, sub_categories TEXT, owners TEXT, complainants INTEGER, outcome_tags TEXT)');
+    $pdo->exec("INSERT INTO rpt_db.v_case VALUES
+        (1, 'D00001', 'ACK-2026-00001', '2026-08-20 11:00:00', '2026-08-20', '2026/27', 'INV', 'pre_case', 1, 'Email', 250000,
+         'Investigations', 'Finance', 'Treasury', 'Fraud', 'Hotline', 'Open', 'New', 'High', NULL, NULL, 60, NULL, 0, 0, NULL),
+        (2, 'D00002', NULL, '2026-09-11 08:00:00', '2026-09-11', '2026/27', 'INF', 'division', 0, NULL, NULL,
+         'Network Theft', 'Finance', 'Treasury', 'Theft', 'Walk-in', 'Open', 'New', 'Low', NULL, NULL, 40, NULL, 0, 0, NULL),
+        (3, 'D00003', 'ACK-2026-00003', '2026-09-12 08:00:00', '2026-09-12', '2026/27', 'INF', 'division', 1, 'Anonymous hotline', 1500.5,
+         'Network Theft', 'Finance', 'Treasury', 'Theft', 'Hotline', 'Open', 'New', 'Low', NULL, NULL, 39, NULL, 0, 0, NULL)");
+    $pdo->exec("INSERT INTO rpt_db.v_case_lists VALUES (1, 'Procurement', NULL, NULL, 1, NULL), (2, NULL, NULL, NULL, 0, NULL), (3, NULL, NULL, NULL, 0, NULL)");
+
+    return $pdo;
+}
+
+it('filters cases by intake channel and by whether they came through pre-case', function () {
+    $clean = AimsFilters::clean(['intake_channel' => 'Email', 'has_intake' => '1']);
+
+    expect($clean)->toBe(['intake_channel' => 'Email', 'has_intake' => 1])
+        ->and(AimsFilters::clean(['has_intake' => '0']))->toBe(['has_intake' => 0])
+        ->and(AimsFilters::clean(['has_intake' => 'yes']))->toBe([]);
+
+    [$sql, $params] = AimsFilters::clause($clean, 'aims_db', 'rpt_db');
+
+    expect($sql)->toBe('c.intake_channel = ? AND c.has_intake = ?')
+        ->and($params)->toBe(['Email', 1]);
+});
+
+it('breaks the dashboard down by pre-case intake channel, value involved and share of cases', function () {
+    $reports = new AimsReportService(new AimsReportConnection(preCaseReportPdo(), 'aims_db', 'rpt_db'));
+
+    $all = $reports->preCaseBreakdown(['"rpt_db"."v_case"', '1=1', []]);
+
+    expect($all['intake_channel'])->toBe([
+        ['label' => 'Anonymous hotline', 'n' => 1],
+        ['label' => 'Email', 'n' => 1],
+    ])
+        ->and($all['value_involved'])->toBe([
+            ['label' => 'INV', 'n' => 1, 'total' => 250000.0],
+            ['label' => 'INF', 'n' => 1, 'total' => 1500.5],
+        ])
+        ->and($all['intake_share'])->toBe([
+            ['label' => 'From Pre-Case', 'has_intake' => 1, 'n' => 2],
+            ['label' => 'Captured in AIMS', 'has_intake' => 0, 'n' => 1],
+        ])
+        ->and($all['classification_source'])->toBe([
+            ['label' => 'division', 'n' => 2],
+            ['label' => 'pre_case', 'n' => 1],
+        ]);
+
+    $none = $reports->preCaseBreakdown(['"rpt_db"."v_case"', 'c.has_intake = 0', []]);
+
+    expect($none['intake_channel'])->toBe([])
+        ->and($none['value_involved'])->toBe([])
+        ->and($none['intake_share'])->toBe([['label' => 'Captured in AIMS', 'has_intake' => 0, 'n' => 1]]);
+});
+
+it('exports the pre-case ack, intake channel and value with each case', function () {
+    $staff = actingAsBackendUser();
+    $pdo = preCaseReportPdo();
+    $pdo->exec('CREATE TABLE aims_db.users (id INTEGER, email TEXT, first_name TEXT, last_name TEXT, full_name TEXT, active INTEGER, status TEXT, deleted_at TEXT)');
+    $pdo->exec('CREATE TABLE aims_db.roles (id INTEGER, name TEXT)');
+    $pdo->exec('CREATE TABLE aims_db.model_has_roles (role_id INTEGER, model_id INTEGER, model_type TEXT)');
+    $pdo->exec('CREATE TABLE rpt_db.rpt_role_grant (grant_key TEXT, role_ids TEXT, scope TEXT, can_dashboard INTEGER, can_cases INTEGER, can_audit INTEGER, can_export INTEGER, can_see_names INTEGER)');
+    $pdo->exec('INSERT INTO aims_db.users VALUES (5, '.$pdo->quote($staff->email).", 'Ops', 'Director', NULL, 1, 'Active', NULL)");
+    $pdo->exec("INSERT INTO aims_db.roles VALUES (4, 'Director')");
+    $pdo->exec("INSERT INTO aims_db.model_has_roles VALUES (4, 5, 'App\\Models\\User')");
+    $pdo->exec("INSERT INTO rpt_db.rpt_role_grant VALUES ('executive_management', '[4]', 'all', 1, 1, 1, 1, 1)");
+    $grant = CustomerDashboard::factory()->create(['enabled' => true]);
+
+    $this->mock(TenantConnectionFactory::class, function ($mock) use ($pdo) {
+        $mock->shouldReceive('connect')->once()->andReturn(new AimsReportConnection($pdo, 'aims_db', 'rpt_db'));
+        $mock->shouldReceive('disconnect');
+    });
+
+    $response = $this->post('/api/backend/customer-dashboards/'.$grant->id.'/report/export', ['has_intake' => '1'])->assertOk();
+    $lines = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
+    $rows = array_map(fn (array $line) => array_combine($lines[0], $line), array_slice($lines, 1));
+
+    expect($rows)->toHaveCount(2)
+        ->and($rows[0]['Reference'])->toBe('D00003')
+        ->and($rows[0]['Pre-Case ACK'])->toBe('ACK-2026-00003')
+        ->and($rows[0]['Classification from'])->toBe('Division mapping (provisional)')
+        ->and($rows[0]['Intake channel'])->toBe('Anonymous hotline')
+        ->and($rows[1]['Reference'])->toBe('D00001')
+        ->and($rows[1]['Received'])->toBe('2026-08-20')
+        ->and($rows[1]['Classification'])->toBe('INV')
+        ->and($rows[1]['Classification from'])->toBe('Pre-Case')
+        ->and($rows[1]['Value involved (R)'])->toBe('250000')
+        ->and($rows[1]['Categories'])->toBe('Procurement')
+        ->and($rows[1]['Complainants'])->toBe('1');
 });
