@@ -5,9 +5,11 @@ namespace App\Providers;
 use App\Models\CustomerSubscription;
 use App\Models\CustomerUser;
 use App\Models\SubscriptionType;
+use App\Models\User;
 use App\Observers\CustomerSubscriptionObserver;
 use App\Observers\CustomerUserObserver;
 use App\Observers\SubscriptionTypeObserver;
+use App\Observers\UserObserver;
 use App\Policies\RolePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -33,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         CustomerSubscription::observe(CustomerSubscriptionObserver::class);
         CustomerUser::observe(CustomerUserObserver::class);
         SubscriptionType::observe(SubscriptionTypeObserver::class);
+        User::observe(UserObserver::class);
     }
 }
