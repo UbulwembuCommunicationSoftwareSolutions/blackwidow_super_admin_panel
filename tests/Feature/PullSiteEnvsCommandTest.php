@@ -106,3 +106,11 @@ it('carries on past a site it cannot read and skips ones without a Forge site', 
         ->and(envRows($unreachable))->toBe([])
         ->and(envRows($noForge))->toBe([]);
 });
+
+it('reports a site deleted from Forge as gone instead of failing the run', function () {
+    fakeSiteEnvs([$this->subscription->id => new Laravel\Forge\Exceptions\NotFoundException('The resource you are looking for could not be found.')]);
+
+    $this->artisan('app:pull-site-envs', ['--apply' => true])
+        ->expectsOutputToContain('site gone from Forge')
+        ->assertSuccessful();
+});
