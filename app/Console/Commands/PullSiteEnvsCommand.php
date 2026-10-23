@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CustomerSubscription;
-use App\Models\EnvVariables;
+use App\Support\SiteEnv\SiteEnvPuller;
 use App\Support\SiteEnv\SiteEnvReader;
 use Illuminate\Console\Command;
 
@@ -16,22 +16,22 @@ use Illuminate\Console\Command;
  * - add: on the site, no row here
  * - change: both have it, the values differ, and the site's is taken
  * - kept: the site's value is empty but the row has one, so the row is left
+ * - unpushed edit: with --keep-unpushed, a row changed in Super Admin since the last sync, left alone
  * - only here: rows the site does not have, left alone
  */
 class PullSiteEnvsCommand extends Command
 {
-    /** Never stored: it would hand every tenant row the Forge account. */
-    private const IGNORED_KEYS = ['FORGE_API_KEY'];
-
     protected $signature = 'app:pull-site-envs
         {ids?* : Only these subscription ids}
         {--type=* : Only these subscription type ids}
         {--apply : Save the rows. Without it nothing is written}
-        {--keys : List the key names behind each count}';
+        {--keys : List the key names behind each count}
+        {--keep-unpushed : Leave rows edited in Super Admin since the last sync alone (they are still waiting to be pushed)}
+        {--pause=0 : Milliseconds to wait between sites, to stay under the Forge API rate limit}';
 
     protected $description = 'Refresh env variable rows from each site\'s real .env on Forge (dry run by default)';
 
-    public function handle(SiteEnvReader $reader): int
+    public function handle(SiteEnvReader $reader, SiteEnvPuller $puller): int
     {
         $apply = (bool) $this->option('apply');
         $ids = array_map('intval', (array) $this->argument('ids'));
@@ -45,95 +45,67 @@ class PullSiteEnvsCommand extends Command
             ->get();
 
         $rows = [];
-        $totals = ['add' => 0, 'change' => 0, 'kept' => 0, 'failed' => 0, 'skipped' => 0];
+        $totals = ['add' => 0, 'change' => 0, 'kept' => 0, 'pending' => 0, 'failed' => 0, 'skipped' => 0];
+        $keepUnpushed = (bool) $this->option('keep-unpushed');
+        $pause = max(0, (int) $this->option('pause'));
 
-        foreach ($subscriptions as $subscription) {
+        foreach ($subscriptions as $index => $subscription) {
             $label = [$subscription->id, (int) $subscription->subscription_type_id, (string) $subscription->url];
 
             if (blank($subscription->server_id) || blank($subscription->forge_site_id)) {
                 $totals['skipped']++;
-                $rows[] = [...$label, '-', '-', '-', '-', 'no Forge site'];
+                $rows[] = [...$label, '-', '-', '-', '-', '-', 'no Forge site'];
 
                 continue;
+            }
+
+            if ($pause > 0 && $index > 0) {
+                usleep($pause * 1000);
             }
 
             try {
                 $content = $reader->read($subscription);
             } catch (\Throwable $e) {
                 $totals['failed']++;
-                $rows[] = [...$label, '-', '-', '-', '-', 'failed: '.mb_strimwidth($e->getMessage(), 0, 60, '…')];
+                $rows[] = [...$label, '-', '-', '-', '-', '-', 'failed: '.mb_strimwidth($e->getMessage(), 0, 60, '…')];
 
                 continue;
             }
 
-            $site = array_diff_key(SiteEnvReader::parse($content), array_flip(self::IGNORED_KEYS));
+            $pulled = $puller->pull($subscription, $content, $apply, $keepUnpushed);
 
-            if ($site === []) {
+            if ($pulled['skipped']) {
                 $totals['skipped']++;
-                $rows[] = [...$label, '-', '-', '-', '-', 'site env is empty'];
+                $rows[] = [...$label, '-', '-', '-', '-', '-', 'site env is empty'];
 
                 continue;
             }
 
-            $existing = EnvVariables::query()
-                ->where('customer_subscription_id', $subscription->id)
-                ->get()
-                ->keyBy('key');
-
-            $add = $change = $kept = [];
-
-            foreach ($site as $key => $value) {
-                $row = $existing->get($key);
-
-                if ($row === null) {
-                    $add[] = $key;
-                } elseif ((string) $row->value === $value) {
-                    continue;
-                } elseif ($value === '') {
-                    $kept[] = $key;
-
-                    continue;
-                } else {
-                    $change[] = $key;
-                }
-
-                if ($apply) {
-                    EnvVariables::query()->updateOrCreate(
-                        ['customer_subscription_id' => $subscription->id, 'key' => $key],
-                        ['value' => $value],
-                    );
-                }
-            }
-
-            if ($apply) {
-                $subscription->forceFill(['env' => $content])->saveQuietly();
-            }
-
-            $onlyHere = $existing->keys()->diff(array_keys($site))->values()->all();
-
-            $totals['add'] += count($add);
-            $totals['change'] += count($change);
-            $totals['kept'] += count($kept);
-            $rows[] = [...$label, count($add), count($change), count($kept), count($onlyHere), 'ok'];
+            $totals['add'] += count($pulled['add']);
+            $totals['change'] += count($pulled['change']);
+            $totals['kept'] += count($pulled['kept']);
+            $totals['pending'] += count($pulled['pending']);
+            $rows[] = [...$label, count($pulled['add']), count($pulled['change']), count($pulled['kept']), count($pulled['pending']), count($pulled['only_here']), 'ok'];
 
             if ($this->option('keys')) {
-                foreach (['add' => $add, 'change' => $change, 'kept' => $kept, 'only here' => $onlyHere] as $name => $keys) {
+                foreach (['add' => $pulled['add'], 'change' => $pulled['change'], 'kept' => $pulled['kept'], 'unpushed edit' => $pulled['pending'], 'only here' => $pulled['only_here']] as $name => $keys) {
                     if ($keys !== []) {
-                        $rows[] = ['', '', "  {$name}: ".implode(', ', $keys), '', '', '', '', ''];
+                        $rows[] = ['', '', "  {$name}: ".implode(', ', $keys), '', '', '', '', '', ''];
                     }
                 }
             }
         }
 
-        $this->table(['Subscription', 'Type', 'URL', 'Add', 'Change', 'Kept', 'Only here', 'Result'], $rows);
+        $this->table(['Subscription', 'Type', 'URL', 'Add', 'Change', 'Kept', 'Unpushed', 'Only here', 'Result'], $rows);
 
         $this->info(sprintf(
-            '%s: %d site(s), %d key(s) added, %d changed, %d kept (site value empty); %d failed, %d skipped.',
+            '%s: %d site(s), %d key(s) added, %d changed, %d kept (site value empty), %d unpushed edit(s) left alone; %d failed, %d skipped.',
             $apply ? 'Applied' : 'Dry run',
             count($subscriptions) - $totals['failed'] - $totals['skipped'],
             $totals['add'],
             $totals['change'],
             $totals['kept'],
+            $totals['pending'],
             $totals['failed'],
             $totals['skipped'],
         ));

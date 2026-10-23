@@ -11,6 +11,7 @@ use App\Models\ForgeServer;
 use App\Models\TemplateEnvVariables;
 use App\Services\CustomerEnvSyncService;
 use App\Support\SiteEnv\AppKey;
+use App\Support\SiteEnv\SiteEnvPuller;
 use App\Support\SiteEnv\SiteEnvReader;
 use Exception;
 use Laravel\Forge\Exceptions\ValidationException;
@@ -1118,7 +1119,12 @@ class ForgeApi
         }
 
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
-        $omitAppKey = $this->preserveLiveAppKey($customerSubscription, $organization);
+        // The file is rebuilt from the stored rows, so first bring them up to date with what the site is running:
+        // a key set on the site by hand would otherwise be lost, or a stale value put back. Rows edited in
+        // Super Admin and not pushed yet win; everything else follows the site.
+        $liveContent = $this->readLiveEnvironment($customerSubscription, $organization);
+        (new SiteEnvPuller)->pull($customerSubscription, $liveContent, true, true);
+        $omitAppKey = $this->preserveLiveAppKey($customerSubscription, $organization, $liveContent);
         $env = $this->collectEnv($customerSubscription, $omitAppKey);
         Log::info('forge.update_site_environment_file', [
             'customer_subscription_id' => $customerSubscription->id,
@@ -1134,6 +1140,8 @@ class ForgeApi
             ]);
             throw $e;
         }
+
+        $customerSubscription->forceFill(['env_synced_at' => now()])->saveQuietly();
     }
 
     public function collectEnv($customerSubscription, bool $omitAppKey = false)
@@ -1163,9 +1171,9 @@ class ForgeApi
      *
      * @return bool true when APP_KEY must be left out of the file
      */
-    protected function preserveLiveAppKey(CustomerSubscription $customerSubscription, string $organization): bool
+    protected function preserveLiveAppKey(CustomerSubscription $customerSubscription, string $organization, ?string $liveContent = null): bool
     {
-        $liveContent = $this->readLiveEnvironment($customerSubscription, $organization);
+        $liveContent ??= $this->readLiveEnvironment($customerSubscription, $organization);
         $liveKey = SiteEnvReader::parse($liveContent)['APP_KEY'] ?? null;
 
         $stored = EnvVariables::query()
