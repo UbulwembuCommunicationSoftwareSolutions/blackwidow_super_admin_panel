@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Laravel\Horizon\Horizon;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
+use Laravel\Horizon\MasterSupervisor;
 
 class HorizonServiceProvider extends HorizonApplicationServiceProvider
 {
@@ -14,6 +16,10 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     public function boot(): void
     {
         parent::boot();
+
+        // Name this Horizon after the site (HORIZON_NAME, the domain) so the dashboard and the supervisor list tell the
+        // sites on a shared server apart. Falls back to the hostname, which is what Horizon used before.
+        MasterSupervisor::determineNameUsing(fn () => config('horizon.name') ? Str::slug(str_replace('.', '-', (string) config('horizon.name'))) : Str::slug(gethostname()));
 
         // Horizon::routeSmsNotificationsTo('15556667777');
         // Horizon::routeMailNotificationsTo('example@example.com');
