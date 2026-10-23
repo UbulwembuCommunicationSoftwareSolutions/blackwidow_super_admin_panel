@@ -41,7 +41,9 @@ it('writes a zero downtime template for every subscription type that deploys cod
             ->not->toMatch('/^\s+\$CREATE_RELEASE/');
     }
 
-    expect($templates[13]->script)->toContain('$FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader');
+    expect($templates[13]->script)->toContain('$FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader')
+        ->and($templates[2]->script)->toContain('$FORGE_PHP artisan horizon:terminate')
+        ->and($templates[1]->script)->toContain('$FORGE_PHP artisan horizon:terminate');
 });
 
 it('renders the console template unchanged apart from the deploy lock on a zero downtime site', function () {

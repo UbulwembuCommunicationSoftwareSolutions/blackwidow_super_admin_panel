@@ -130,6 +130,7 @@ return new class extends Migration
 
             $FORGE_PHP artisan cache:clear
             $RESTART_QUEUES()
+            $FORGE_PHP artisan horizon:terminate
 
             BASH,
 
