@@ -92,6 +92,7 @@ class CustomerSubscription extends Model
         'app_name',
         'env',
         'site_created_at',
+        'zero_downtime_deployments',
         'github_sent_at',
         'env_sent_at',
         'deployment_script_sent_at',
@@ -235,6 +236,7 @@ class CustomerSubscription extends Model
     }
 
     protected $casts = [
+        'zero_downtime_deployments' => 'boolean',
         'site_deployment_queue_started_at' => 'datetime',
         'last_deployment_error_at' => 'datetime',
         'logo_1_updated_at' => 'datetime',

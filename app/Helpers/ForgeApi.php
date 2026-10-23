@@ -75,6 +75,9 @@ class ForgeApi
         }
         $this->assertForgeSiteReady($customerSubscription);
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
+        if ($customerSubscription->zero_downtime_deployments) {
+            $command = $this->commandInCurrentRelease($command);
+        }
         Log::info('forge.execute_site_command', [
             'customer_subscription_id' => (int) $customerSubscriptionId,
         ]);
@@ -83,11 +86,28 @@ class ForgeApi
         ]);
     }
 
+    /**
+     * Forge runs site commands from the site root. With zero-downtime deployments the
+     * application lives in the `current` release symlink, not that root.
+     */
+    protected function commandInCurrentRelease(string $command): string
+    {
+        if (preg_match('/^\s*cd\s+/', $command) === 1) {
+            return $command;
+        }
+
+        return 'cd current && '.$command;
+    }
+
     public function horizonCreator($customerSubscription)
     {
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
+        $appDirectory = '/home/forge/'.$customerSubscription->domain;
+        if ($customerSubscription->zero_downtime_deployments) {
+            $appDirectory .= '/current';
+        }
         $data = [
-            'command' => 'php /home/forge/'.$customerSubscription->domain.'/artisan horizon',
+            'command' => 'php '.$appDirectory.'/artisan horizon',
         ];
         $this->forge->createBackgroundProcess($organization, $customerSubscription->server_id, $data);
     }
@@ -330,6 +350,11 @@ class ForgeApi
                 ->first();
             if ($customerSubscription) {
                 $customerSubscription->forge_site_id = $site->id;
+                // Forge is the source of truth: sites converted or recreated outside this app
+                // must render with (or without) the release macros their deploy will actually run.
+                if ($site->zeroDowntimeDeployments !== null) {
+                    $customerSubscription->zero_downtime_deployments = $site->zeroDowntimeDeployments;
+                }
                 $customerSubscription->save();
                 Log::info('forge.site_matched', [
                     'customer_subscription_id' => $customerSubscription->id,
@@ -348,6 +373,7 @@ class ForgeApi
                 'url' => 'https://'.$site->name,
                 'database_name' => CustomerSubscription::normalizeDatabaseIdentifier((string) $site->name),
                 'site_created_at' => now(),
+                'zero_downtime_deployments' => (bool) $site->zeroDowntimeDeployments,
             ]);
             Log::info('forge.site_imported_under_placeholder_customer', [
                 'customer_subscription_id' => $customerSubscription->id,
@@ -581,6 +607,12 @@ class ForgeApi
             'allow_wildcard_subdomains' => false,
             'web_directory' => $customerSubscription->subscriptionType->public_dir,
             'php_version' => 'php83',
+            // Forge only accepts this at creation time, and it cannot be turned on later.
+            // .env is shared automatically; storage must be shared or uploads disappear with the old release.
+            'zero_downtime_deployments' => true,
+            'shared_paths' => [
+                ['from' => 'storage', 'to' => 'storage'],
+            ],
         ];
 
         if ($databaseName) {
@@ -611,6 +643,7 @@ class ForgeApi
         Log::info('forge.create_site', $payload);
 
         $organization = $this->organizationSlugForServer((int) $server_id);
+        $createdOnForge = true;
         try {
             $site = $this->forge->createSite($organization, $server_id, $payload);
         } catch (ValidationException $e) {
@@ -632,15 +665,22 @@ class ForgeApi
                 'forge_validation_errors' => $e->errors(),
             ]);
             $site = $existingSite;
+            $createdOnForge = false;
         }
         $customerSubscription->forge_site_id = (string) $site->id;
         if (! $customerSubscription->site_created_at) {
             $customerSubscription->site_created_at = now();
         }
+        // An adopted site was created earlier, possibly without zero-downtime deployments.
+        // Trust Forge's flag so we do not push release macros at a site that cannot run them.
+        $customerSubscription->zero_downtime_deployments = $createdOnForge
+            ? ($site->zeroDowntimeDeployments ?? true)
+            : (bool) $site->zeroDowntimeDeployments;
         $customerSubscription->save();
         Log::info('forge.site_created', [
             'customer_subscription_id' => $customerSubscription->id,
             'forge_site_id' => $site->id,
+            'zero_downtime_deployments' => $customerSubscription->zero_downtime_deployments,
         ]);
         $this->syncForge();
     }
