@@ -93,6 +93,7 @@ class DeploymentScriptRenderer
             $source
         );
 
+        $rendered = $this->withZeroDowntimeDeployments($rendered, $customerSubscription, $domain);
         $rendered = $this->withDeploymentLock($rendered, $domain);
 
         $releaseId = $target?->id;
@@ -115,6 +116,58 @@ class DeploymentScriptRenderer
         );
 
         return [$script, true];
+    }
+
+    /**
+     * New sites are created with Forge zero-downtime deployments. Those sites clone into a
+     * release directory and only flip `current` after the script succeeds, so the same template
+     * has to run inside `$FORGE_RELEASE_DIRECTORY` and call Forge's release macros.
+     * Existing sites stay on in-place deploys: Forge cannot enable this after creation.
+     */
+    private function withZeroDowntimeDeployments(string $script, CustomerSubscription $customerSubscription, string $domain): string
+    {
+        if (! $customerSubscription->zero_downtime_deployments || str_contains($script, '$CREATE_RELEASE()')) {
+            return $script;
+        }
+
+        // Templates reach the site root as `cd $FORGE_SITE_PATH`, `cd /home/forge/<domain>` or a
+        // bare `cd <domain>` (Forge starts in /home/forge); any of them would leave the release.
+        $cdTarget = '\$FORGE_SITE_PATH';
+        if ($domain !== '') {
+            $cdTarget .= '|(?:/home/forge/)?'.preg_quote($domain, '~');
+        }
+        $script = preg_replace(
+            '~^[ \t]*cd[ \t]+["\']?(?:'.$cdTarget.')/?["\']?[ \t]*\r?\n~m',
+            '',
+            $script,
+            1
+        ) ?? $script;
+
+        $prelude = <<<'BASH'
+        $CREATE_RELEASE()
+
+        cd $FORGE_RELEASE_DIRECTORY
+
+        BASH;
+
+        $script = $this->insertAfterShebang($script, $prelude);
+
+        if (! str_contains($script, '$ACTIVATE_RELEASE()')) {
+            $script = rtrim($script)."\n\n\$ACTIVATE_RELEASE()\n\n\$RESTART_QUEUES()\n";
+        }
+
+        return $script;
+    }
+
+    private function insertAfterShebang(string $script, string $block): string
+    {
+        $firstNewline = strpos($script, "\n");
+
+        if (str_starts_with($script, '#!') && $firstNewline !== false) {
+            return substr($script, 0, $firstNewline + 1)."\n".$block.substr($script, $firstNewline + 1);
+        }
+
+        return $block.$script;
     }
 
     /**
