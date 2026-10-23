@@ -92,6 +92,16 @@ it('marks the subscription as in sync after a push', function () {
     expect($subscription->fresh()->env_synced_at->gt(now()->subMinute()))->toBeTrue();
 });
 
+it('never writes env values to the log when it pushes', function () {
+    Illuminate\Support\Facades\Log::spy();
+    $subscription = subscriptionReadyForEnvPush();
+    envRow($subscription, 'MAIL_PASSWORD', 'super-secret-mail-password');
+
+    captureEnvPush($subscription, "DB_PASSWORD=super-secret-db-password\n");
+
+    Illuminate\Support\Facades\Log::shouldNotHaveReceived('info', fn (...$args) => str_contains(json_encode($args), 'super-secret'));
+});
+
 function usableAppKey(): string
 {
     return 'base64:'.base64_encode(Encrypter::generateKey('aes-256-cbc'));

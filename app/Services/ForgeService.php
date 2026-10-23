@@ -25,14 +25,11 @@ class ForgeService
         $organization = $forgeApi->organizationSlugForServer((int) $subscription->server_id);
         $response = $forgeApi->forge->siteEnvironment($organization, $subscription->server_id, $subscription->forge_site_id);
 
-        $responseForLog = is_string($response)
-            ? $response
-            : json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        // The response is the whole .env, secrets included: log that it arrived, never what it holds.
         Log::info('Pull env from Forge: received API response', [
             'customer_subscription_id' => $subscription->id,
             'server_id' => $subscription->server_id,
             'forge_site_id' => $subscription->forge_site_id,
-            'response_json' => $responseForLog,
         ]);
 
         $string_env = self::resolveEnvFileContent($response);

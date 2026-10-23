@@ -1131,7 +1131,6 @@ class ForgeApi
             'server_id' => $customerSubscription->server_id,
             'forge_site_id' => $customerSubscription->forge_site_id,
         ]);
-        Log::info(json_encode($env));
         try {
             $this->forge->updateSiteEnvironment($organization, $customerSubscription->server_id, $customerSubscription->forge_site_id, $env);
         } catch (ValidationException $e) {
@@ -1153,10 +1152,6 @@ class ForgeApi
             if ($omitAppKey && $env->key === 'APP_KEY') {
                 continue;
             }
-            Log::info('forge.update_site_environment_file.env', [
-                'key' => $env->key,
-                'value' => $env->value,
-            ]);
             $value = $env->value ?? '';
             $envFileStr .= $env->key.'='.$this->formatEnvValue($value)."\n";
         }

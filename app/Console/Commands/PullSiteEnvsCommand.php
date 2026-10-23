@@ -6,6 +6,7 @@ use App\Models\CustomerSubscription;
 use App\Support\SiteEnv\SiteEnvPuller;
 use App\Support\SiteEnv\SiteEnvReader;
 use Illuminate\Console\Command;
+use Laravel\Forge\Exceptions\NotFoundException;
 
 /**
  * Brings Super Admin's env variable rows back in line with the .env each
@@ -65,6 +66,12 @@ class PullSiteEnvsCommand extends Command
 
             try {
                 $content = $reader->read($subscription);
+            } catch (NotFoundException) {
+                // The Forge site was deleted; the subscription still points at it. Nothing to pull, nothing to fix here.
+                $totals['skipped']++;
+                $rows[] = [...$label, '-', '-', '-', '-', '-', 'site gone from Forge'];
+
+                continue;
             } catch (\Throwable $e) {
                 $totals['failed']++;
                 $rows[] = [...$label, '-', '-', '-', '-', '-', 'failed: '.mb_strimwidth($e->getMessage(), 0, 60, '…')];
