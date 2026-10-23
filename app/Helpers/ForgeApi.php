@@ -10,6 +10,8 @@ use App\Models\EnvVariables;
 use App\Models\ForgeServer;
 use App\Models\TemplateEnvVariables;
 use App\Services\CustomerEnvSyncService;
+use App\Support\SiteEnv\AppKey;
+use App\Support\SiteEnv\SiteEnvReader;
 use Exception;
 use Laravel\Forge\Exceptions\ValidationException;
 use Laravel\Forge\Forge;
@@ -1116,7 +1118,8 @@ class ForgeApi
         }
 
         $organization = $this->organizationSlugForServer((int) $customerSubscription->server_id);
-        $env = $this->collectEnv($customerSubscription);
+        $omitAppKey = $this->preserveLiveAppKey($customerSubscription, $organization);
+        $env = $this->collectEnv($customerSubscription, $omitAppKey);
         Log::info('forge.update_site_environment_file', [
             'customer_subscription_id' => $customerSubscription->id,
             'server_id' => $customerSubscription->server_id,
@@ -1133,12 +1136,15 @@ class ForgeApi
         }
     }
 
-    public function collectEnv($customerSubscription)
+    public function collectEnv($customerSubscription, bool $omitAppKey = false)
     {
 
         $envFileStr = '';
         $envVariables = EnvVariables::where('customer_subscription_id', $customerSubscription->id)->orderBy('key')->get();
         foreach ($envVariables as $env) {
+            if ($omitAppKey && $env->key === 'APP_KEY') {
+                continue;
+            }
             Log::info('forge.update_site_environment_file.env', [
                 'key' => $env->key,
                 'value' => $env->value,
@@ -1148,6 +1154,78 @@ class ForgeApi
         }
 
         return $envFileStr;
+    }
+
+    /**
+     * Keep a key the site is already running with. key:generate writes that
+     * key on the server only, so the stored row is often still the template
+     * placeholder, and a full-file push would put the placeholder back.
+     *
+     * @return bool true when APP_KEY must be left out of the file
+     */
+    protected function preserveLiveAppKey(CustomerSubscription $customerSubscription, string $organization): bool
+    {
+        $liveContent = $this->readLiveEnvironment($customerSubscription, $organization);
+        $liveKey = SiteEnvReader::parse($liveContent)['APP_KEY'] ?? null;
+
+        $stored = EnvVariables::query()
+            ->where('customer_subscription_id', $customerSubscription->id)
+            ->where('key', 'APP_KEY')
+            ->first();
+
+        if (AppKey::isUsable(is_string($liveKey) ? $liveKey : null)) {
+            if ($stored === null || $stored->value !== $liveKey) {
+                EnvVariables::query()->updateOrCreate(
+                    [
+                        'customer_subscription_id' => $customerSubscription->id,
+                        'key' => 'APP_KEY',
+                    ],
+                    ['value' => $liveKey],
+                );
+            }
+
+            Log::info('forge.send_env.preserved_app_key', [
+                'customer_subscription_id' => $customerSubscription->id,
+            ]);
+
+            return false;
+        }
+
+        if (AppKey::isUsable($stored?->value)) {
+            return false;
+        }
+
+        Log::info('forge.send_env.omitted_app_key', [
+            'customer_subscription_id' => $customerSubscription->id,
+        ]);
+
+        return true;
+    }
+
+    protected function readLiveEnvironment(CustomerSubscription $customerSubscription, string $organization): string
+    {
+        try {
+            $response = $this->forge->siteEnvironment(
+                $organization,
+                $customerSubscription->server_id,
+                $customerSubscription->forge_site_id,
+            );
+        } catch (Throwable $e) {
+            Log::error('forge.send_env.live_env_unreadable', [
+                'customer_subscription_id' => $customerSubscription->id,
+                'message' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException(
+                'Cannot push environment to Forge: the site\'s current .env could not be read, so APP_KEY would be overwritten.',
+                previous: $e,
+            );
+        }
+
+        if (is_array($response)) {
+            return (string) ($response['content'] ?? '');
+        }
+
+        return (string) $response;
     }
 
     /**
