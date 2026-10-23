@@ -6,6 +6,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Horizon Name
+    |--------------------------------------------------------------------------
+    |
+    | Names this Horizon (set HORIZON_NAME to the site's domain). The master supervisor is named after it, so
+    | several sites on one server can be told apart in the dashboard.
+    |
+    */
+
+    'name' => env('HORIZON_NAME'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon Domain
     |--------------------------------------------------------------------------
     |
