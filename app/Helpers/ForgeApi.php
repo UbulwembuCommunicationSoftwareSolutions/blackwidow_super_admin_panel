@@ -1074,6 +1074,16 @@ class ForgeApi
                 $appUrl->save();
             }
 
+            // Precase posts this URL to /api/user-import. It has to be the subscription URL,
+            // not the blank template value, or Super Admin cannot match the site.
+            $superAdminAppUrl = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
+                ->where('key', 'SUPERADMIN_APP_URL')
+                ->first();
+            if ($superAdminAppUrl) {
+                $superAdminAppUrl->value = $customerSubscription->url;
+                $superAdminAppUrl->save();
+            }
+
             $elasticSearch = EnvVariables::where('customer_subscription_id', $customerSubscription->id)
                 ->where('key', 'ELASTICSEARCH_INDEX')
                 ->first();
