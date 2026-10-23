@@ -10,6 +10,7 @@ class DeploymentTemplate extends Model
 
     public $fillable = [
         'script',
+        'native_script',
         'subscription_type_id',
     ];
     public function subscriptionType(): BelongsTo
@@ -17,5 +18,12 @@ class DeploymentTemplate extends Model
         return $this->belongsTo(SubscriptionType::class);
     }
 
-
+    /**
+     * True when this template has a Forge zero-downtime (release based) script, so sites of its
+     * subscription type can be created as native zero-downtime sites.
+     */
+    public function supportsZeroDowntime(): bool
+    {
+        return filled($this->native_script);
+    }
 }

@@ -69,7 +69,11 @@ class DeploymentScriptRenderer
                 );
             }
 
-            $source = (string) $template->script;
+            // Sites created as Forge zero-downtime sites need the release based script; a classic
+            // `cd $FORGE_SITE_PATH; git pull` script does not work on them.
+            $source = ($customerSubscription->zero_downtime && $template->supportsZeroDowntime())
+                ? (string) $template->native_script
+                : (string) $template->script;
         }
 
         if (str_contains($source, '#RELEASE_TAG#') && $target === null) {

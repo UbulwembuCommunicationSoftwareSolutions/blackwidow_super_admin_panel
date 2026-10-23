@@ -104,6 +104,7 @@ class CustomerSubscription extends Model
         'deployed_commit_sha',
         'deployed_tag_raw',
         'deployed_confirmed_at',
+        'zero_downtime',
     ];
 
     protected static function booted(): void
@@ -243,6 +244,7 @@ class CustomerSubscription extends Model
         'logo_4_updated_at' => 'datetime',
         'logo_5_updated_at' => 'datetime',
         'deployed_confirmed_at' => 'datetime',
+        'zero_downtime' => 'boolean',
     ];
 
     public $appends = ['null_variable_count', 'logo_urls'];

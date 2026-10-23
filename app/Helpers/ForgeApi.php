@@ -6,6 +6,7 @@ use App\Jobs\GetSitesForServerJob;
 use App\Jobs\TriggerForgeDeployment;
 use App\Models\Customer;
 use App\Models\CustomerSubscription;
+use App\Models\DeploymentTemplate;
 use App\Models\EnvVariables;
 use App\Models\ForgeServer;
 use App\Models\TemplateEnvVariables;
@@ -559,6 +560,14 @@ class ForgeApi
     /**
      * @param  bool  $skipDatabaseProvisioning  Set true when {@see prepareForgeServerDatabaseForSite} already ran in the same deployment batch.
      */
+    private function usesZeroDowntime(CustomerSubscription $customerSubscription): bool
+    {
+        return DeploymentTemplate::query()
+            ->where('subscription_type_id', $customerSubscription->subscription_type_id)
+            ->get()
+            ->contains(fn (DeploymentTemplate $template) => $template->supportsZeroDowntime());
+    }
+
     public function createSite($server_id, CustomerSubscription $customerSubscription, bool $skipDatabaseProvisioning = false)
     {
         $customerSubscription->loadMissing('subscriptionType');
@@ -608,6 +617,17 @@ class ForgeApi
             $payload['push_to_deploy'] = false;
         }
 
+        /**
+         * Create the site as a native Forge zero-downtime site when the subscription type has a
+         * release based deployment script (deployment_templates.native_script). storage/ is shared
+         * between releases. Types without one keep being created as classic sites.
+         */
+        $zeroDowntime = $this->usesZeroDowntime($customerSubscription);
+        if ($zeroDowntime) {
+            $payload['zero_downtime_deployments'] = true;
+            $payload['shared_paths'] = [['from' => 'storage', 'to' => 'storage']];
+        }
+
         Log::info('forge.create_site', $payload);
 
         $organization = $this->organizationSlugForServer((int) $server_id);
@@ -632,8 +652,11 @@ class ForgeApi
                 'forge_validation_errors' => $e->errors(),
             ]);
             $site = $existingSite;
+            // The site already existed, so it was not created with the payload above: don't assume it is zero-downtime.
+            $zeroDowntime = false;
         }
         $customerSubscription->forge_site_id = (string) $site->id;
+        $customerSubscription->zero_downtime = $zeroDowntime;
         if (! $customerSubscription->site_created_at) {
             $customerSubscription->site_created_at = now();
         }

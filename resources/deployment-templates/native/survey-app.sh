@@ -1,0 +1,8 @@
+$CREATE_RELEASE()
+
+cd $FORGE_RELEASE_DIRECTORY
+
+npm install
+npm run build
+
+$ACTIVATE_RELEASE()
