@@ -44,6 +44,13 @@ class CMSService
             'docket_description' => $subscription->customer->docket_description,
         ];
 
+        // Null means CMS has not reported level 4 yet. Omitting the key leaves
+        // the console's own flag alone instead of turning the level on or off.
+        $levelFourInUse = $subscription->customer->getAttributes()['level_four_in_use'] ?? null;
+        if ($levelFourInUse !== null) {
+            $data['level_four_in_use'] = (bool) $levelFourInUse;
+        }
+
         $response = Http::withToken((string) $subscription->customer->token)
             ->acceptJson()
             ->asJson()

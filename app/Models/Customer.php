@@ -24,6 +24,12 @@ class Customer extends Model
      */
     public const PLACEHOLDER_COMPANY_NAME = 'Unassigned (Forge Sync)';
 
+    /**
+     * Set while applying a company-level save that already came from CMS.
+     * The updating hook must not POST those same values back to set-levels.
+     */
+    public bool $skipSystemConfigPush = false;
+
     public static function placeholder(): self
     {
         return static::query()->firstOrCreate(['company_name' => self::PLACEHOLDER_COMPANY_NAME]);
@@ -54,6 +60,10 @@ class Customer extends Model
         });
 
         static::updating(function ($model) {
+            if ($model->skipSystemConfigPush) {
+                return;
+            }
+
             $updated = false;
             if ($model->isDirty('level_one_in_use')) {
                 $updated = true;
@@ -62,6 +72,9 @@ class Customer extends Model
                 $updated = true;
             }
             if ($model->isDirty('level_three_in_use')) {
+                $updated = true;
+            }
+            if ($model->isDirty('level_four_in_use')) {
                 $updated = true;
             }
             if ($model->isDirty('level_one_description')) {
@@ -154,6 +167,7 @@ class Customer extends Model
         'level_three_description',
         'level_three_in_use',
         'level_four_description',
+        'level_four_in_use',
         'level_five_description',
     ];
 

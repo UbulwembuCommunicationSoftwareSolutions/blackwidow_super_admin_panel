@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\GithubReleaseWebhookController;
 use App\Http\Controllers\Api\McpSiteController;
 use App\Http\Controllers\Api\V1\BrandingSyncController;
+use App\Http\Controllers\Api\V1\CompanyLevelSyncController;
 use App\Http\Controllers\Api\V1\CustomerSyncController;
 use App\Http\Controllers\Api\V1\UserFieldSyncController;
 use App\Http\Controllers\Api\V1\UserSyncController;
@@ -45,6 +46,7 @@ Route::middleware('customer.bearer')->prefix('v1/sync')->group(function () {
     Route::post('users/sso-token', [UserSyncController::class, 'ssoToken']);
     Route::get('branding', [BrandingSyncController::class, 'index']);
     Route::post('branding', [BrandingSyncController::class, 'upsert']);
+    Route::post('company-levels', [CompanyLevelSyncController::class, 'upsert']);
     Route::get('user-fields', [UserFieldSyncController::class, 'index']);
     Route::post('user-fields', [UserFieldSyncController::class, 'upsert']);
     Route::post('user-fields/archive', [UserFieldSyncController::class, 'archive']);

@@ -34,7 +34,8 @@ it('pushes system configs without dumping the response', function () {
     Http::assertSent(function ($request) {
         return $request->url() === 'https://cms-config.example.test/admin-api/set-levels'
             && $request->hasHeader('Authorization', 'Bearer config-token')
-            && $request['docket_description'] === 'Cases';
+            && $request['docket_description'] === 'Cases'
+            && ! array_key_exists('level_four_in_use', $request->data());
     });
 
     Log::shouldHaveReceived('info')->withArgs(function ($message) {
@@ -63,5 +64,31 @@ it('throws when system config sync fails so deployment can mark the step failed'
 
     Log::shouldHaveReceived('warning')->withArgs(function ($message) {
         return $message === 'CMS system config sync failed';
+    });
+});
+
+it('sends level four in use once the customer has stored it', function () {
+    Http::fake([
+        '*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $customer = Customer::factory()->create([
+        'token' => 'config-token',
+        'level_four_in_use' => false,
+    ]);
+    SubscriptionType::factory()->create(['id' => 1, 'name' => 'CMS']);
+    $subscription = CustomerSubscription::factory()->create([
+        'customer_id' => $customer->id,
+        'subscription_type_id' => 1,
+        'url' => 'https://cms-config.example.test',
+    ]);
+    $subscription->setRelation('customer', $customer->fresh());
+
+    (new CMSService)->setConsoleSystemConfigs($subscription);
+
+    Http::assertSent(function ($request) {
+        return $request->url() === 'https://cms-config.example.test/admin-api/set-levels'
+            && array_key_exists('level_four_in_use', $request->data())
+            && $request['level_four_in_use'] === false;
     });
 });
