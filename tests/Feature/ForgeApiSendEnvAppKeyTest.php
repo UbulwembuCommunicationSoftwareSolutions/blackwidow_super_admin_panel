@@ -58,6 +58,40 @@ it('omits the app key when neither the site nor the stored value is usable', fun
         ->and(envRowValue($subscription, 'APP_KEY'))->toBe('base64:CHANGE_ME');
 });
 
+it('pulls the live values before a push so a stale row cannot put an old value back', function () {
+    $subscription = subscriptionReadyForEnvPush();
+    $subscription->forceFill(['env_synced_at' => now()->subDay()])->saveQuietly();
+    envRow($subscription, 'DB_PASSWORD', 'stale-password');
+    EnvVariables::query()->where('customer_subscription_id', $subscription->id)->update(['updated_at' => now()->subDays(3)]);
+
+    $pushed = captureEnvPush($subscription, "DB_PASSWORD=real-password\nSET_BY_HAND=1\n");
+
+    $parsed = SiteEnvReader::parse($pushed);
+    expect($parsed['DB_PASSWORD'])->toBe('real-password')
+        ->and($parsed['SET_BY_HAND'])->toBe('1')
+        ->and(envRowValue($subscription, 'DB_PASSWORD'))->toBe('real-password');
+});
+
+it('still pushes a row that was edited in Super Admin after the last sync', function () {
+    $subscription = subscriptionReadyForEnvPush();
+    $subscription->forceFill(['env_synced_at' => now()->subDay()])->saveQuietly();
+    envRow($subscription, 'QUEUE_CONNECTION', 'redis');
+
+    $pushed = captureEnvPush($subscription, "QUEUE_CONNECTION=database\n");
+
+    expect(SiteEnvReader::parse($pushed)['QUEUE_CONNECTION'])->toBe('redis');
+});
+
+it('marks the subscription as in sync after a push', function () {
+    $subscription = subscriptionReadyForEnvPush();
+    $subscription->forceFill(['env_synced_at' => now()->subDay()])->saveQuietly();
+    envRow($subscription, 'MAIL_HOST', 'smtp.example.test');
+
+    captureEnvPush($subscription, "MAIL_HOST=smtp.example.test\n");
+
+    expect($subscription->fresh()->env_synced_at->gt(now()->subMinute()))->toBeTrue();
+});
+
 function usableAppKey(): string
 {
     return 'base64:'.base64_encode(Encrypter::generateKey('aes-256-cbc'));

@@ -93,6 +93,7 @@ class CustomerSubscription extends Model
         'env',
         'site_created_at',
         'zero_downtime_deployments',
+        'env_synced_at',
         'github_sent_at',
         'env_sent_at',
         'deployment_script_sent_at',
@@ -237,6 +238,7 @@ class CustomerSubscription extends Model
 
     protected $casts = [
         'zero_downtime_deployments' => 'boolean',
+        'env_synced_at' => 'datetime',
         'site_deployment_queue_started_at' => 'datetime',
         'last_deployment_error_at' => 'datetime',
         'logo_1_updated_at' => 'datetime',

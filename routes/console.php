@@ -113,3 +113,11 @@ use Illuminate\Support\Facades\Schedule;
 // Hourly sync is the source of truth for GitHub releases; the webhook is a fast path.
 // Requires a machine crontab entry: * * * * * php artisan schedule:run
 Schedule::job(new SyncAllGithubReleasesJob)->hourly();
+
+// Keep the stored env rows in line with what the sites are really running, so a later env push (which rebuilds the
+// whole file from the rows) cannot put an old value back. Rows edited in Super Admin and not pushed yet are left alone.
+// The pause keeps ~70 sites of Forge reads under the API rate limit.
+Schedule::command('app:pull-site-envs --apply --keep-unpushed --pause=700')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(30)
+    ->runInBackground();
